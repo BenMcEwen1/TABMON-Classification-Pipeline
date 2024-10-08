@@ -15,20 +15,25 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     storage_client = storage.Client()
     print("Storage client created.")
 
-    bucket = storage_client.bucket(bucket_name)
-    print(bucket)
+    # bucket = storage_client.bucket(bucket_name)
+    blobs = storage_client.list_blobs(bucket_name)
 
-    # Construct a client side representation of a blob.
-    # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
-    # any content from Google Cloud Storage. As we don't need additional data,
-    # using `Bucket.blob` is preferred here.
-    blob = bucket.blob("tabmon_data/proj_sound-of-norway/bugg_RPiID-10000000cc849698/conf_6f40914/2022-09-24T02_03_08.447Z.mp3")
-    blob.download_to_filename("./test.mp3")
+    # print(bucket)
+    for blob in blobs:
+        print(blob)
+        
 
-    print(
-        "Downloaded storage object {} from bucket {} to local file {}.".format(
-            source_blob_name, bucket_name, destination_file_name
-        )
-    )
+    # # Construct a client side representation of a blob.
+    # # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
+    # # any content from Google Cloud Storage. As we don't need additional data,
+    # # using `Bucket.blob` is preferred here.
+    # blob = bucket.blob("tabmon_data/proj_sound-of-norway/bugg_RPiID-10000000cc849698/conf_6f40914/2022-09-24T02_03_08.447Z.mp3")
+    # blob.download_to_filename("./test.mp3")
 
-download_blob("132404-TABMON", None, None)
+    # print(
+    #     "Downloaded storage object {} from bucket {} to local file {}.".format(
+    #         source_blob_name, bucket_name, destination_file_name
+    #     )
+    # )
+
+download_blob("tabmon_data", None, None)
