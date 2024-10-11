@@ -5,6 +5,10 @@ Author: Ben McEwen \
 Date: 08/10/24
 
 ## Structure
+`loader.py` - Downloads audio from Google Cloud storage, start and end dates as well as download limit can be specified.
+
+
+## Plan
 - Data pipeline - Continuous field data *(24 hour)* is collected using Bugg automatic recording devices that upload data to Google Cloud storage. Data is seperated into *5 minute* segments (*sampled at 44.1 kHz*) for processing. Included in the data pipeline is the following.
     - Optional - Segmentation step to filter empty audio before the classification stage - work by Ghani et al. (2024) previously compared performance with and without segmentation on weakly labelled (Xeno-canto) data demonstrating no meaningful differences in performance. **Question - Discuss potential additional testing.**
 - Classification pipeline - Building upon previous works by Ghani et al. (2024) the pre-trained AvesEcho European bird classification model provides the foundation for sound event detection and classification. **Question - An important first step is understand where previous projects (Sounds of Norway) were successful and where improvements could be made.** 
@@ -16,6 +20,29 @@ Date: 08/10/24
     - Inferring EBVs from sound event detection and classification. Alternative approaches: 1) Treat classified events the same as observations, treating the classification and biodiversity estimation as two separate stages (Task 2.2). 2) Combined approach that incorporates covariate data into classification model and attempt to directly infer biodiversity variables (Task 2.3). *Quantifying and incorporating false detections into estimations.*
     - **Questions - Unified list of target species, short list of relevant EBVs, estimation of biodiversity metrics (distribution, abundance) and the inclusion of covariates?**
 
+
+### Details
+Data Pipeline: 
+- Data loader function to:
+    - Download Google Cloud data (batch size, specify date/time).
+    - Separate five minute field recordings into segments (probably 3 second).
+    - Optional - Resampling/normalisation if necessary.
+    - **Optional - segmentation options (energy and ML-based tested by Ghani et al. (2024)).**
+
+Model setup:
+- AvesEcho is a foundation for all site-specific models - Create class that represents site-specific models, initialised with AvesEcho pretained model, and includes site specific information such as location. Parameters:
+    - model - allow specification of alternative models (fc, PaSST etc) including Tensorflow-specific models (Perch, BirdNet), default: fc. **FCN classification head - think about options here, softmax of logits, cosine similarity comparing class weights, distance metrics. Perhaps this could be selected as well?**
+    - weights - Specify model weights/checkpoint. Default: last model checkpoint.
+    - Location: GPS lat/long (required)
+    - Name: specify meaningful name i.e. location_ID
+    - date/time: if using verification data as training for next step... **Need to be very careful that only new data is being used for verification and that the appropriate training checkpoint is used if revaluating prior data.**
+
+    Functions:
+    - Inference and training for both Pytorch and Tensorflow models. Including data augmentation helper functions etc.
+    - Active learning recommender (need to be able to test alternative methods)
+    - General reporting
+
 ## Next Steps
 - [ ] Download TABMON data from Google Cloud Storage.
 - [ ] Testing of pre-trained AvesEcho models 
+- [ ] Support for hosting and running models in cloud
