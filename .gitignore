@@ -5,4 +5,7 @@ National_PAM_of_Biodiversity_Bick_et_al_2024/
 *.wav
 *.wav
 *.mp3
+*.tif
+*.whl
+*.nc
 .env
