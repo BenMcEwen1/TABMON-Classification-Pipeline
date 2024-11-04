@@ -9,3 +9,4 @@ National_PAM_of_Biodiversity_Bick_et_al_2024/
 *.whl
 *.nc
 .env
+*.tflite

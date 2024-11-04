@@ -1,0 +1,16 @@
+torch==2.2.1
+torchaudio==2.2.1
+torchvision==0.17.1
+etils==1.7.0
+flask==3.0.3
+librosa==0.10.2.post1
+numpy==1.26.3
+pandas==2.2.2
+soundfile==0.12.1
+tensorflow==2.14.1
+timm==0.6.13
+torchmetrics==1.4.0.post0
+tqdm==4.65.0
+importlib_resources==6.4.0
+mgrs==1.4.6
+resampy==0.4.3

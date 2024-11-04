@@ -42,7 +42,7 @@ def download_audio(bucket_name: str,
         if (start_date <= time_object <= end_date):
             blob.download_to_filename(f"{output_folder}/{filename}")
 
-
+## Example of converting filename to datetime
 # start = datetime.strptime("2022-09-24T02:03:07.447Z", "%Y-%m-%dT%H:%M:%S.%fZ")
 # end = datetime.strptime("2022-09-24T02:03:09.447Z", "%Y-%m-%dT%H:%M:%S.%fZ")
 

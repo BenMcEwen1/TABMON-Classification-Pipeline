@@ -41,44 +41,6 @@ GMAIL_USER = os.environ.get('GMAIL_USER')
 GMAIL_PASS = os.environ.get('GMAIL_PASS')
 RECEIVER_EMAIL = os.environ.get('RECEIVER_EMAIL')
 
-if not GMAIL_USER or not GMAIL_PASS:
-    logging.error("GMAIL_USER or GMAIL_PASS environment variables are not set.")
-
-def send_email(subject, body): # Sends an email if a detection occurs, could be interesting
-    msg = EmailMessage()
-    msg.set_content(body)
-    msg['Subject'] = subject
-    msg['From'] = GMAIL_USER
-    msg['To'] = RECEIVER_EMAIL
-
-    # Establish a connection to Gmail
-    try:
-        logging.info("Attempting to connect to Gmail SMTP server...")
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        logging.info("Connected to Gmail SMTP server. Attempting login...")
-        server.login(GMAIL_USER, GMAIL_PASS)
-        logging.info("Logged in to Gmail. Sending email...")
-        server.send_message(msg)
-        server.quit()
-        logging.info("Email sent successfully!")
-        return "Succes"
-    except Exception as e:
-        logging.error(f"Error sending email: {e}")
-        return repr(e)
-
-
-# def convert_mp3_to_wav(mp3_file_object): # Not necessary
-#     # Load MP3 file from file object
-#     audio = AudioSegment.from_file(mp3_file_object, format="mp3")
-    
-#     # Convert to WAV
-#     wav_file_object = io.BytesIO()
-#     audio.export(wav_file_object, format="mp3")
-#     wav_file_object.seek(0)  # Move file pointer to the start
-    
-#     return wav_file_object
-
 
 def fetch_audio_data(bucket_name, blob_name): # Already have
     """

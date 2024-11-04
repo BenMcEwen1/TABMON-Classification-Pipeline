@@ -7,25 +7,12 @@
     # Time/frquency masking
 
 from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, Shift
-import random
 import numpy as np
 from numpy.typing import NDArray
 
 
-augment = Compose([
-    AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.5),
-    TimeStretch(min_rate=0.8, max_rate=1.25, p=0.5),
-    PitchShift(min_semitones=-4, max_semitones=4, p=0.5),
-    Shift(p=0.5),
-])
-
 # Generate 2 seconds of dummy audio for the sake of example
 samples = np.random.uniform(low=-0.2, high=0.2, size=(32000,)).astype(np.float32)
-
-# Augment/transform/perturb the audio data - NOTE: all augmentations are applied to the same audio file
-augmented_samples = augment(samples=samples, sample_rate=16000)
-print(augmented_samples.shape)
-
 
 class Compose(Compose):
     def __init__(self, transforms, p=1.0, shuffle=False, seperate=False):

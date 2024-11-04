@@ -106,11 +106,11 @@ class AvesEcho:
             self.model.net =  get_model_passt(arch="passt_s_kd_p16_128_ap486",  n_classes=self.n_classes)
             self.model = self.model.to(device)
             self.model.load_state_dict(torch.load('AvesEcho/checkpoints/best_model_passt.pt', map_location=device))
-        # if self.model_name == 'fc':
-        #     print("fc")
-        #     self.model = avesecho(NumClasses=self.n_classes)
-        #     self.model = self.model.to(device)
-        #     self.model.load_state_dict(torch.load('checkpoints/best_model_fc_1.pt', map_location=device))
+        if self.model_name == 'fc':
+            print("fc")
+            self.model = avesecho(NumClasses=self.n_classes)
+            self.model = self.model.to(device)
+            self.model.load_state_dict(torch.load('checkpoints/best_model_fc_1.pt', map_location=device))
 
     def analyze(self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None):
         # NOTE: only using directories mode for now
