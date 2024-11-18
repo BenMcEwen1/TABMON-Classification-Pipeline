@@ -9,4 +9,4 @@ This is where active learning implementation will go and will be used to identif
 ### Next Steps
 - [X] Helper function to split signal into 3s chunks
 - [X] PyTorch Dataset and dataloader for preparing inputs
-- [ ] Tensorflow dataloader required also
+- [ ] Add method for ranking samples in order of highest uncertainty

@@ -94,6 +94,7 @@ def add_predictions(
     end_time: float,
     scientific_names: list[str],
     probabilities: list[float],
+    uncertainty: float,
     analysis_results: dict[str, Any]
 ) -> None:
     # Predictions template
@@ -116,6 +117,7 @@ def add_predictions(
         )
 
     for prediction_index, scientific_name in enumerate(scientific_names):
+        # print(uncertainty)
         analysis_results["predictions"].append(
             {
                 "region_group_id": region_group_id,
@@ -125,6 +127,7 @@ def add_predictions(
                         {
                             "scientific_name": scientific_name,
                             "probability": probabilities[prediction_index],
+                            "uncertainty": uncertainty,
                             # Fill in taxon_id if available: "taxon_id": "",
                         }
                     ]
@@ -138,7 +141,7 @@ def format_time(seconds):
     # Format seconds with leading zero if necessary
     return f"{minutes}:{seconds:02d}"
 
-def create_json(analysis_results, predictions, scores, files, flist, df, add_csv, fname, m_conf, filtered=False):
+def create_json(analysis_results, predictions, scores, uncertainty, files, flist, df, add_csv, fname, m_conf, filtered=False):
 
      # Create a predictions file name
     filename_without_ext = fname.split('.')[0]  
@@ -178,8 +181,7 @@ def create_json(analysis_results, predictions, scores, files, flist, df, add_csv
                     writer.writerow([formatted_begin_time, formatted_end_time, fname, f'{common_name}_{name}', score]) # uncomment for time in minutes:seconds in csv
         
         region_group_id = f"{file_path}?region={i}"
-
-        add_predictions(region_group_id, fname, begin_time, end_time, prediction, scores[i], analysis_results)
+        add_predictions(region_group_id, fname, begin_time, end_time, prediction, scores[i], uncertainty[i], analysis_results)
 
 
 def create_json_maxpool(analysis_results, predictions, scores, files, flist, df, add_csv, fname, m_conf, length, filtered=False):

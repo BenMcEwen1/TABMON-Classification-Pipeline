@@ -4,7 +4,7 @@ from datetime import datetime
 def download_audio(bucket_name: str, 
                   prefix: str, 
                   delimiter: str = "/", 
-                  output_folder: str = "./main/audio", 
+                  output_folder: str = "./audio", 
                   max_results: int = 1000, 
                   start_date: datetime = datetime.min, 
                   end_date: datetime = datetime.max) -> None:
@@ -47,5 +47,7 @@ def download_audio(bucket_name: str,
 # end = datetime.strptime("2022-09-24T02:03:09.447Z", "%Y-%m-%dT%H:%M:%S.%fZ")
 
 download_audio("tabmon_data", 
-               prefix="proj_sound-of-norway/bugg_RPiID-10000000cc849698/conf_6f40914/", 
+               prefix="proj_tabmon_NINA_FR/bugg_RPiID-100000003331e641/conf_202410301_TABMON_test/", 
                max_results=5)
+
+# "tabmon_data/proj_tabmon_NINA_FR/bugg_RPiID-100000003331e641/conf_202410301_TABMON_test"

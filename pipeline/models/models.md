@@ -18,4 +18,4 @@ More...
 ### Next Step(s)
 - Create wrappers for PyTorch and Tensorflow models to run inference and model fine-tuning.
     - [X] PaSST (AvesEcho) model setup and running
-    - [ ] fc (AvesEcho) model
+    - [X] fc (AvesEcho) model

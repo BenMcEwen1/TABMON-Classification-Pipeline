@@ -1,15 +1,54 @@
 {
     "generated_by": {
-        "datetime": "2024-11-04T10:13:43Z",
+        "datetime": "2024-11-18T09:04:38Z",
         "tag": "1fd68f8c8cb93ec4e45049fcf9a056628e9599aa815790a2a7b568aa",
         "version": "avesecho-v1 1.2.0"
     },
     "media": [
         {
-            "filename": "./audio/single/single\\XC487569 - Purple Sandpiper - Calidris maritima.mp3",
-            "id": "single\\XC487569 - Purple Sandpiper - Calidris maritima.mp3"
+            "filename": "./audio/single/xeno-canto\\XC487569 - Purple Sandpiper - Calidris maritima.mp3",
+            "id": "xeno-canto\\XC487569 - Purple Sandpiper - Calidris maritima.mp3"
+        },
+        {
+            "filename": "./audio/single/xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3",
+            "id": "xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3"
+        },
+        {
+            "filename": "./audio/single/xeno-canto\\XC726321 - White-tailed Lapwing - Vanellus leucurus.mp3",
+            "id": "xeno-canto\\XC726321 - White-tailed Lapwing - Vanellus leucurus.mp3"
+        },
+        {
+            "filename": "./audio/single/xeno-canto\\XC921263 - Harris's Hawk - Parabuteo unicinctus.wav",
+            "id": "xeno-canto\\XC921263 - Harris's Hawk - Parabuteo unicinctus.wav"
         }
     ],
-    "region_groups": [],
-    "predictions": []
+    "region_groups": [
+        {
+            "id": "./audio/single/xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3?region=3",
+            "regions": [
+                {
+                    "media_id": "xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3",
+                    "box": {
+                        "t1": 9.0,
+                        "t2": 12.0
+                    }
+                }
+            ]
+        }
+    ],
+    "predictions": [
+        {
+            "region_group_id": "./audio/single/xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3?region=3",
+            "taxa": {
+                "type": "multilabel",
+                "items": [
+                    {
+                        "scientific_name": "Parabuteo unicinctus",
+                        "probability": 0.5231144428253174,
+                        "uncertainty": 0.25340574979782104
+                    }
+                ]
+            }
+        }
+    ]
 }

@@ -59,7 +59,7 @@ def run_algorithm():
                           outputd=outputd, avesecho_mapping=avesecho_mapping,
                           maxpool=maxpool, add_csv=add_csv)
 
-    classifier.analyze(audio_input="./audio/single", lat=lat, lon=lon, result_file=result_file)
+    classifier.analyze(audio_input="./audio/xeno-canto", lat=lat, lon=lon, result_file=result_file)
 
 
 if __name__ == "__main__":

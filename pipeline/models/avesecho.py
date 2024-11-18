@@ -153,11 +153,14 @@ class AvesEcho:
             predictions, scores, files = inference_maxpool(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
             create_json_maxpool(analysis_results, predictions, scores, files, self.flist, df, self.add_csv, filename, self.mconf, len(inference_data))
         else:
-            predictions, scores, files = inference(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
-            create_json(analysis_results, predictions, scores, files, self.flist, df, self.add_csv, filename, self.mconf)
+            predictions, scores, files, uncertainty = inference(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
+            create_json(analysis_results, predictions, scores, uncertainty, files, self.flist, df, self.add_csv, filename, self.mconf)
 
         # Empty temporary audio chunks directory
-        shutil.rmtree(self.outputd)
+        try:
+            shutil.rmtree(self.outputd)
+        except OSError:
+            print("Permission error - Access Denied")
         return predictions, scores, files
 
 

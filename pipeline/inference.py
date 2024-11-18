@@ -9,6 +9,29 @@ SAMPLE_RATE = 32000
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.1):
+    """
+    Calculate aggregated uncertainty (entropy) for a batch of multi-label classes.
+    Binary Entropy - https://en.wikipedia.org/wiki/Binary_entropy_function
+
+    Parameters
+    ----------
+    outputs : tensor
+        Output of the model
+    threshold : float, optional
+        Threshold for filtering low uncertainty values, by default 0.1
+
+    Returns: List of uncertainties per batch
+    """
+    uncertainty = []
+    for p in outputs:
+        uncertainty_array = -(p*torch.log2(p))-(torch.subtract(1, p))*torch.log2(torch.subtract(1, p))
+        if threshold:
+            filtered_uncertainty = [x for x in uncertainty_array if x > threshold]
+            per_class = sum(filtered_uncertainty)/len(filtered_uncertainty)
+        uncertainty.append(per_class.item())
+    return uncertainty
+
 def inference(model, data_loader, device, mapping, allowed_species, threshold):
     model.eval()  # Set the model to evaluation mode
     torch.set_grad_enabled(False)  # Disable gradient calculation
@@ -19,6 +42,7 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold):
     all_images = []
     all_filtered_outputs = torch.Tensor()
     all_filtered_outputs = all_filtered_outputs.to(device)
+    all_uncertainty = []
     temperature = 0.0149 
 
     if allowed_species is not None:
@@ -30,6 +54,9 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold):
         files = inputs['file']
         outputs = model(images, emb)  # Forward pass
         outputs = F.sigmoid(outputs)
+
+        # Uncertainty
+        all_uncertainty.extend(uncertaintyEntropy(outputs))
 
         if allowed_species is None:
             if threshold == None:
@@ -50,62 +77,66 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold):
             # Convert tensors in 'predicted' to lists
             predicted_indices = [[tensor.item()] if tensor.nelement() == 1 else tensor.tolist() for tensor in predicted_indices]
 
-
             predicted_scores = [outputs[i, predicted_mask[i]] for i in range(outputs.shape[0])]
             predicted_scores = [[tensor.item()] if tensor.nelement() == 1 else tensor.tolist() for tensor in predicted_scores]
 
-
             # Replace indices in 'predicted_lists' with species names
             predicted_species = [[mapping[index] for index in sublist] for sublist in predicted_indices]
+            # print("Predicted Species: ", predicted_species)
+            # print("Predicted Scores: ", predicted_scores)
+            # print("Uncertainty: ", uncertainty.tolist())
 
-        else:     
-            # Filter the outputs to consider only allowed indices
-            # Make sure 'allowed_indices' is correctly defined as per your earlier snippet
-            filtered_outputs = outputs[:, allowed_indices]
+        # else:     
+        #     # Filter the outputs to consider only allowed indices
+        #     # Make sure 'allowed_indices' is correctly defined as per your earlier snippet
+        #     filtered_outputs = outputs[:, allowed_indices]
 
-            if threshold == None:
-                df_thresholds = pd.read_csv('inputs/species_thresholds_AvesEcho_1.csv')
-                sorted_df_thresholds = df_thresholds.sort_values(by='Scientific Name')
-                # Apply the function to each row in the sorted DataFrame and create a tensor of adjusted thresholds
-                adjusted_thresholds = sorted_df_thresholds.apply(lambda row: adjusted_threshold(row['Count'], row['Threshold']), axis=1)
-                adjusted_thresholds_tensor = torch.tensor(adjusted_thresholds.values)
+        #     if threshold == None:
+        #         df_thresholds = pd.read_csv('inputs/species_thresholds_AvesEcho_1.csv')
+        #         sorted_df_thresholds = df_thresholds.sort_values(by='Scientific Name')
+        #         # Apply the function to each row in the sorted DataFrame and create a tensor of adjusted thresholds
+        #         adjusted_thresholds = sorted_df_thresholds.apply(lambda row: adjusted_threshold(row['Count'], row['Threshold']), axis=1)
+        #         adjusted_thresholds_tensor = torch.tensor(adjusted_thresholds.values)
 
-                adjusted_thresholds_filtered = adjusted_thresholds_tensor[allowed_indices]
-                # Apply the threshold to get predictions mask for the filtered output
-                predicted_mask_filtered = filtered_outputs > adjusted_thresholds_filtered.to(device)
-            else:
-                predicted_mask_filtered = filtered_outputs > threshold
+        #         adjusted_thresholds_filtered = adjusted_thresholds_tensor[allowed_indices]
+        #         # Apply the threshold to get predictions mask for the filtered output
+        #         predicted_mask_filtered = filtered_outputs > adjusted_thresholds_filtered.to(device)
+        #     else:
+        #         predicted_mask_filtered = filtered_outputs > threshold
 
-            # Get indices and scores for filtered predictions
-            predicted_indices_filtered = [torch.nonzero(predicted_mask_filtered[i], as_tuple=False).squeeze() for i in range(predicted_mask_filtered.shape[0])]
-            predicted_scores_filtered = [filtered_outputs[i, predicted_mask_filtered[i]] for i in range(filtered_outputs.shape[0])]
-            predicted_scores = [[tensor.item()] if tensor.nelement() == 1 else tensor.tolist() for tensor in predicted_scores_filtered]
+        #     # Get indices and scores for filtered predictions
+        #     predicted_indices_filtered = [torch.nonzero(predicted_mask_filtered[i], as_tuple=False).squeeze() for i in range(predicted_mask_filtered.shape[0])]
+        #     predicted_scores_filtered = [filtered_outputs[i, predicted_mask_filtered[i]] for i in range(filtered_outputs.shape[0])]
+        #     predicted_scores = [[tensor.item()] if tensor.nelement() == 1 else tensor.tolist() for tensor in predicted_scores_filtered]
 
-            # Adjust the extraction of predicted indices for filtered predictions to handle single-element cases
-            # Adjusted code to handle tensors with 0 elements in predicted_indices_filtered
-            predicted_indices_filtered_adjusted = []
-            # Convert the predicted indices for filtered predictions back to original indices
+        #     # Adjust the extraction of predicted indices for filtered predictions to handle single-element cases
+        #     # Adjusted code to handle tensors with 0 elements in predicted_indices_filtered
+        #     predicted_indices_filtered_adjusted = []
+        #     # Convert the predicted indices for filtered predictions back to original indices
 
-            for indices in predicted_indices_filtered:
-                if indices.nelement() == 0:  # Check if the tensor is empty
-                    # Handle empty tensor case, e.g., by appending an empty list
-                    predicted_indices_filtered_adjusted.append([])
-                else:
-                    # Non-empty tensor, process as before
-                    indices_list = indices.tolist() if indices.nelement() > 1 else [indices.item()]
-                    adjusted_indices = [allowed_indices[index] for index in indices_list]
-                    predicted_indices_filtered_adjusted.append(adjusted_indices)
+        #     for indices in predicted_indices_filtered:
+        #         if indices.nelement() == 0:  # Check if the tensor is empty
+        #             # Handle empty tensor case, e.g., by appending an empty list
+        #             predicted_indices_filtered_adjusted.append([])
+        #         else:
+        #             # Non-empty tensor, process as before
+        #             indices_list = indices.tolist() if indices.nelement() > 1 else [indices.item()]
+        #             adjusted_indices = [allowed_indices[index] for index in indices_list]
+        #             predicted_indices_filtered_adjusted.append(adjusted_indices)
 
 
-            # Replace indices in 'predicted_filtered_lists' with species names
-            predicted_species = [[mapping[index] for index in sublist] for sublist in predicted_indices_filtered_adjusted]
-
+        #     # Replace indices in 'predicted_filtered_lists' with species names
+        #     predicted_species = [[mapping[index] for index in sublist] for sublist in predicted_indices_filtered_adjusted]
 
         all_predictions.extend(predicted_species)
         all_scores.extend(predicted_scores)
         all_images.extend(files)
 
-    return all_predictions, all_scores, all_images
+    # Normalise uncertainty
+    # import numpy as np
+    # all_uncertainty = np.array(all_uncertainty) / np.max(all_uncertainty)
+
+    return all_predictions, all_scores, all_images, all_uncertainty
 
 
 def inference_maxpool(model, data_loader, device, mapping, allowed_species, threshold):
@@ -132,6 +163,8 @@ def inference_maxpool(model, data_loader, device, mapping, allowed_species, thre
         # Temperature scaling
         #outputs = T_scaling(outputs, temperature)
         outputs = F.sigmoid(outputs)
+
+
 
         if allowed_species is None:
 
@@ -211,91 +244,91 @@ def inference_maxpool(model, data_loader, device, mapping, allowed_species, thre
     return species_maxpool, scores_maxpool, all_images
 
 
-def inference_warbler(model, data_loader, device, mapping, allowed_species, threshold):
-    model.eval()  # Set the model to evaluation mode
-    torch.set_grad_enabled(False)  # Disable gradient calculation
-    all_predictions = []
-    all_scores = []
-    all_predictions_filtered = []  # Store all predictions
-    all_scores_filtered = []
-    all_images = []
-    all_filtered_outputs = torch.Tensor()
-    all_filtered_outputs = all_filtered_outputs.to(device)
-    temperature = 0.0149 
+# def inference_warbler(model, data_loader, device, mapping, allowed_species, threshold):
+#     model.eval()  # Set the model to evaluation mode
+#     torch.set_grad_enabled(False)  # Disable gradient calculation
+#     all_predictions = []
+#     all_scores = []
+#     all_predictions_filtered = []  # Store all predictions
+#     all_scores_filtered = []
+#     all_images = []
+#     all_filtered_outputs = torch.Tensor()
+#     all_filtered_outputs = all_filtered_outputs.to(device)
+#     temperature = 0.0149 
 
-    allowed_species_warblr = load_species_list('inputs/list_warblr.csv')
+#     allowed_species_warblr = load_species_list('inputs/list_warblr.csv')
 
-    if allowed_species == None:
-        allowed_indices_warblr = [mapping.index(species) for species in allowed_species_warblr if species in mapping]
-    else:
-        # Convert lists to sets and take the intersection
-        intersection = set(allowed_species_warblr).intersection(set(allowed_species))
-        # Convert the intersection back to a list (optional, if you need the result as a list)
-        allowed_species_warblr = list(intersection)
-        allowed_indices_warblr = [mapping.index(species) for species in allowed_species_warblr if species in mapping]
+#     if allowed_species == None:
+#         allowed_indices_warblr = [mapping.index(species) for species in allowed_species_warblr if species in mapping]
+#     else:
+#         # Convert lists to sets and take the intersection
+#         intersection = set(allowed_species_warblr).intersection(set(allowed_species))
+#         # Convert the intersection back to a list (optional, if you need the result as a list)
+#         allowed_species_warblr = list(intersection)
+#         allowed_indices_warblr = [mapping.index(species) for species in allowed_species_warblr if species in mapping]
 
-    for i, inputs in enumerate(data_loader):  # Ignore labels
-        images = inputs['inputs'].to(device)
-        emb = inputs['emb'].to(device)
-        files = inputs['file']
-        outputs = model(images, emb)  # Forward pass
-        # Temperature scaling
-        #outputs = T_scaling(outputs, temperature)
-        outputs = F.sigmoid(outputs)
+#     for i, inputs in enumerate(data_loader):  # Ignore labels
+#         images = inputs['inputs'].to(device)
+#         emb = inputs['emb'].to(device)
+#         files = inputs['file']
+#         outputs = model(images, emb)  # Forward pass
+#         # Temperature scaling
+#         #outputs = T_scaling(outputs, temperature)
+#         outputs = F.sigmoid(outputs)
 
-        # Filter the outputs to consider only allowed indices
-        # Make sure 'allowed_indices' is correctly defined as per your earlier snippet
-        filtered_outputs_warblr = outputs[:, allowed_indices_warblr]
-        # Apply the threshold to get predictions mask for the filtered output
+#         # Filter the outputs to consider only allowed indices
+#         # Make sure 'allowed_indices' is correctly defined as per your earlier snippet
+#         filtered_outputs_warblr = outputs[:, allowed_indices_warblr]
+#         # Apply the threshold to get predictions mask for the filtered output
 
-        if threshold == None:
-                df_thresholds = pd.read_csv('inputs/species_thresholds_AvesEcho_1.csv')
-                sorted_df_thresholds = df_thresholds.sort_values(by='Scientific Name')
-                # Apply the function to each row in the sorted DataFrame and create a tensor of adjusted thresholds
-                adjusted_thresholds = sorted_df_thresholds.apply(lambda row: adjusted_threshold(row['Count'], row['Threshold']), axis=1)
-                adjusted_thresholds_tensor = torch.tensor(adjusted_thresholds.values)
-                adjusted_thresholds_tensor = adjusted_thresholds_tensor[allowed_indices_warblr]
-                # Apply the threshold to get predictions mask for the entire output
-                predicted_mask_warblr = filtered_outputs_warblr > adjusted_thresholds_tensor.to(device) 
-        else:
-            predicted_mask_warblr = filtered_outputs_warblr > threshold
+#         if threshold == None:
+#                 df_thresholds = pd.read_csv('inputs/species_thresholds_AvesEcho_1.csv')
+#                 sorted_df_thresholds = df_thresholds.sort_values(by='Scientific Name')
+#                 # Apply the function to each row in the sorted DataFrame and create a tensor of adjusted thresholds
+#                 adjusted_thresholds = sorted_df_thresholds.apply(lambda row: adjusted_threshold(row['Count'], row['Threshold']), axis=1)
+#                 adjusted_thresholds_tensor = torch.tensor(adjusted_thresholds.values)
+#                 adjusted_thresholds_tensor = adjusted_thresholds_tensor[allowed_indices_warblr]
+#                 # Apply the threshold to get predictions mask for the entire output
+#                 predicted_mask_warblr = filtered_outputs_warblr > adjusted_thresholds_tensor.to(device) 
+#         else:
+#             predicted_mask_warblr = filtered_outputs_warblr > threshold
 
-        #predicted_mask_warblr = filtered_outputs_warblr > threshold
-        # Get indices and scores for filtered predictions
-        predicted_indices_warblr = [torch.nonzero(predicted_mask_warblr[i], as_tuple=False).squeeze() for i in range(predicted_mask_warblr.shape[0])]
-        predicted_scores = [filtered_outputs_warblr[i, predicted_mask_warblr[i]] for i in range(filtered_outputs_warblr.shape[0])]
-        predicted_scores = [[tensor.item()] if tensor.nelement() == 1 else tensor.tolist() for tensor in predicted_scores]
-        # Adjust the extraction of predicted indices for filtered predictions to handle single-element cases
-        # Adjusted code to handle tensors with 0 elements in predicted_indices_filtered
-        predicted_indices_warblr_adjusted = []
-        # Convert the predicted indices for filtered predictions back to original indices
-        for indices in predicted_indices_warblr:
-            if indices.nelement() == 0:  # Check if the tensor is empty
-                # Handle empty tensor case, e.g., by appending an empty list
-                predicted_indices_warblr_adjusted.append([])
-            else:
-                # Non-empty tensor, process as before
-                indices_list = indices.tolist() if indices.nelement() > 1 else [indices.item()]
-                adjusted_indices = [allowed_indices_warblr[index] for index in indices_list]
-                predicted_indices_warblr_adjusted.append(adjusted_indices)
+#         #predicted_mask_warblr = filtered_outputs_warblr > threshold
+#         # Get indices and scores for filtered predictions
+#         predicted_indices_warblr = [torch.nonzero(predicted_mask_warblr[i], as_tuple=False).squeeze() for i in range(predicted_mask_warblr.shape[0])]
+#         predicted_scores = [filtered_outputs_warblr[i, predicted_mask_warblr[i]] for i in range(filtered_outputs_warblr.shape[0])]
+#         predicted_scores = [[tensor.item()] if tensor.nelement() == 1 else tensor.tolist() for tensor in predicted_scores]
+#         # Adjust the extraction of predicted indices for filtered predictions to handle single-element cases
+#         # Adjusted code to handle tensors with 0 elements in predicted_indices_filtered
+#         predicted_indices_warblr_adjusted = []
+#         # Convert the predicted indices for filtered predictions back to original indices
+#         for indices in predicted_indices_warblr:
+#             if indices.nelement() == 0:  # Check if the tensor is empty
+#                 # Handle empty tensor case, e.g., by appending an empty list
+#                 predicted_indices_warblr_adjusted.append([])
+#             else:
+#                 # Non-empty tensor, process as before
+#                 indices_list = indices.tolist() if indices.nelement() > 1 else [indices.item()]
+#                 adjusted_indices = [allowed_indices_warblr[index] for index in indices_list]
+#                 predicted_indices_warblr_adjusted.append(adjusted_indices)
 
-        # Replace indices in 'predicted_filtered_lists' with species names
-        predicted_species = [[mapping[index] for index in sublist] for sublist in predicted_indices_warblr_adjusted]
+#         # Replace indices in 'predicted_filtered_lists' with species names
+#         predicted_species = [[mapping[index] for index in sublist] for sublist in predicted_indices_warblr_adjusted]
 
         
-        # Max-pooling the predictions to get predictions per recording (as in Warblr)
-        warbler_species, warbler_scores = max_pool(predicted_species, predicted_scores)
+#         # Max-pooling the predictions to get predictions per recording (as in Warblr)
+#         warbler_species, warbler_scores = max_pool(predicted_species, predicted_scores)
         
 
-        all_predictions.extend(predicted_species)
-        all_scores.extend(predicted_scores)
+#         all_predictions.extend(predicted_species)
+#         all_scores.extend(predicted_scores)
       
-        all_images.extend(files)
+#         all_images.extend(files)
 
-    warbler_species, warbler_scores = max_pool(all_predictions, all_scores)
-    #warbler_species_filtered, warbler_scores_filtered = max_pool(all_predictions_filtered, all_scores_filtered)
+#     warbler_species, warbler_scores = max_pool(all_predictions, all_scores)
+#     #warbler_species_filtered, warbler_scores_filtered = max_pool(all_predictions_filtered, all_scores_filtered)
 
-    return warbler_species, warbler_scores, all_images
+#     return warbler_species, warbler_scores, all_images
 
 
 def process_audio(file_path):
