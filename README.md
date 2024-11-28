@@ -1,21 +1,27 @@
-# TABMON 
+# TABMON Data Pipeline
 This is a data and classification pipeline repository for the TABMON (Transnational Acoustic Biodiversity Monitoring Network). The purpose of this repository is to provide an end-to-end framework from raw field data to inference of essential biodiversity variables (EBVs).
 
 Author: Ben McEwen \
 Source: AvesEcho (author: Burooj Ghani) \
-Date: 08/10/24
+Date: 28/11/24
+
+**IMPORTANT!** \
+Work in the `/original` directory for now, this is the original set of AvesEcho models with some minor changes. It is more stable than `/pipeline`. Upcoming and recent changes:
+- [ ] Remove redundant features from `/original`
+- [ ] Transfer uncertainty sampling and custom classification head and *remove* old `/pipeline` 
+- [ ] Add weights and biases for tracking on server
+- [X] Adjusted file selector so that it works with nested directories
+- [X] Adjustments for Windows, removed multiprocessing and temp files for now (check if these run on linux server because significantly faster)
+
+*To Run:*\
+After installing dependencies navigate to `/original` then run:
+`python .\analyze.py --i audio --model_name 'fc' --add_csv --add_filtering`\
+Both 'fc' and 'passt' are setup.
 
 ## Structure
 `loader.py` - Downloads audio from Google Cloud storage, start and end dates as well as download limit can be specified. \
-`pipeline/main.py` - Main file to run model inference.
-
-## Next Steps
-- [X] Download TABMON data from Google Cloud Storage.
-- [X] Testing of pre-trained AvesEcho models 
-- Uncertainty sampling
-    - [X] Set up of initial uncertainty measure (binary entropy)
-    - [ ] Evaluation of uncertainty sampling on Sounds of Norway data
-- [ ] Changes necessary to run data pipeline of compute cluster
+`original/analyze.py` - Current file for model inference \
+`pipeline/main.py` - Previous file to run model inference.
 
 ## Research Outputs/Questions
 This is just a list of research questions I am interested in:

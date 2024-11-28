@@ -1,36 +1,80 @@
 {
     "generated_by": {
-        "datetime": "2024-11-18T09:04:38Z",
+        "datetime": "2024-11-28T15:12:49Z",
         "tag": "1fd68f8c8cb93ec4e45049fcf9a056628e9599aa815790a2a7b568aa",
         "version": "avesecho-v1 1.2.0"
     },
     "media": [
         {
-            "filename": "./audio/single/xeno-canto\\XC487569 - Purple Sandpiper - Calidris maritima.mp3",
-            "id": "xeno-canto\\XC487569 - Purple Sandpiper - Calidris maritima.mp3"
+            "filename": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3",
+            "id": "SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3"
         },
         {
-            "filename": "./audio/single/xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3",
-            "id": "xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3"
+            "filename": "./audio/SoN_single/SoN_single\\Boreal Owl\\1_4108391a47353ed09bf108434a.mp3",
+            "id": "SoN_single\\Boreal Owl\\1_4108391a47353ed09bf108434a.mp3"
         },
         {
-            "filename": "./audio/single/xeno-canto\\XC726321 - White-tailed Lapwing - Vanellus leucurus.mp3",
-            "id": "xeno-canto\\XC726321 - White-tailed Lapwing - Vanellus leucurus.mp3"
-        },
-        {
-            "filename": "./audio/single/xeno-canto\\XC921263 - Harris's Hawk - Parabuteo unicinctus.wav",
-            "id": "xeno-canto\\XC921263 - Harris's Hawk - Parabuteo unicinctus.wav"
+            "filename": "./audio/SoN_single/SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3",
+            "id": "SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3"
         }
     ],
     "region_groups": [
         {
-            "id": "./audio/single/xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3?region=3",
+            "id": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3?region=7",
             "regions": [
                 {
-                    "media_id": "xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3",
+                    "media_id": "SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3",
                     "box": {
-                        "t1": 9.0,
-                        "t2": 12.0
+                        "t1": 21.0,
+                        "t2": 24.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3?region=17",
+            "regions": [
+                {
+                    "media_id": "SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3",
+                    "box": {
+                        "t1": 51.0,
+                        "t2": 54.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3?region=26",
+            "regions": [
+                {
+                    "media_id": "SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3",
+                    "box": {
+                        "t1": 78.0,
+                        "t2": 81.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "./audio/SoN_single/SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3?region=16",
+            "regions": [
+                {
+                    "media_id": "SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3",
+                    "box": {
+                        "t1": 48.0,
+                        "t2": 51.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "./audio/SoN_single/SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3?region=26",
+            "regions": [
+                {
+                    "media_id": "SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3",
+                    "box": {
+                        "t1": 78.0,
+                        "t2": 81.0
                     }
                 }
             ]
@@ -38,14 +82,66 @@
     ],
     "predictions": [
         {
-            "region_group_id": "./audio/single/xeno-canto\\XC523094 - Iceland Gull - Larus glaucoides.mp3?region=3",
+            "region_group_id": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3?region=7",
             "taxa": {
                 "type": "multilabel",
                 "items": [
                     {
-                        "scientific_name": "Parabuteo unicinctus",
-                        "probability": 0.5231144428253174,
-                        "uncertainty": 0.25340574979782104
+                        "scientific_name": "Aegolius funereus",
+                        "probability": 0.11783949285745621,
+                        "uncertainty": 0.23484253883361816
+                    }
+                ]
+            }
+        },
+        {
+            "region_group_id": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3?region=17",
+            "taxa": {
+                "type": "multilabel",
+                "items": [
+                    {
+                        "scientific_name": "Aegolius funereus",
+                        "probability": 0.10602568835020065,
+                        "uncertainty": 0.18355391919612885
+                    }
+                ]
+            }
+        },
+        {
+            "region_group_id": "./audio/SoN_single/SoN_single\\Black Grouse\\2_e50352eccb73db4c4c770c3543.mp3?region=26",
+            "taxa": {
+                "type": "multilabel",
+                "items": [
+                    {
+                        "scientific_name": "Strix aluco",
+                        "probability": 0.10204651206731796,
+                        "uncertainty": 0.18142883479595184
+                    }
+                ]
+            }
+        },
+        {
+            "region_group_id": "./audio/SoN_single/SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3?region=16",
+            "taxa": {
+                "type": "multilabel",
+                "items": [
+                    {
+                        "scientific_name": "Carpospiza brachydactyla",
+                        "probability": 0.17047467827796936,
+                        "uncertainty": 0.263884037733078
+                    }
+                ]
+            }
+        },
+        {
+            "region_group_id": "./audio/SoN_single/SoN_single\\Brambling\\1_e55366bedf33cbbbd465098e27.mp3?region=26",
+            "taxa": {
+                "type": "multilabel",
+                "items": [
+                    {
+                        "scientific_name": "Carpospiza brachydactyla",
+                        "probability": 0.10499042272567749,
+                        "uncertainty": 0.18688993155956268
                     }
                 ]
             }

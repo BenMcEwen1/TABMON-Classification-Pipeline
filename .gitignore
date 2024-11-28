@@ -1,8 +1,8 @@
 __pycache__
 testing/
 wandb/
+audio/
 models/AvesEcho/*
-National_PAM_of_Biodiversity_Bick_et_al_2024/
 *.pt
 *.wav
 *.wav

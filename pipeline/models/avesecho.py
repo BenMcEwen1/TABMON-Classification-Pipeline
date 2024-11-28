@@ -20,8 +20,52 @@ class AlgorithmMode(Enum):
     ENDPOINT = "endpoint"
 
 n_classes = 585
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class ContextAwareHead(nn.Module):
+    # Context aware classification head for any generic feature extractor
+    def __init__(self, NumClasses:int=n_classes, externalEmbeddingSize:int=16, target_dim:int=8):
+        super(ContextAwareHead, self).__init__()
+        self.multihead = nn.MultiheadAttention(externalEmbeddingSize, 4)
+        self.head = nn.Linear(externalEmbeddingSize*target_dim, NumClasses)
+        self.sigmoid = torch.nn.Sigmoid()
+
+        self.externalEmbeddingSize = externalEmbeddingSize
+        self.target_dim = target_dim
+
+    def padding(self, target:torch.Tensor, embeddings:torch.Tensor):
+        # Pad context embeddings to target dimension
+        combined = torch.cat((target, embeddings), dim=0)
+        current_dim = combined.shape[0]
+
+        if current_dim > self.target_dim:
+            raise Exception("Too many embeddings")
+        
+        padding = torch.zeros(self.target_dim-current_dim, self.externalEmbeddingSize)
+        padded = torch.cat((combined, padding), dim=0)
+        return padded
+    
+    def sampleContext(self, target:torch.Tensor, samples:torch.Tensor, method:str="nearest"):
+        # Similarity search using cosine sim
+        similarity = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
+        sim = similarity(target, samples)
+
+        if method == "nearest":
+            top = torch.topk(sim, 5)
+            return torch.index_select(samples, 0, top.indices)
+        
+    def positionalEncoding(index:int, target:int, embeddings:torch.Tensor, sigma:float=5):
+        # Positional encoding of context embeddings, issue: doesn't work for embeddings outside of batch.
+        pos = torch.tanh((index-target)/sigma)
+        return torch.column_stack((embeddings, pos))
+        
+    def forward(self, target:torch.Tensor, samples:torch.Tensor):
+        embeddings = self.sampleContext(target, samples)
+        x = self.padding(target, embeddings)
+        x, _ = self.multihead(x, x, x)
+        x = torch.flatten(x)
+        x = self.head(x)
+        return self.sigmoid(x)
 
 class avesecho(nn.Module):
     def __init__(self, NumClasses=n_classes, pretrain=True, ExternalEmbeddingSize=320, hidden_layer_size=100):
@@ -67,11 +111,22 @@ class AvesEcho:
         if os.path.isfile(audio_input):
             audio_files = [audio_input]
         else:
-            audio_files = [
-                os.path.join(audio_input, filename)
-                for filename in os.listdir(audio_input)
-                if not self.ignore_filesystem_object(audio_input, filename)
-            ]
+            audio_files = []
+            for path, _, files in os.walk(audio_input):
+                file_path = [os.path.join(path, filename) for filename in files
+                             if not self.ignore_filesystem_object(audio_input, filename)]
+                audio_files += file_path
+            print(audio_files)
+
+
+
+            # audio_files = [os.path.join(audio_input, filename) for filename in os.listdir(audio_input)]
+            # print(audio_files)
+            # audio_files = [
+            #     os.path.join(audio_input, filename)
+            #     for filename in os.listdir(audio_input)
+            #     if not self.ignore_filesystem_object(audio_input, filename)
+            # ]
 
         analysis_results, _ = self.analyze_audio_files(audio_files, lat, lon)
 
@@ -112,6 +167,7 @@ class AvesEcho:
         # For endpoint mode: write the audio files to a temporary directory.
         with tempfile.TemporaryDirectory() as temporary_directory:
             for audio_file in audio_files:
+                print(f"Processing audio file: {audio_file}")
                 filename = os.path.basename(audio_file) # if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
                 file_extension = os.path.splitext(filename)[1].lower()
 
@@ -121,7 +177,6 @@ class AvesEcho:
                 else:
                     print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
                     return {"error": f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions})."}, 415
-
         return analysis_results, 200
 
     def analyze_audio_file(self, audio_file_path: str, filtering_list: list[str], analysis_results: dict[str, Any]) -> None:
@@ -150,17 +205,19 @@ class AvesEcho:
         df = pd.read_csv(self.avesecho_mapping, header=None, names=['ScientificName', 'CommonName'])
 
         if self.maxpool:
-            predictions, scores, files = inference_maxpool(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
-            create_json_maxpool(analysis_results, predictions, scores, files, self.flist, df, self.add_csv, filename, self.mconf, len(inference_data))
+            predictions, scores, files, uncertainty = inference_maxpool(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
+            create_json_maxpool(analysis_results, predictions, scores, uncertainty, files, self.flist, df, self.add_csv, filename, self.mconf, len(inference_data))
         else:
             predictions, scores, files, uncertainty = inference(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
             create_json(analysis_results, predictions, scores, uncertainty, files, self.flist, df, self.add_csv, filename, self.mconf)
 
-        # Empty temporary audio chunks directory
+        # Empty temporary audio chunks directory - Windows complains but it still works
         try:
             shutil.rmtree(self.outputd)
         except OSError:
-            print("Permission error - Access Denied")
+            # print("Permission error - Access Denied")
+            pass
+            
         return predictions, scores, files
 
 

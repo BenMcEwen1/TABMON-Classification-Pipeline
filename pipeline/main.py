@@ -1,6 +1,18 @@
 from models.avesecho import AvesEcho
 
-def run_algorithm():
+# TODO
+# I have a csv containing all annotations with (filename, species)
+# Given a directory which contains training and test samples I need to:
+# - Precompute the BirdNet embeddings for all sub-directories /embedding/1_50a4b521a1375a8b12b85643c1_{split_n}.np
+# - Training and evaluation loops for data
+
+# Other:
+# - Maybe adjust species list and number of classes 
+# - Incorporate location and time information
+# - Incorporate in-context embeddings
+
+
+def run_inference():
     """
     Run the AvesEcho model on a set of audio files.
 
@@ -42,13 +54,13 @@ def run_algorithm():
     add_filtering = None
     mconf = None
     maxpool = False
-    add_csv = False
+    add_csv = True
     lat = None
     lon = None
 
     model_name = "fc"
     slist = "./pipeline/inputs/list_sp_ml.csv"
-    flist = "./audio/single"
+    flist = "./audio/SoN_single"
     avesecho_mapping = "./pipeline/inputs/list_AvesEcho.csv"
 
     outputd = "./pipeline/inputs/temp"
@@ -59,8 +71,8 @@ def run_algorithm():
                           outputd=outputd, avesecho_mapping=avesecho_mapping,
                           maxpool=maxpool, add_csv=add_csv)
 
-    classifier.analyze(audio_input="./audio/xeno-canto", lat=lat, lon=lon, result_file=result_file)
+    classifier.analyze(audio_input="./audio/SoN_single", lat=lat, lon=lon, result_file=result_file)
 
 
 if __name__ == "__main__":
-    run_algorithm()
+    run_inference()

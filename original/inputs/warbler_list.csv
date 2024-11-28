@@ -1,0 +1,219 @@
+ave585_species,ave585_english,w_classifier name,w_english,wikipedia link,has_ave585,has_w
+Acanthis flammea,CommonRedpoll,Acanthis_flammea,Common Redpoll,http://en.wikipedia.org/wiki/Common_redpoll,True,True
+Accipiter nisus,EurasianSparrowhawk,Accipiter_nisus,Eurasian Sparrowhawk,http://en.wikipedia.org/wiki/Eurasian_sparrowhawk,True,True
+Acrocephalus arundinaceus,GreatReedWarbler,Acrocephalus_arundinaceus,Great Reed Warbler,http://en.wikipedia.org/wiki/Great_reed_warbler,True,True
+Acrocephalus dumetorum,BlythsReedWarbler,Acrocephalus_dumetorum,Blyth's Reed Warbler,http://en.wikipedia.org/wiki/Blyth's_reed_warbler,True,True
+Acrocephalus palustris,MarshWarbler,Acrocephalus_palustris,Marsh Warbler,http://en.wikipedia.org/wiki/Marsh_warbler,True,True
+Acrocephalus schoenobaenus,SedgeWarbler,Acrocephalus_schoenobaenus,Sedge Warbler,http://en.wikipedia.org/wiki/Sedge_warbler,True,True
+Acrocephalus scirpaceus,EurasianReedWarbler,Acrocephalus_scirpaceus,Eurasian Reed Warbler,http://en.wikipedia.org/wiki/Eurasian_reed_warbler,True,True
+Actitis hypoleucos,CommonSandpiper,Actitis_hypoleucos,Common Sandpiper,http://en.wikipedia.org/wiki/Common_sandpiper,True,True
+Aegithalos caudatus,Long-tailedTit,Aegithalos_caudatus,Long-tailed Tit,http://en.wikipedia.org/wiki/Long-tailed_tit,True,True
+Aix galericulata,MandarinDuck,Aix_galericulata,Mandarin Duck,http://en.wikipedia.org/wiki/Mandarin_duck,True,True
+Alauda arvensis,EurasianSkylark,Alauda_arvensis,Eurasian Skylark,http://en.wikipedia.org/wiki/Eurasian_skylark,True,True
+Alca torda,Razorbill,Alca_torda,Razorbill,http://en.wikipedia.org/wiki/Razorbill,True,True
+Alopochen aegyptiaca,EgyptianGoose,Alopochen_aegyptiaca,Egyptian Goose,http://en.wikipedia.org/wiki/Egyptian_goose,True,True
+Anas acuta,NorthernPintail,Anas_acuta,Northern Pintail,http://en.wikipedia.org/wiki/Northern_pintail,True,True
+Anas crecca,EurasianTeal,Anas_crecca,Eurasian Teal,http://en.wikipedia.org/wiki/Eurasian_teal,True,True
+Anas platyrhynchos,Mallard,Anas_platyrhynchos,Mallard,http://en.wikipedia.org/wiki/Mallard,True,True
+Anser albifrons,GreaterWhite-frontedGoose,Anser_albifrons,Greater White-fronted Goose,http://en.wikipedia.org/wiki/Greater_white-fronted_goose,True,True
+Anser anser,GreylagGoose,Anser_anser,Greylag Goose,http://en.wikipedia.org/wiki/Greylag_goose,True,True
+Anser brachyrhynchus,Pink-footedGoose,Anser_brachyrhynchus,Pink-footed Goose,http://en.wikipedia.org/wiki/Pink-footed_goose,True,True
+Anthus petrosus,EuropeanRockPipit,Anthus_petrosus,Eurasian Rock Pipit,http://en.wikipedia.org/wiki/Eurasian_rock_pipit,True,True
+Anthus pratensis,MeadowPipit,Anthus_pratensis,Meadow Pipit,http://en.wikipedia.org/wiki/Meadow_pipit,True,True
+Anthus spinoletta,WaterPipit,Anthus_spinoletta,Water Pipit,http://en.wikipedia.org/wiki/Water_pipit,True,True
+Anthus trivialis,TreePipit,Anthus_trivialis,Tree Pipit,http://en.wikipedia.org/wiki/Tree_pipit,True,True
+Apus apus,CommonSwift,Apus_apus,Common Swift,http://en.wikipedia.org/wiki/Common_swift,True,True
+Aquila chrysaetos,GoldenEagle,Aquila_chrysaetos,Golden Eagle,http://en.wikipedia.org/wiki/Golden_eagle,True,True
+Ardea cinerea,GreyHeron,Ardea_cinerea,Grey Heron,http://en.wikipedia.org/wiki/Grey_heron,True,True
+Asio flammeus,Short-earedOwl,Asio_flammeus,Short-eared Owl,http://en.wikipedia.org/wiki/Short-eared_owl,True,True
+Asio otus,Long-earedOwl,Asio_otus,Long-eared Owl,http://en.wikipedia.org/wiki/Long-eared_owl,True,True
+Athene noctua,LittleOwl,Athene_noctua,Little Owl,http://en.wikipedia.org/wiki/Little_owl,True,True
+Aythya ferina,CommonPochard,Aythya_ferina,Common Pochard,http://en.wikipedia.org/wiki/Common_pochard,True,True
+Aythya fuligula,TuftedDuck,Aythya_fuligula,Tufted Duck,http://en.wikipedia.org/wiki/Tufted_duck,True,True
+Bombycilla garrulus,BohemianWaxwing,Bombycilla_garrulus,Bohemian Waxwing,http://en.wikipedia.org/wiki/Bohemian_Waxwing,True,True
+Botaurus stellaris,EurasianBittern,Botaurus_stellaris,Eurasian Bittern,http://en.wikipedia.org/wiki/Eurasian_bittern,True,True
+Branta bernicla,BrantGoose,Branta_bernicla,Brant Goose,http://en.wikipedia.org/wiki/Brant_goose,True,True
+Branta canadensis,CanadaGoose,Branta_canadensis,Canada Goose,http://en.wikipedia.org/wiki/Canada_goose,True,True
+Branta leucopsis,BarnacleGoose,Branta_leucopsis,Barnacle Goose,http://en.wikipedia.org/wiki/Barnacle_goose,True,True
+Branta ruficollis,Red-breastedGoose,Branta_ruficollis,Red-breasted Goose,http://en.wikipedia.org/wiki/Red-breasted_goose,True,True
+Buteo buteo,CommonBuzzard,Buteo_buteo,Common Buzzard,http://en.wikipedia.org/wiki/Common_buzzard,True,True
+Calidris alpina,Dunlin,Calidris_alpina,Dunlin,http://en.wikipedia.org/wiki/Dunlin,True,True
+Calidris melanotos,PectoralSandpiper,Calidris_melanotos,Pectoral Sandpiper,http://en.wikipedia.org/wiki/Pectoral_sandpiper,True,True
+Caprimulgus europaeus,EuropeanNightjar,Caprimulgus_europaeus,European Nightjar,http://en.wikipedia.org/wiki/European_nightjar,True,True
+Carduelis carduelis,EuropeanGoldfinch,Carduelis_carduelis,European Goldfinch,http://en.wikipedia.org/wiki/European_goldfinch,True,True
+Carpodacus erythrinus,CommonRosefinch,Carpodacus_erythrinus,Common Rosefinch,http://en.wikipedia.org/wiki/Common_rosefinch,True,True
+Cepphus grylle,BlackGuillemot,Cepphus_grylle,Black Guillemot,http://en.wikipedia.org/wiki/Black_guillemot,True,True
+Certhia familiaris,EurasianTreecreeper,Certhia_familiaris,Eurasian Treecreeper,http://en.wikipedia.org/wiki/Eurasian_treecreeper,True,True
+Cettia cetti,CettisWarbler,Cettia_cetti,Cetti's Warbler,http://en.wikipedia.org/wiki/Cetti%27s_warbler,True,True
+Charadrius dubius,LittleRingedPlover,Charadrius_dubius,Little Ringed Plover,http://en.wikipedia.org/wiki/Little_ringed_plover,True,True
+Charadrius hiaticula,CommonRingedPlover,Charadrius_hiaticula,Common Ringed Plover,http://en.wikipedia.org/wiki/Common_ringed_plover,True,True
+Chloris chloris,EuropeanGreenfinch,Chloris_chloris,European Greenfinch,http://en.wikipedia.org/wiki/European_greenfinch,True,True
+Chroicocephalus ridibundus,Black-headedGull,Chroicocephalus_ridibundus,Black-headed Gull,http://en.wikipedia.org/wiki/Black-headed_gull,True,True
+Chrysolophus amherstiae,LadyAmherstsPheasant,Chrysolophus_amherstiae,Lady Amherst's Pheasant,http://en.wikipedia.org/wiki/Lady_Amherst%27s_pheasant,True,True
+Cinclus cinclus,White-throatedDipper,Cinclus_cinclus,White-throated Dipper,http://en.wikipedia.org/wiki/White-throated_dipper,True,True
+Circus aeruginosus,WesternMarshHarrier,Circus_aeruginosus,Western Marsh Harrier,http://en.wikipedia.org/wiki/Western_marsh_harrier,True,True
+Coccothraustes coccothraustes,Hawfinch,Coccothraustes_coccothraustes,Hawfinch,http://en.wikipedia.org/wiki/Hawfinch,True,True
+Coloeus monedula,WesternJackdaw,Coloeus_monedula,Western Jackdaw,http://en.wikipedia.org/wiki/Western_jackdaw,True,True
+Columba livia,RockDove,Columba_livia,Rock Dove,http://en.wikipedia.org/wiki/Rock_dove,True,True
+Columba oenas,StockDove,Columba_oenas,Stock Dove,http://en.wikipedia.org/wiki/Stock_dove,True,True
+Columba palumbus,CommonWoodPigeon,Columba_palumbus,Common Wood Pigeon,http://en.wikipedia.org/wiki/Common_wood_pigeon,True,True
+Corvus corax,NorthernRaven,Corvus_corax,Northern Raven,http://en.wikipedia.org/wiki/Common_raven,True,True
+Corvus corone,CarrionCrow,Corvus_corone,Carrion Crow,http://en.wikipedia.org/wiki/Carrion_crow,True,True
+Corvus frugilegus,Rook,Corvus_frugilegus,Rook,http://en.wikipedia.org/wiki/Rook_(bird),True,True
+Coturnix coturnix,CommonQuail,Coturnix_coturnix,Common Quail,http://en.wikipedia.org/wiki/Common_quail,True,True
+Crex crex,CornCrake,Crex_crex,Corn Crake,http://en.wikipedia.org/wiki/Corn_crake,True,True
+Cuculus canorus,CommonCuckoo,Cuculus_canorus,Common Cuckoo,http://en.wikipedia.org/wiki/Common_cuckoo,True,True
+Curruca cantillans,EasternSubalpineWarbler,Sylvia_cantillans,Subalpine Warbler,http://en.wikipedia.org/wiki/Subalpine_warbler,True,True
+Curruca communis,CommonWhitethroat,Sylvia_communis,Common Whitethroat,http://en.wikipedia.org/wiki/Common_whitethroat,True,True
+Curruca conspicillata,SpectacledWarbler,Sylvia_conspicillata,Spectacled Warbler,http://en.wikipedia.org/wiki/Spectacled_warbler,True,True
+Curruca curruca,LesserWhitethroat,Sylvia_curruca,Lesser Whitethroat,http://en.wikipedia.org/wiki/Lesser_Whitethroat,True,True
+Curruca iberiae,WesternSubalpineWarbler,Sylvia_cantillans,Subalpine Warbler,http://en.wikipedia.org/wiki/Subalpine_warbler,True,True
+Curruca subalpina,MoltonisWarbler,Sylvia_subalpina,Moltoni's Warbler,http://en.wikipedia.org/wiki/Subalpine_warbler,True,True
+Curruca undata,DartfordWarbler,Sylvia_undata,Dartford Warbler,http://en.wikipedia.org/wiki/Dartford_warbler,True,True
+Cyanistes caeruleus,EurasianBlueTit,Cyanistes_caeruleus,Eurasian Blue Tit,http://en.wikipedia.org/wiki/Eurasian_blue_tit,True,True
+Cygnus columbianus,TundraSwan,Cygnus_columbianus,Tundra Swan,http://en.wikipedia.org/wiki/Tundra_swan,True,True
+Cygnus cygnus,WhooperSwan,Cygnus_cygnus,Whooper Swan,http://en.wikipedia.org/wiki/Whooper_swan,True,True
+Cygnus olor,MuteSwan,Cygnus_olor,Mute Swan,http://en.wikipedia.org/wiki/Mute_swan,True,True
+Delichon urbicum,CommonHouseMartin,Delichon_urbicum,Common House Martin,http://en.wikipedia.org/wiki/Common_house_martin,True,True
+Dendrocopos major,GreatSpottedWoodpecker,Dendrocopos_major,Great Spotted Woodpecker,http://en.wikipedia.org/wiki/Great_spotted_woodpecker,True,True
+Dryobates minor,LesserSpottedWoodpecker,Dendrocopos_minor,Lesser Spotted Woodpecker,http://en.wikipedia.org/wiki/Lesser_spotted_woodpecker,True,True
+Dryocopus martius,BlackWoodpecker,Dryocopus_martius,Black Woodpecker,http://en.wikipedia.org/wiki/Black_woodpecker,True,True
+Egretta garzetta,LittleEgret,Egretta_garzetta,Little Egret,http://en.wikipedia.org/wiki/Little_egret,True,True
+Emberiza calandra,CornBunting,Emberiza_calandra,Corn Bunting,http://en.wikipedia.org/wiki/Corn_bunting,True,True
+Emberiza citrinella,Yellowhammer,Emberiza_citrinella,Yellowhammer,http://en.wikipedia.org/wiki/Yellowhammer,True,True
+Emberiza schoeniclus,CommonReedBunting,Emberiza_schoeniclus,Common Reed Bunting,http://en.wikipedia.org/wiki/Common_reed_bunting,True,True
+Erithacus rubecula,EuropeanRobin,Erithacus_rubecula,European Robin,http://en.wikipedia.org/wiki/European_robin,True,True
+Falco peregrinus,PeregrineFalcon,Falco_peregrinus,Peregrine Falcon,http://en.wikipedia.org/wiki/Peregrine_falcon,True,True
+Falco subbuteo,EurasianHobby,Falco_subbuteo,Eurasian Hobby,http://en.wikipedia.org/wiki/Eurasian_hobby,True,True
+Falco tinnunculus,CommonKestrel,Falco_tinnunculus,Common Kestrel,http://en.wikipedia.org/wiki/Common_kestrel,True,True
+Ficedula hypoleuca,EuropeanPiedFlycatcher,Ficedula_hypoleuca,European Pied Flycatcher,http://en.wikipedia.org/wiki/European_pied_flycatcher,True,True
+Fringilla coelebs,CommonChaffinch,Fringilla_coelebs,Common Chaffinch,http://en.wikipedia.org/wiki/Common_chaffinch,True,True
+Fringilla montifringilla,Brambling,Fringilla_montifringilla,Brambling,http://en.wikipedia.org/wiki/Brambling,True,True
+Fulica atra,EurasianCoot,Fulica_atra,Eurasian Coot,http://en.wikipedia.org/wiki/Eurasian_coot,True,True
+Fulmarus glacialis,NorthernFulmar,Fulmarus_glacialis,Northern Fulmar,http://en.wikipedia.org/wiki/Northern_fulmar,True,True
+Gallinago gallinago,CommonSnipe,Gallinago_gallinago,Common Snipe,http://en.wikipedia.org/wiki/Common_snipe,True,True
+Gallinula chloropus,CommonMoorhen,Gallinula_chloropus,Common Moorhen,http://en.wikipedia.org/wiki/Common_moorhen,True,True
+Garrulus glandarius,EurasianJay,Garrulus_glandarius,Eurasian Jay,http://en.wikipedia.org/wiki/Eurasian_jay,True,True
+Gavia stellata,Red-throatedLoon,Gavia_stellata,Red-throated Loon,http://en.wikipedia.org/wiki/Red-throated_loon,True,True
+Grus grus,CommonCrane,Grus_grus,Common Crane,http://en.wikipedia.org/wiki/Common_crane,True,True
+Haematopus ostralegus,EurasianOystercatcher,Haematopus_ostralegus,Eurasian Oystercatcher,http://en.wikipedia.org/wiki/Eurasian_oystercatcher,True,True
+Hirundo rustica,BarnSwallow,Hirundo_rustica,Barn Swallow,http://en.wikipedia.org/wiki/Barn_swallow,True,True
+Hydrobates pelagicus,EuropeanStormPetrel,Hydrobates_pelagicus,European Storm Petrel,http://en.wikipedia.org/wiki/European_storm_petrel,True,True
+Ichthyaetus melanocephalus,MediterraneanGull,Ichthyaetus_melanocephalus,Mediterranean Gull,http://en.wikipedia.org/wiki/Mediterranean_gull,True,True
+Iduna pallida,EasternOlivaceousWarbler,Iduna_pallida,Eastern Olivaceous Warbler,http://en.wikipedia.org/wiki/Eastern_olivaceous_warbler,True,True
+Jynx torquilla,EurasianWryneck,Jynx_torquilla,Eurasian Wryneck,http://en.wikipedia.org/wiki/Eurasian_wryneck,True,True
+Lagopus lagopus,WillowPtarmigan,Lagopus_lagopus,Willow Ptarmigan,http://en.wikipedia.org/wiki/Willow_ptarmigan,True,True
+Larus argentatus,EuropeanHerringGull,Larus_argentatus,European Herring Gull,http://en.wikipedia.org/wiki/European_herring_gull,True,True
+Larus canus,CommonGull,Larus_canus,Mew Gull,http://en.wikipedia.org/wiki/Common_gull,True,True
+Larus fuscus,LesserBlack-backedGull,Larus_fuscus,Lesser Black-backed Gull,http://en.wikipedia.org/wiki/Lesser_black-backed_gull,True,True
+Limosa limosa,Black-tailedGodwit,Limosa_limosa,Black-tailed Godwit,http://en.wikipedia.org/wiki/Black-tailed_godwit,True,True
+Linaria cannabina,CommonLinnet,Linaria_cannabina,Common Linnet,http://en.wikipedia.org/wiki/Common_linnet,True,True
+Locustella fluviatilis,RiverWarbler,Locustella_fluviatilis,River Warbler,http://en.wikipedia.org/wiki/River_warbler,True,True
+Locustella luscinioides,SavisWarbler,Locustella_luscinioides,Savi's Warbler,http://en.wikipedia.org/wiki/Savi%27s_warbler,True,True
+Locustella naevia,CommonGrasshopperWarbler,Locustella_naevia,Common Grasshopper Warbler,http://en.wikipedia.org/wiki/Common_grasshopper_warbler,True,True
+Lophophanes cristatus,EuropeanCrestedTit,Lophophanes_cristatus,European Crested Tit,http://en.wikipedia.org/wiki/European_crested_tit,True,True
+Loxia curvirostra,RedCrossbill,Loxia_curvirostra,Red Crossbill,http://en.wikipedia.org/wiki/Red_crossbill,True,True
+Loxia leucoptera,Two-barredCrossbill,Loxia_leucoptera,Two-barred Crossbill,http://en.wikipedia.org/wiki/Two-barred_crossbill,True,True
+Loxia pytyopsittacus,ParrotCrossbill,Loxia_pytyopsittacus,Parrot Crossbill,http://en.wikipedia.org/wiki/Parrot_crossbill,True,True
+Lullula arborea,Woodlark,Lullula_arborea,Woodlark,http://en.wikipedia.org/wiki/Woodlark,True,True
+Luscinia megarhynchos,CommonNightingale,Luscinia_megarhynchos,Common Nightingale,http://en.wikipedia.org/wiki/Common_nightingale,True,True
+Luscinia svecica,Bluethroat,Luscinia_svecica,Bluethroat,http://en.wikipedia.org/wiki/Bluethroat,True,True
+Lyrurus tetrix,BlackGrouse,Lyrurus_tetrix,Black Grouse,http://en.wikipedia.org/wiki/Black_grouse,True,True
+Mareca penelope,EurasianWigeon,Anas_penelope,Eurasian Wigeon,http://en.wikipedia.org/wiki/Eurasian_wigeon,True,True
+Mareca strepera,Gadwall,Anas_strepera,Gadwall,http://en.wikipedia.org/wiki/Gadwall,True,True
+Mergellus albellus,Smew,Mergellus_albellus,Smew,http://en.wikipedia.org/wiki/Smew,True,True
+Mergus serrator,Red-breastedMerganser,Mergus_serrator,Red-breasted Merganser,http://en.wikipedia.org/wiki/Red-breasted_merganser,True,True
+Merops apiaster,EuropeanBee-eater,Merops_apiaster,European Bee-eater,http://en.wikipedia.org/wiki/European_bee-eater,True,True
+Milvus milvus,RedKite,Milvus_milvus,Red Kite,http://en.wikipedia.org/wiki/Red_kite,True,True
+Morus bassanus,NorthernGannet,Morus_bassanus,Northern Gannet,http://en.wikipedia.org/wiki/Northern_gannet,True,True
+Motacilla alba,WhiteWagtail,Motacilla_alba,White Wagtail,http://en.wikipedia.org/wiki/White_wagtail,True,True
+Motacilla cinerea,GreyWagtail,Motacilla_cinerea,Grey Wagtail,http://en.wikipedia.org/wiki/Grey_wagtail,True,True
+Motacilla citreola,CitrineWagtail,Motacilla_citreola,Citrine Wagtail,http://en.wikipedia.org/wiki/Citrine_wagtail,True,True
+Motacilla flava,WesternYellowWagtail,Motacilla_flava,Western Yellow Wagtail,http://en.wikipedia.org/wiki/Western_yellow_wagtail,True,True
+Muscicapa striata,SpottedFlycatcher,Muscicapa_striata,Spotted Flycatcher,http://en.wikipedia.org/wiki/Spotted_flycatcher,True,True
+Netta rufina,Red-crestedPochard,Netta_rufina,Red-crested Pochard,http://en.wikipedia.org/wiki/Red-crested_pochard,True,True
+Numenius arquata,EurasianCurlew,Numenius_arquata,Eurasian Curlew,http://en.wikipedia.org/wiki/Eurasian_curlew,True,True
+Numenius phaeopus,EurasianWhimbrel,Numenius_phaeopus,Whimbrel,http://en.wikipedia.org/wiki/Whimbrel,True,True
+Oenanthe oenanthe,NorthernWheatear,Oenanthe_oenanthe,Northern Wheatear,http://en.wikipedia.org/wiki/Northern_wheatear,True,True
+Oriolus oriolus,EurasianGoldenOriole,Oriolus_oriolus,Eurasian Golden Oriole,http://en.wikipedia.org/wiki/Eurasian_golden_oriole,True,True
+Oxyura jamaicensis,RuddyDuck,Oxyura_jamaicensis,Ruddy Duck,http://en.wikipedia.org/wiki/Ruddy_duck,True,True
+Panurus biarmicus,BeardedReedling,Panurus_biarmicus,Bearded Reedling,http://en.wikipedia.org/wiki/Bearded_reedling,True,True
+Parus major,GreatTit,Parus_major,Great Tit,http://en.wikipedia.org/wiki/Great_tit,True,True
+Passer domesticus,HouseSparrow,Passer_domesticus,House Sparrow,http://en.wikipedia.org/wiki/House_sparrow,True,True
+Passer montanus,EurasianTreeSparrow,Passer_montanus,Eurasian Tree Sparrow,http://en.wikipedia.org/wiki/Eurasian_tree_sparrow,True,True
+Perdix perdix,GreyPartridge,Perdix_perdix,Grey Partridge,http://en.wikipedia.org/wiki/Grey_partridge,True,True
+Periparus ater,CoalTit,Periparus_ater,Coal Tit,http://en.wikipedia.org/wiki/Coal_tit,True,True
+Pernis apivorus,EuropeanHoneyBuzzard,Pernis_apivorus,European Honey Buzzard,http://en.wikipedia.org/wiki/European_honey_buzzard,True,True
+Phalaropus lobatus,Red-neckedPhalarope,Phalaropus_lobatus,Red-necked Phalarope,http://en.wikipedia.org/wiki/Red-necked_phalarope,True,True
+Phasianus colchicus,CommonPheasant,Phasianus_colchicus,Common Pheasant,http://en.wikipedia.org/wiki/Common_pheasant,True,True
+Phoenicurus phoenicurus,CommonRedstart,Phoenicurus_phoenicurus,Common Redstart,http://en.wikipedia.org/wiki/Common_redstart,True,True
+Phylloscopus bonelli,WesternBonellisWarbler,Phylloscopus_bonelli,Western Bonelli's Warbler,http://en.wikipedia.org/wiki/Western_Bonelli%27s_warbler,True,True
+Phylloscopus borealis,ArcticWarbler,Phylloscopus_borealis,Arctic Warbler,http://en.wikipedia.org/wiki/Arctic_warbler,True,True
+Phylloscopus collybita,CommonChiffchaff,Phylloscopus_collybita,Common Chiffchaff,http://en.wikipedia.org/wiki/Common_chiffchaff,True,True
+Phylloscopus fuscatus,DuskyWarbler,Phylloscopus_fuscatus,Dusky Warbler,http://en.wikipedia.org/wiki/Dusky_warbler,True,True
+Phylloscopus inornatus,Yellow-browedWarbler,Phylloscopus_inornatus,Yellow-browed Warbler,http://en.wikipedia.org/wiki/Yellow-browed_warbler,True,True
+Phylloscopus proregulus,PallassLeafWarbler,Phylloscopus_proregulus,Pallas's Leaf Warbler,http://en.wikipedia.org/wiki/Pallas%27s_leaf_warbler,True,True
+Phylloscopus sibilatrix,WoodWarbler,Phylloscopus_sibilatrix,Wood Warbler,http://en.wikipedia.org/wiki/Wood_warbler,True,True
+Phylloscopus trochilus,WillowWarbler,Phylloscopus_trochilus,Willow Warbler,http://en.wikipedia.org/wiki/Willow_warbler,True,True
+Pica pica,EurasianMagpie,Pica_pica,Eurasian Magpie,http://en.wikipedia.org/wiki/Eurasian_magpie,True,True
+Picus viridis,EuropeanGreenWoodpecker,Picus_viridis,European Green Woodpecker,http://en.wikipedia.org/wiki/European_green_woodpecker,True,True
+Pluvialis apricaria,EuropeanGoldenPlover,Pluvialis_apricaria,European Golden Plover,http://en.wikipedia.org/wiki/European_golden_plover,True,True
+Pluvialis squatarola,GreyPlover,Pluvialis_squatarola,Grey Plover,http://en.wikipedia.org/wiki/Grey_plover,True,True
+Podiceps cristatus,GreatCrestedGrebe,Podiceps_cristatus,Great Crested Grebe,http://en.wikipedia.org/wiki/Great_crested_grebe,True,True
+Poecile montanus,WillowTit,Poecile_montanus,Willow Tit,http://en.wikipedia.org/wiki/Willow_tit,True,True
+Poecile palustris,MarshTit,Poecile_palustris,Marsh Tit,http://en.wikipedia.org/wiki/Marsh_Tit,True,True
+Porzana porzana,SpottedCrake,Porzana_porzana,Spotted Crake,http://en.wikipedia.org/wiki/Spotted_crake,True,True
+Prunella modularis,Dunnock,Prunella_modularis,Dunnock,http://en.wikipedia.org/wiki/Dunnock,True,True
+Psittacula krameri,Rose-ringedParakeet,Psittacula_krameri,Rose-ringed Parakeet,http://en.wikipedia.org/wiki/Rose-ringed_parakeet,True,True
+Puffinus puffinus,ManxShearwater,Puffinus_puffinus,Manx Shearwater,http://en.wikipedia.org/wiki/Manx_shearwater,True,True
+Pyrrhula pyrrhula,EurasianBullfinch,Pyrrhula_pyrrhula,Eurasian Bullfinch,http://en.wikipedia.org/wiki/Eurasian_bullfinch,True,True
+Rallus aquaticus,WaterRail,Rallus_aquaticus,Water Rail,http://en.wikipedia.org/wiki/Water_rail,True,True
+Recurvirostra avosetta,PiedAvocet,Recurvirostra_avosetta,Pied Avocet,http://en.wikipedia.org/wiki/Pied_avocet,True,True
+Regulus ignicapilla,CommonFirecrest,Regulus_ignicapilla,Common Firecrest,http://en.wikipedia.org/wiki/Common_firecrest,True,True
+Regulus regulus,Goldcrest,Regulus_regulus,Goldcrest,http://en.wikipedia.org/wiki/Goldcrest,True,True
+Riparia riparia,SandMartin,Riparia_riparia,Sand Martin,http://en.wikipedia.org/wiki/Sand_martin,True,True
+Rissa tridactyla,Black-leggedKittiwake,Rissa_tridactyla,Black-legged Kittiwake,http://en.wikipedia.org/wiki/Black-legged_kittiwake,True,True
+Saxicola rubetra,Whinchat,Saxicola_rubetra,Whinchat,http://en.wikipedia.org/wiki/Whinchat,True,True
+Saxicola rubicola,EuropeanStonechat,Saxicola_rubicola,European Stonechat,http://en.wikipedia.org/wiki/European_stonechat,True,True
+Scolopax rusticola,EurasianWoodcock,Scolopax_rusticola,Eurasian Woodcock,http://en.wikipedia.org/wiki/Eurasian_woodcock,True,True
+Serinus serinus,EuropeanSerin,Serinus_serinus,European Serin,http://en.wikipedia.org/wiki/European_serin,True,True
+Sitta europaea,EurasianNuthatch,Sitta_europaea,Eurasian Nuthatch,http://en.wikipedia.org/wiki/Eurasian_nuthatch,True,True
+Somateria mollissima,CommonEider,Somateria_mollissima,Common Eider,http://en.wikipedia.org/wiki/Common_eider,True,True
+Spatula clypeata,NorthernShoveler,Anas_clypeata,Northern Shoveler,http://en.wikipedia.org/wiki/Northern_shoveler,True,True
+Spinus spinus,EurasianSiskin,Spinus_spinus,Eurasian Siskin,http://en.wikipedia.org/wiki/Eurasian_siskin,True,True
+Stercorarius parasiticus,ParasiticJaeger,Stercorarius_parasiticus,Parasitic Jaeger,http://en.wikipedia.org/wiki/Parasitic_jaeger,True,True
+Stercorarius skua,GreatSkua,Stercorarius_skua,Great Skua,http://en.wikipedia.org/wiki/Great_skua,True,True
+Sterna dougallii,RoseateTern,Sterna_dougallii,Roseate Tern,http://en.wikipedia.org/wiki/Roseate_tern,True,True
+Sterna hirundo,CommonTern,Sterna_hirundo,Common Tern,http://en.wikipedia.org/wiki/Common_tern,True,True
+Sterna paradisaea,ArcticTern,Sterna_paradisaea,Arctic Tern,http://en.wikipedia.org/wiki/Arctic_tern,True,True
+Sternula albifrons,LittleTern,Sternula_albifrons,Little Tern,http://en.wikipedia.org/wiki/Little_tern,True,True
+Streptopelia decaocto,EurasianCollaredDove,Streptopelia_decaocto,Eurasian Collared Dove,http://en.wikipedia.org/wiki/Eurasian_collared_dove,True,True
+Streptopelia turtur,EuropeanTurtleDove,Streptopelia_turtur,European Turtle Dove,http://en.wikipedia.org/wiki/European_turtle_dove,True,True
+Strix aluco,TawnyOwl,Strix_aluco,Tawny Owl,http://en.wikipedia.org/wiki/Tawny_owl,True,True
+Sturnus vulgaris,CommonStarling,Sturnus_vulgaris,Common Starling,http://en.wikipedia.org/wiki/Common_Starling,True,True
+Sylvia atricapilla,EurasianBlackcap,Sylvia_atricapilla,Eurasian Blackcap,http://en.wikipedia.org/wiki/Eurasian_Blackcap,True,True
+Sylvia borin,GardenWarbler,Sylvia_borin,Garden Warbler,http://en.wikipedia.org/wiki/Garden_warbler,True,True
+Tachybaptus ruficollis,LittleGrebe,Tachybaptus_ruficollis,Little Grebe,http://en.wikipedia.org/wiki/Little_grebe,True,True
+Tadorna tadorna,CommonShelduck,Tadorna_tadorna,Common Shelduck,http://en.wikipedia.org/wiki/Common_shelduck,True,True
+Thalasseus sandvicensis,SandwichTern,Thalasseus_sandvicensis,Sandwich Tern,http://en.wikipedia.org/wiki/Sandwich_tern,True,True
+Tringa glareola,WoodSandpiper,Tringa_glareola,Wood Sandpiper,http://en.wikipedia.org/wiki/Wood_sandpiper,True,True
+Tringa nebularia,CommonGreenshank,Tringa_nebularia,Common Greenshank,http://en.wikipedia.org/wiki/Common_greenshank,True,True
+Tringa ochropus,GreenSandpiper,Tringa_ochropus,Green Sandpiper,http://en.wikipedia.org/wiki/Green_sandpiper,True,True
+Tringa totanus,CommonRedshank,Tringa_totanus,Common Redshank,http://en.wikipedia.org/wiki/Common_redshank,True,True
+Troglodytes troglodytes,EurasianWren,Troglodytes_troglodytes,Eurasian Wren,http://en.wikipedia.org/wiki/Eurasian_wren,True,True
+Turdus iliacus,Redwing,Turdus_iliacus,Redwing,http://en.wikipedia.org/wiki/Redwing,True,True
+Turdus merula,CommonBlackbird,Turdus_merula,Common Blackbird,http://en.wikipedia.org/wiki/Common_blackbird,True,True
+Turdus philomelos,SongThrush,Turdus_philomelos,Song Thrush,http://en.wikipedia.org/wiki/Song_thrush,True,True
+Turdus pilaris,Fieldfare,Turdus_pilaris,Fieldfare,http://en.wikipedia.org/wiki/Fieldfare,True,True
+Turdus torquatus,RingOuzel,Turdus_torquatus,Ring Ouzel,http://en.wikipedia.org/wiki/Ring_ouzel,True,True
+Turdus viscivorus,MistleThrush,Turdus_viscivorus,Mistle Thrush,http://en.wikipedia.org/wiki/Mistle_thrush,True,True
+Tyto alba,WesternBarnOwl,Tyto_alba,Western Barn Owl,http://en.wikipedia.org/wiki/Barn_owl,True,True
+Uria aalge,CommonMurre,Uria_aalge,Common Murre,http://en.wikipedia.org/wiki/Common_murre,True,True
+Vanellus vanellus,NorthernLapwing,Vanellus_vanellus,Northern Lapwing,http://en.wikipedia.org/wiki/Northern_lapwing,True,True
+Xema sabini,SabinesGull,Xema_sabini,Sabine's Gull,http://en.wikipedia.org/wiki/Sabine%27s_gull,True,True
+Zapornia pusilla,BaillonsCrake,Porzana_pusilla,Baillon's Crake,http://en.wikipedia.org/wiki/Baillon%27s_crake,True,True
+Anthus campestris,Tawnypipit,Anthus_campestris,Tawny pipit,https://en.wikipedia.org/wiki/Tawny_pipit,True,False
+Bubo bubo,EurasianEagle-owl,Bubo_bubo,Eurasian eagle-owl,https://en.wikipedia.org/wiki/Eurasian_eagle-owl,True,False
+Alcedoatthis,CommonKingfisher,Alcedo_atthis,Common Kingfisher,https://en.wikipedia.org/wiki/Common_kingfisher,True,False
+Falco columbarius,Merlin,Falco_columbarius,Merlin,https://en.wikipedia.org/wiki/Merlin_(bird),True,False
+Charadrius alexandrinus,KentishPlover,Charadrius_alexandrinus,Kentish Plover,https://en.wikipedia.org/wiki/Kentish_plover,True,False

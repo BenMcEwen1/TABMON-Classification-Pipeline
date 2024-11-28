@@ -142,13 +142,14 @@ def format_time(seconds):
     return f"{minutes}:{seconds:02d}"
 
 def create_json(analysis_results, predictions, scores, uncertainty, files, flist, df, add_csv, fname, m_conf, filtered=False):
-
      # Create a predictions file name
     filename_without_ext = fname.split('.')[0]  
-    pred_name = 'outputs/predictions_' + filename_without_ext
+    filename = filename_without_ext.split('\\')[-1]
+    pred_name = './pipeline/outputs/predictions_' + filename
 
     if add_csv:
         with open(f'{pred_name}.csv', 'w', newline='') as file:
+
             writer = csv.writer(file)
             writer.writerow(["Begin Time", "End Time", "File", "Prediction", "Score"])  # write header
 
@@ -184,12 +185,10 @@ def create_json(analysis_results, predictions, scores, uncertainty, files, flist
         add_predictions(region_group_id, fname, begin_time, end_time, prediction, scores[i], uncertainty[i], analysis_results)
 
 
-def create_json_maxpool(analysis_results, predictions, scores, files, flist, df, add_csv, fname, m_conf, length, filtered=False):
-
+def create_json_maxpool(analysis_results, predictions, scores, uncertainty, files, flist, df, add_csv, fname, m_conf, length, filtered=False):
     # Create a predictions file name
     filename_without_ext = fname.split('.')[0]  
     pred_name = 'outputs/predictions_' + filename_without_ext
-    
 
     if add_csv:
         with open(f'{pred_name}.csv', 'w', newline='') as file:
@@ -204,13 +203,12 @@ def create_json_maxpool(analysis_results, predictions, scores, files, flist, df,
 
     # Add each file to the 'media' list in analysis_results
     analysis_results['media'].append({"filename": file_path, "id": fname})
-
     prediction_sp = []
-        
         
     # Set a threshold for scores, 0.1 for unfiltered and 0.2 for filtered
     threshold = m_conf
     for name, score in zip(predictions, scores):
+        print(name, score)
 
         row = df[df['ScientificName'] == name]
         # Extract the ScientificName from the matched row
@@ -225,4 +223,4 @@ def create_json_maxpool(analysis_results, predictions, scores, files, flist, df,
     
     region_group_id = f"{file_path}?region={0}"
 
-    add_predictions(region_group_id, fname, begin_time, end_time, predictions, scores, analysis_results)
+    # add_predictions(region_group_id, fname, begin_time, end_time, predictions, scores, uncertainty[i], analysis_results)
