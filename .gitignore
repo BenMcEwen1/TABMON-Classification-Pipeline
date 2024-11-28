@@ -2,8 +2,7 @@ __pycache__
 testing/
 wandb/
 audio/
-models/AvesEcho/*
-*.pt
+pipeline/
 *.wav
 *.wav
 *.mp3
@@ -11,4 +10,3 @@ models/AvesEcho/*
 *.whl
 *.nc
 .env
-*.tflite

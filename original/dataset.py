@@ -9,7 +9,7 @@ class InferenceDataset(torch.utils.data.Dataset):
         # Initialization
         self.list_IDs = list_IDs
         self.NumClasses = NumClasses
-        self.embedding_model = BirdNet(48000, 'checkpoints/BirdNET_GLOBAL_3K_V2.2_Model_FP32.tflite')
+        self.embedding_model = BirdNet(48000, './inputs/checkpoints/BirdNET_GLOBAL_3K_V2.2_Model_FP32.tflite')
         self.model = model
 
         with open('inputs/global_parameters.json', 'r') as json_file:
