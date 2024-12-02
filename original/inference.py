@@ -2,7 +2,7 @@ from config import *
 from util import *
 
 
-def inference(model, data_loader, device, mapping, allowed_species, threshold):
+def inference(model, data_loader, device, mapping, allowed_species, threshold, embeddings):
     model.eval()  # Set the model to evaluation mode
     torch.set_grad_enabled(False)  # Disable gradient calculation
     all_predictions = []
@@ -17,16 +17,15 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold):
     if allowed_species is not None:
         allowed_indices = [mapping.index(species) for species in allowed_species if species in mapping]
         
-
     for i, inputs in enumerate(data_loader):  # Ignore labels
         images = inputs['inputs'].to(device)
         emb = inputs['emb'].to(device)
+
         files = inputs['file']
         outputs = model(images, emb)  # Forward pass
         # Temperature scaling
         #outputs = T_scaling(outputs, temperature)
         outputs = F.sigmoid(outputs)
-
 
         if allowed_species is None:
 
@@ -98,12 +97,14 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold):
             # Replace indices in 'predicted_filtered_lists' with species names
             predicted_species = [[mapping[index] for index in sublist] for sublist in predicted_indices_filtered_adjusted]
 
-
         all_predictions.extend(predicted_species)
         all_scores.extend(predicted_scores)
         all_images.extend(files)
 
-    return all_predictions, all_scores, all_images
+    if embeddings:
+        return emb
+    else:
+        return all_predictions, all_scores, all_images
 
 
 def inference_maxpool(model, data_loader, device, mapping, allowed_species, threshold):

@@ -85,7 +85,6 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold):
             # print("Predicted Species: ", predicted_species)
             # print("Predicted Scores: ", predicted_scores)
             # print("Uncertainty: ", uncertainty.tolist())
-
         else:     
             # Filter the outputs to consider only allowed indices
             # Make sure 'allowed_indices' is correctly defined as per your earlier snippet

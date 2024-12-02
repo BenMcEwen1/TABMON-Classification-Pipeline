@@ -251,7 +251,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     - n_processes: Number of processes to use in multiprocessing. If None, the number will be determined automatically.
     """
     # Configure logging
-    logging.basicConfig(filename='./outputs/audio_errors.log', level=logging.ERROR, 
+    logging.basicConfig(filename='./outputs/audio_errors.log', level=logging.ERROR, # NOTE: Changed
                     format='%(asctime)s:%(levelname)s:%(message)s')
 
     try:

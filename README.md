@@ -9,7 +9,7 @@ Date: 28/11/24
 Work in the `/original` directory for now, this is the original set of AvesEcho models with some minor changes. It is more stable than `/pipeline`. Upcoming and recent changes:
 - [ ] Remove redundant features from `/original`
 - [ ] Transfer uncertainty sampling and custom classification head and *remove* old `/pipeline` 
-- [ ] Add weights and biases for tracking on server
+- [X] Add weights and biases for tracking on server
 - [X] Adjusted file selector so that it works with nested directories
 - [X] Adjustments for Windows, removed multiprocessing and temp files for now (check if these run on linux server because significantly faster)
 

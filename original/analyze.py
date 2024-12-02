@@ -34,9 +34,9 @@ parser.add_argument('--add_csv', action='store_true', help='Save predictions to 
 parser.add_argument('--maxpool', action='store_true', help='Use model for generating temporally-summarised output.')
 parser.add_argument('--model_name', type=str, default='fc', help='Name of the model to use.')
 parser.add_argument("--algorithm_mode", default=default_algorithm_mode, help="Use input/output directories or an endpoint.")
+parser.add_argument("--embeddings_mode", type=bool, default=False, help="Generate embeddings for files instead of inference.")
 
 if __name__ == "__main__":
-
     args = parser.parse_args()
 
     if os.path.isfile(args.i):

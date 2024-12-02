@@ -34,20 +34,13 @@ def analyse_endpoint():
     else:
         return analysis_results, status_code
 
-
 class avesecho(nn.Module):
     def __init__(self, NumClasses=585, pretrain=True, ExternalEmbeddingSize=320, hidden_layer_size=100):
         super(avesecho, self).__init__()
         self.fc1 = nn.Linear(ExternalEmbeddingSize, NumClasses)
-        #self.fc2 = nn.Linear(hidden_layer_size, NumClasses)
-        #self.relu = nn.ReLU()  # ReLU activation function
         
-        
-
     def forward(self, x, emb):
-        
         x = self.fc1(emb.squeeze(1))
-       
         return x    
 
 
@@ -57,18 +50,19 @@ def run_algorithm(args, avesecho_mapping, result_file):
     classifier = AvesEcho(model_name=args.model_name, slist=args.slist, flist=args.flist,
                           add_filtering=args.add_filtering, mconf=args.mconf,
                           outputd="./outputs/temp", avesecho_mapping=avesecho_mapping,
-                          maxpool=args.maxpool, add_csv=args.add_csv, args=args)
+                          maxpool=args.maxpool, add_csv=args.add_csv, embeddings=args.embeddings_mode, args=args)
 
     classifier.analyze(audio_input=args.i, lat=args.lat, lon=args.lon, result_file=result_file)
 
 
 class AvesEcho:
-    def __init__(self, model_name, slist, flist, add_filtering, mconf, maxpool, add_csv, args, outputd, avesecho_mapping):
+    def __init__(self, model_name, slist, flist, add_filtering, mconf, maxpool, add_csv, embeddings, args, outputd, avesecho_mapping):
         self.slist = slist
         self.flist = flist
         self.model_name = model_name
         self.add_filtering = add_filtering
         self.add_csv = add_csv
+        self.embeddings = embeddings # NOTE: added
         self.mconf = mconf
         self.outputd = outputd
         self.avesecho_mapping = avesecho_mapping
@@ -79,9 +73,7 @@ class AvesEcho:
         self.args = args
         self.algorithm_mode = self.determine_algorithm_mode(args.algorithm_mode)
 
-        print()
         print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode.")
-        print()
 
         # Load the model
         if self.model_name == 'passt':
@@ -90,7 +82,6 @@ class AvesEcho:
             self.model = self.model.to(device)
             self.model.load_state_dict(torch.load('./inputs/checkpoints/best_model_passt.pt', map_location=device))
         if self.model_name == 'fc':
-            print("fc")
             self.model = avesecho(NumClasses=self.n_classes)
             self.model = self.model.to(device)
             self.model.load_state_dict(torch.load('./inputs/checkpoints/best_model_fc_1.pt', map_location=device))
@@ -106,6 +97,67 @@ class AvesEcho:
                 use_reloader=False,
             )
 
+    def generate_embeddings(self, audio_path: str):
+        def emb(audio_file_path):
+            # Load soundfile and split signal into 3s chunks
+            self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=10)
+
+            # Load a list of files for in a dir
+            inference_dir = self.outputd
+            inference_data = [
+                os.path.join(inference_dir, f)
+                for f in sorted(os.listdir(inference_dir), key=lambda x: int(x.split('_')[-1].split('.')[0]))]
+
+            # Inference
+            inference_set = InferenceDataset(inference_data, self.n_classes, model=self.model_name)
+            params_inf = {'batch_size': 64, 'shuffle': False} # , 'num_workers': 5
+            inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
+
+            return inference(self.model, inference_generator, device, self.species_list, None, self.mconf, self.embeddings)
+        
+        # Get File list
+        if os.path.isfile(audio_path):
+            audio_files = [audio_path]
+        else:
+            audio_files = []
+            for path, _, files in os.walk(audio_path):
+                file_path = [os.path.join(path, filename) for filename in files
+                             if not self.ignore_filesystem_object(audio_path, filename)]
+                audio_files += file_path
+
+        supported_file_extensions = ['.wav', '.mp3', '.ogg', '.flac']
+
+        # Iterate through each audio file
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            for audio_file in audio_files:
+                filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
+                file_extension = os.path.splitext(filename)[1].lower()
+
+                if file_extension in supported_file_extensions:
+                    if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
+                        audio_file_path = audio_file
+                    else:
+                        audio_file_path = os.path.join(temporary_directory, filename)
+                        with open(audio_file_path, "wb") as output_file:
+                            output_file.write(audio_file.read())
+
+                    embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + ".pt")
+
+                    # Check if embedding path exists
+                    if not os.path.exists(embedding_path):
+                        print(f"Generating embeddings for audio file {filename}...")
+                        _embeddings = emb(audio_file_path)
+                        torch.save(_embeddings, embedding_path)
+                else:
+                    print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
+
+        try:
+            shutil.rmtree(self.outputd)
+        except:
+            pass
+
+        return _embeddings
+
     def analyze_directories(
         self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None
     ) -> None:
@@ -117,11 +169,6 @@ class AvesEcho:
                 file_path = [os.path.join(path, filename) for filename in files
                              if not self.ignore_filesystem_object(audio_input, filename)]
                 audio_files += file_path
-            # audio_files = [
-                # os.path.join(audio_input, filename)
-                # for filename in os.listdir(audio_input)
-                # if not self.ignore_filesystem_object(audio_input, filename)
-            # ]
 
         analysis_results, _ = self.analyze_audio_files(audio_files, lat, lon)
 
@@ -181,7 +228,7 @@ class AvesEcho:
 
         return analysis_results, 200
 
-    def analyze_audio_file(self, audio_file_path: str, filtering_list: list[str], analysis_results: dict[str, Any]) -> None:
+    def analyze_audio_file(self, audio_file_path: str, filtering_list: list[str], analysis_results: dict[str, Any]):
         if not os.path.exists(self.outputd):
             os.makedirs(self.outputd)
 
@@ -210,7 +257,7 @@ class AvesEcho:
             predictions, scores, files = inference_maxpool(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
             create_json_maxpool(self.algorithm_mode, analysis_results, predictions, scores, files, self.args, df, self.add_csv, filename, self.mconf, len(inference_data))
         else:
-            predictions, scores, files = inference(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
+            predictions, scores, files = inference(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf, self.embeddings)
             create_json(self.algorithm_mode, analysis_results, predictions, scores, files, self.args, df, self.add_csv, filename, self.mconf)
 
         # Empty temporary audio chunks directory
