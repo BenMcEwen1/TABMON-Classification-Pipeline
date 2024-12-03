@@ -6,7 +6,7 @@ from models import AvesEcho
 
 default_algorithm_mode = os.getenv("ALGORITHM_MODE", AlgorithmMode.DIRECTORIES.value)
 
-annotation_file = "../audio/annotation_split.csv"
+#annotation_file = "../audio/annotation_split.csv"
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -35,5 +35,5 @@ def embed(audio_path):
     embeddings = feature_extractor.generate_embeddings(audio_path)
     return embeddings
 
-if __name__ == "__main__":
-    embed(audio_path="../audio/SoN_single/")
+#if __name__ == "__main__":
+#embed(audio_path="../benchmark_sound-of-norway/")

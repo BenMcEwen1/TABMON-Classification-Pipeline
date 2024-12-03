@@ -10,10 +10,6 @@ from tqdm import tqdm
 import wandb
 
 
-annotation_file = "../audio/annotation_subset.csv"
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 
 class AudioDataset(Dataset):
     # ANNOTATIONS, AUDIO_DIR, mel_spectrogram, 16000, False
@@ -36,7 +32,7 @@ class AudioDataset(Dataset):
         embedding_path = os.path.join(path, filename)
 
         if os.path.exists(embedding_path):
-            embedding = torch.load(embedding_path)
+            embedding = torch.load(embedding_path, map_location=torch.device(device))
         else:
             print(f"Generating embedding for {audio_path}")
             embedding = embed(audio_path)
@@ -44,19 +40,19 @@ class AudioDataset(Dataset):
         return embedding, label
 
     def _get_audio_path(self, index):
-        path = os.path.join(self.audio_dir, self.annotations.iloc[index,3], self.annotations.iloc[index,2])
+        path = os.path.join(self.audio_dir, self.annotations.iloc[index,16], self.annotations.iloc[index,2])
         return path
 
     def _get_audio_label(self, index):
-        return self.annotations.iloc[index,3] # Same as directory in this case
+        return self.annotations.iloc[index,16]
 
     def _filter_annotations(self, data):
         return data.loc[data['Data_split'] == self.val]
 
 
-def train(dataset, validation, epochs=10, lr=0.001):
+def train(dataset, validation, epochs=100, lr=0.001, device='cpu'):
     wandb.init(
-        project="Sounds of Norway (Benchmark)",
+        project="Sounds of Norway (Benchmark) - Server",
 
         config={
             "learning_rate": lr,
@@ -69,7 +65,7 @@ def train(dataset, validation, epochs=10, lr=0.001):
     species_list = load_species_list('inputs/list_en_ml.csv')
 
     model = avesecho(NumClasses=len(species_list)).to(device)
-    model.load_state_dict(torch.load('./inputs/checkpoints/best_model_fc_1.pt', map_location=device))
+    #model.load_state_dict(torch.load('./inputs/checkpoints/best_model_fc_1.pt', map_location=device))
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     cross_entropy = torch.nn.CrossEntropyLoss()
@@ -77,19 +73,27 @@ def train(dataset, validation, epochs=10, lr=0.001):
     # training = DataLoader(dataset, batch_size=16, shuffle=True) # Only works for tensor with the same shape, another reason to have consistent audio segments
 
     def encode_label(labels):
-        one_hot = torch.zeros(len(species_list))    
+        one_hot = torch.zeros(len(species_list))
+        #print(f"True label: {labels[0]}")
 
         for label in labels:
-            index = species_list.index(label.replace(" ", ""))
-            one_hot[index] = 1
+            if label.replace(" ", "") not in species_list:
+                # Actual labels: ZZZ_Unsure, ZZZ_Unsure: Not bird,  ZZZ_Unsure: Other bird 
+                index = species_list.index("Unsure")
+                one_hot[index] = 1
+                #print(f"Species List: {species_list[index]}")
+            else:
+                index = species_list.index(label.replace(" ", ""))
+                one_hot[index] = 1
+                #print(f"Species List: {species_list[index]}")
+        #print("---")
         return one_hot
 
     # TODO: Add dataloader
     for epoch in range(epochs):
 
         training_loss = 0
-        for embedding, label in dataset:
-            print(embedding.shape)
+        for ti, (embedding, label) in enumerate(dataset):
             embedding.to(device)
             model.train()
             optimizer.zero_grad()
@@ -101,15 +105,19 @@ def train(dataset, validation, epochs=10, lr=0.001):
             outputs = sigmoid(logits)
             maxpool = torch.max(outputs, dim=0).values
 
+            # Sanity Check
+            if ti in torch.randint(0, 1000, (10,)).tolist():
+                print(f"True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
+
             loss = cross_entropy(maxpool, y)
-            training_loss += loss.item()
+            training_loss += loss.item()/(ti + 1)
             loss.backward()
             optimizer.step()
 
         model.eval()
         with torch.no_grad():
             val_loss = 0
-            for embedding, label in validation:
+            for vi, (embedding, label) in enumerate(validation):
                 embedding.to(device)
                 y = encode_label([label]).to(device)
 
@@ -118,14 +126,19 @@ def train(dataset, validation, epochs=10, lr=0.001):
                 maxpool = torch.max(outputs, dim=0).values
 
                 loss = cross_entropy(maxpool, y)
-                val_loss += loss.item()
+                val_loss += loss.item()/(vi + 1)
 
         print(f"Epoch: {epoch}: Training loss: {training_loss}, Validation loss: {val_loss}")
         wandb.log({"Training loss": training_loss, "Validation loss": val_loss})
-        
+
+    torch.save(model.state_dict(), f'./inputs/checkpoints/SoN_{epoch}.pt')
 
 if __name__ == "__main__":
-    dataset = AudioDataset(annotation_file, "../audio/SoN/Train/", "Train")
-    val = AudioDataset(annotation_file, "../audio/SoN/Test/", "Test")
+    annotation_file = "../benchmark_sound-of-norway/annotation_split.csv"
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}")
 
-    train(dataset, val)
+    dataset = AudioDataset(annotation_file, "../benchmark_sound-of-norway/Train/", "Train")
+    val = AudioDataset(annotation_file, "../benchmark_sound-of-norway/Test/", "Test")
+
+    train(dataset, val, device=device)

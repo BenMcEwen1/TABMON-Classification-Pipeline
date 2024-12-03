@@ -148,13 +148,10 @@ class AvesEcho:
                         print(f"Generating embeddings for audio file {filename}...")
                         _embeddings = emb(audio_file_path)
                         torch.save(_embeddings, embedding_path)
-                else:
-                    print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
-
-        try:
-            shutil.rmtree(self.outputd)
-        except:
-            pass
+                        try:
+                            shutil.rmtree(self.outputd)
+                        except:
+                            pass
 
         return _embeddings
 

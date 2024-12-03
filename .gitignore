@@ -1,8 +1,10 @@
 __pycache__
+benchmark_sound-of-norway/
 testing/
 wandb/
 audio/
 pipeline/
+*.pt
 *.wav
 *.wav
 *.mp3
@@ -10,3 +12,6 @@ pipeline/
 *.whl
 *.nc
 .env
+slurm.zaffre.34545.err
+slurm.zaffre.34545.out
+

@@ -1,6 +1,7 @@
 # Parts of this code are taken/adapted from: https://github.com/google-research/chirp
 # Define some utility functions
 import os.path
+import os
 
 from algorithm_mode import AlgorithmMode
 from config import *
@@ -250,6 +251,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     - signal_length: Length of each audio chunk in seconds.
     - n_processes: Number of processes to use in multiprocessing. If None, the number will be determined automatically.
     """
+    os.makedirs(output_dir, exist_ok=True)
     # Configure logging
     logging.basicConfig(filename='./outputs/audio_errors.log', level=logging.ERROR, # NOTE: Changed
                     format='%(asctime)s:%(levelname)s:%(message)s')
@@ -270,7 +272,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
         for s_cnt, chunk in enumerate(sig_splits):
             save_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(filepath))[0]}_{s_cnt}.wav")
             args_list.append((chunk, save_path, rate))
-        
+
         # Save each chunk in parallel
         pool.map(save_chunk, args_list)
 
