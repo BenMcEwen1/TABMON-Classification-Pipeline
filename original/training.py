@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import torch
 from models import avesecho
 from embeddings import embed
@@ -74,6 +74,8 @@ def train(dataset, validation, epochs=10, lr=0.001):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     cross_entropy = torch.nn.CrossEntropyLoss()
 
+    # training = DataLoader(dataset, batch_size=16, shuffle=True) # Only works for tensor with the same shape, another reason to have consistent audio segments
+
     def encode_label(labels):
         one_hot = torch.zeros(len(species_list))    
 
@@ -84,15 +86,16 @@ def train(dataset, validation, epochs=10, lr=0.001):
 
     # TODO: Add dataloader
     for epoch in range(epochs):
-        print(f"Epoch: {epoch}")
 
         training_loss = 0
         for embedding, label in dataset:
+            print(embedding.shape)
+            embedding.to(device)
             model.train()
             optimizer.zero_grad()
 
             # Convert label to one-hot vector
-            y = encode_label([label])
+            y = encode_label([label]).to(device)
 
             logits = model(x=None, emb=embedding)
             outputs = sigmoid(logits)
@@ -107,7 +110,8 @@ def train(dataset, validation, epochs=10, lr=0.001):
         with torch.no_grad():
             val_loss = 0
             for embedding, label in validation:
-                y = encode_label([label])
+                embedding.to(device)
+                y = encode_label([label]).to(device)
 
                 logits = model(x=None, emb=embedding)
                 outputs = sigmoid(logits)
@@ -116,11 +120,12 @@ def train(dataset, validation, epochs=10, lr=0.001):
                 loss = cross_entropy(maxpool, y)
                 val_loss += loss.item()
 
+        print(f"Epoch: {epoch}: Training loss: {training_loss}, Validation loss: {val_loss}")
         wandb.log({"Training loss": training_loss, "Validation loss": val_loss})
         
 
 if __name__ == "__main__":
-    dataset = AudioDataset(annotation_file, "../audio/SoN/", "Test")
-    val = AudioDataset(annotation_file, "../audio/SoN/", "Test")
+    dataset = AudioDataset(annotation_file, "../audio/SoN/Train/", "Train")
+    val = AudioDataset(annotation_file, "../audio/SoN/Test/", "Test")
 
     train(dataset, val)

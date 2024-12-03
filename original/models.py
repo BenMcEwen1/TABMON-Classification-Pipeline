@@ -110,7 +110,7 @@ class AvesEcho:
 
             # Inference
             inference_set = InferenceDataset(inference_data, self.n_classes, model=self.model_name)
-            params_inf = {'batch_size': 64, 'shuffle': False} # , 'num_workers': 5
+            params_inf = {'batch_size': 124, 'shuffle': False} # , 'num_workers': 5
             inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
 
             return inference(self.model, inference_generator, device, self.species_list, None, self.mconf, self.embeddings)
