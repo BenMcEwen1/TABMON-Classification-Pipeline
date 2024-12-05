@@ -69,11 +69,11 @@ class AudioDataset(Dataset):
         filename = os.path.basename(os.path.splitext(audio_path)[0].lower()) + '_passt.pt'
         embedding_path = os.path.join(path, filename)
 
-        if os.path.exists(embedding_path):
-            embedding = torch.load(embedding_path, map_location=torch.device(device))
-        else:
-            print(f"Generating embedding for {audio_path}")
-            embedding = embed(audio_path)
+        # if os.path.exists(embedding_path):
+        #     embedding = torch.load(embedding_path, map_location=torch.device(device))
+        # else:
+        print(f"Generating embedding for {audio_path}")
+        embedding = embed(audio_path, model_name='passt')
 
         return embedding, label, audio_path
 

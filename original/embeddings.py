@@ -40,8 +40,9 @@ def embed(audio_path, model_name='fc'):
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# embeddings = torch.load("../audio/single/xc487569 - purple sandpiper - calidris maritima.pt", map_location=torch.device(device))
-# print(embeddings.shape)
+# e1 = torch.load("../audio/benchmark_sound-of-norway/Test/Eurasian Wren/100_2def17a52e173deb6bad32c908_passt.pt", map_location=torch.device(device))
+# e2 = torch.load("../audio/benchmark_sound-of-norway/Test/Eurasian Wren/100_2def17a52e173deb6bad32c908.pt", map_location=torch.device(device))
+# print(e1)
+# print(e2)
+# print(e1 == e2)
 
-# for row in embeddings:
-#     print(row)
