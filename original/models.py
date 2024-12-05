@@ -112,7 +112,6 @@ class AvesEcho:
             inference_set = InferenceDataset(inference_data, self.n_classes, model=self.model_name)
             params_inf = {'batch_size': 124, 'shuffle': False} # , 'num_workers': 5
             inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
-
             return inference(self.model, inference_generator, device, self.species_list, None, self.mconf, self.embeddings)
         
         # Get File list
@@ -124,7 +123,6 @@ class AvesEcho:
                 file_path = [os.path.join(path, filename) for filename in files
                              if not self.ignore_filesystem_object(audio_path, filename)]
                 audio_files += file_path
-
         supported_file_extensions = ['.wav', '.mp3', '.ogg', '.flac']
 
         # Iterate through each audio file
@@ -141,7 +139,7 @@ class AvesEcho:
                         with open(audio_file_path, "wb") as output_file:
                             output_file.write(audio_file.read())
 
-                    embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + ".pt")
+                    embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + "_passt.pt")
 
                     # Check if embedding path exists
                     if not os.path.exists(embedding_path):
@@ -152,12 +150,13 @@ class AvesEcho:
                             shutil.rmtree(self.outputd)
                         except:
                             pass
-
+                    else:
+                        print(f"Retrieving embeddings for audio file {filename}...")
+                        _embeddings = torch.load(embedding_path)
+                    # _embeddings = emb(audio_file_path)
         return _embeddings
 
-    def analyze_directories(
-        self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None
-    ) -> None:
+    def analyze_directories(self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None) -> None:
         if os.path.isfile(audio_input):
             audio_files = [audio_input]
         else:
@@ -222,7 +221,6 @@ class AvesEcho:
                 else:
                     print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
                     return {"error": f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions})."}, 415
-
         return analysis_results, 200
 
     def analyze_audio_file(self, audio_file_path: str, filtering_list: list[str], analysis_results: dict[str, Any]):

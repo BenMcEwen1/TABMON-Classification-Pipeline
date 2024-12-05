@@ -1,12 +1,9 @@
 import os
 import argparse
 from algorithm_mode import AlgorithmMode
-
 from models import AvesEcho
 
 default_algorithm_mode = os.getenv("ALGORITHM_MODE", AlgorithmMode.DIRECTORIES.value)
-
-#annotation_file = "../audio/annotation_split.csv"
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -22,11 +19,10 @@ parser.add_argument('--maxpool', default=False, action='store_true', help='Use m
 parser.add_argument('--model_name', type=str, default='fc', help='Name of the model to use.')
 parser.add_argument("--algorithm_mode", default=default_algorithm_mode, help="Use input/output directories or an endpoint.")
 parser.add_argument("--embeddings_mode", type=bool, default=True, help="Generate embeddings for files instead of inference.")
-
 args = parser.parse_args()
 
-def embed(audio_path):
-    feature_extractor = AvesEcho(model_name=args.model_name, slist=args.slist, flist=args.flist,
+def embed(audio_path, model_name='fc'):
+    feature_extractor = AvesEcho(model_name=model_name, slist=args.slist, flist=args.flist,
                             add_filtering=args.add_filtering, mconf=args.mconf,
                             outputd="./outputs/temp", avesecho_mapping='./inputs/list_AvesEcho.csv',
                             maxpool=args.maxpool, add_csv=args.add_csv, embeddings=args.embeddings_mode, args=args)
@@ -35,5 +31,17 @@ def embed(audio_path):
     embeddings = feature_extractor.generate_embeddings(audio_path)
     return embeddings
 
-#if __name__ == "__main__":
-#embed(audio_path="../benchmark_sound-of-norway/")
+# if __name__ == "__main__":
+#     embeddings = embed(audio_path="../audio\single\XC487569 - Purple Sandpiper - Calidris maritima.mp3")
+#     print(embeddings.shape)
+
+
+# import torch
+
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# embeddings = torch.load("../audio/single/xc487569 - purple sandpiper - calidris maritima.pt", map_location=torch.device(device))
+# print(embeddings.shape)
+
+# for row in embeddings:
+#     print(row)
