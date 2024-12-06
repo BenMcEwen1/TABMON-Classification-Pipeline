@@ -18,6 +18,54 @@ classifier: "AvesEcho"
 app = flask.Flask(__name__, static_url_path="", static_folder="static")
 
 
+class ContextAwareHead(nn.Module):
+    # Context aware classification head for any generic feature extractor
+    def __init__(self, n_classes:int, externalEmbeddingSize:int=320, target_dim:int=3):
+        super(ContextAwareHead, self).__init__()
+        self.multihead = nn.MultiheadAttention(externalEmbeddingSize, 1)
+        self.head = nn.Linear(externalEmbeddingSize*target_dim, n_classes)
+        self.relu = torch.nn.ReLU()
+        self.sigmoid = torch.nn.Sigmoid()
+        self.externalEmbeddingSize = externalEmbeddingSize
+        self.target_dim = target_dim
+
+    def padding(self, target:torch.Tensor, embeddings:torch.Tensor):
+        # Pad context embeddings to target dimension
+        combined = target #torch.cat((target, embeddings), dim=1)
+        current_dim = combined.shape[1]
+        if current_dim > self.target_dim:
+            raise Exception("Too many embeddings")
+        
+        padding = torch.zeros(target.shape[0], self.target_dim-current_dim, self.externalEmbeddingSize) # B, padding, embedding
+        padded = torch.cat((combined, padding), dim=1)
+        return padded
+    
+    # def sampleContext(self, target:torch.Tensor, samples:torch.Tensor, method:str="nearest"):
+    #     # Similarity search using cosine sim
+    #     similarity = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
+    #     sim = similarity(target, samples)
+    #     if method == "nearest":
+    #         top = torch.topk(sim, 5)
+    #         return torch.index_select(samples, 0, top.indices)
+        
+    # def positionalEncoding(index:int, target:int, embeddings:torch.Tensor, sigma:float=5):
+    #     # Positional encoding of context embeddings, issue: doesn't work for embeddings outside of batch.
+    #     pos = torch.tanh((index-target)/sigma)
+    #     return torch.column_stack((embeddings, pos))
+        
+    def forward(self, target:torch.Tensor, context:torch.Tensor, val=False):
+        # Normalise embeddings
+        target = target / target.norm(dim=-1, keepdim=True)
+        context = context / context.norm(dim=-1, keepdim=True)
+
+        x = self.padding(target, context)
+        x, _ = self.multihead(x, x, x)
+        x = self.relu(x)
+        x = x.reshape(x.shape[0], -1)
+        x = self.head(x)
+        return x
+
+
 @app.route("/v1/analyse", methods=["POST"])
 def analyse_endpoint():
     """
@@ -97,7 +145,7 @@ class AvesEcho:
                 use_reloader=False,
             )
 
-    def generate_embeddings(self, audio_path: str):
+    def generate_embeddings(self, audio_path: str, regenerate: bool, save: bool):
         def emb(audio_file_path):
             # Load soundfile and split signal into 3s chunks
             self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=10)
@@ -139,13 +187,14 @@ class AvesEcho:
                         with open(audio_file_path, "wb") as output_file:
                             output_file.write(audio_file.read())
 
-                    embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + "_passt.pt")
+                    embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + f"_{self.model_name}.pt")
 
                     # Check if embedding path exists
-                    if not os.path.exists(embedding_path):
+                    if (not os.path.exists(embedding_path)) or regenerate:
                         print(f"Generating embeddings for audio file {filename}...")
                         _embeddings = emb(audio_file_path)
-                        torch.save(_embeddings, embedding_path)
+                        if save:
+                            torch.save(_embeddings, embedding_path)
                         try:
                             shutil.rmtree(self.outputd)
                         except:
@@ -153,7 +202,6 @@ class AvesEcho:
                     else:
                         print(f"Retrieving embeddings for audio file {filename}...")
                         _embeddings = torch.load(embedding_path)
-                    # _embeddings = emb(audio_file_path)
         return _embeddings
 
     def analyze_directories(self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None) -> None:

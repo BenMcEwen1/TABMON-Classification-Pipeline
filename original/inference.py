@@ -102,7 +102,7 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold, e
         all_images.extend(files)
 
     if embeddings:
-        return outputs # NOTE: important difference beteen fc and passt
+        return emb # NOTE: important difference beteen fc and passt
     else:
         return all_predictions, all_scores, all_images
 

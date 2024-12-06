@@ -1,9 +1,10 @@
 import os
 import pandas as pd
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import torch
-from models import avesecho
-from embeddings import embed
+from models import avesecho, ContextAwareHead
+from embeddings_old import embed
+from embeddings import Database
 from torch.nn.functional import sigmoid
 import torch.nn as nn
 from util import load_species_list
@@ -55,7 +56,7 @@ class AudioDataset(Dataset):
         super(AudioDataset, self).__init__()
         self.val = val
         self.annotations = self._filter_annotations(pd.read_csv(annotations_file))
-        print(self.annotations)
+        self.annotations = self.annotations.sample(frac=1).reset_index(drop=True) # shuffle
         self.audio_dir = audio_dir
 
     def __len__(self):
@@ -88,16 +89,18 @@ class AudioDataset(Dataset):
         return data.loc[data['Data_split'] == self.val]
 
 
-def train(dataset, validation, epochs=1, lr=0.001, device='cpu', eval=True, average='macro'):
-    wandb.init(
-        project="AvesEcho (fc) Finetuned",
-        config={
-            "learning_rate": lr,
-            "architecture": "AvesEcho + MLP",
-            "dataset": "Sounds of Norway (Benchmark)",
-            "epochs": epochs,
-        }
-    )
+def train(dataset, validation, epochs=30, lr=0.001, weight_decay=0.0001, device='cpu', eval=True, log=True, average='macro'):
+    if log:
+        wandb.init(
+            project="Context-aware Head",
+            config={
+                "learning_rate": lr,
+                "architecture": "BirdNet + Context",
+                "dataset": "Sounds of Norway (Benchmark)",
+                "epochs": epochs,
+                "weight decay": weight_decay
+            }
+        )
     
     species_list = load_species_list('inputs/list_en_ml.csv')
 
@@ -106,13 +109,16 @@ def train(dataset, validation, epochs=1, lr=0.001, device='cpu', eval=True, aver
     labels = df['new_label'].unique().tolist()
 
     # Override to test only Sounds of Norway labels
-    # species_list = labels
-    # print(species_list)
+    species_list = labels
+    print(species_list)
 
-    model = avesecho(NumClasses=585).to(device)
-    model.load_state_dict(torch.load('./inputs/checkpoints/avesecho_fc_SoN.pt', map_location=device))
+    # model = ContextAwareHead(n_classes=len(species_list)).to(device)
+    context = Database('../audio/benchmark_sound-of-norway/Train/embeddings.bin')
 
-    # model = MLP(input_size=320, num_classes=len(species_list)).to(device)
+    # model = avesecho(NumClasses=585).to(device)
+    # model.load_state_dict(torch.load('./inputs/checkpoints/avesecho_fc_SoN.pt', map_location=device))
+
+    model = MLP(input_size=320, num_classes=len(species_list)).to(device)
     # model.load_state_dict(torch.load('./inputs/checkpoints/BirdNet_filtered_labels.pt', map_location=device))
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -121,100 +127,103 @@ def train(dataset, validation, epochs=1, lr=0.001, device='cpu', eval=True, aver
     def encode_label(labels):
         one_hot = torch.zeros(len(species_list))
         for label in labels:
-            if label.replace(" ", "") not in species_list:
+            if label not in species_list:
                 # Actual labels: ZZZ_Unsure, ZZZ_Unsure: Not bird,  ZZZ_Unsure: Other bird 
                 index = species_list.index("Unsure")
                 one_hot[index] = 1
             else:
-                index = species_list.index(label.replace(" ", ""))
+                index = species_list.index(label)
                 one_hot[index] = 1
         return one_hot
     
-    y_pred = []
-    y_true = []
     uncertainty = []
     file_path = []
 
     # TODO: Add dataloader
     for epoch in range(epochs):
-        if not eval:
-            training_loss = 0
-            for ti, (embedding, label) in enumerate(dataset):
-                embedding.to(device)
-                model.train()
-                optimizer.zero_grad()
+        training_loss = 0
+        for ti, (embedding, label, audio_path) in enumerate(dataset):
+            model.train()
+            embedding.to(device)
+            optimizer.zero_grad()
 
-                # Convert label to one-hot vector
-                y = encode_label([label]).to(device)
+            # Convert label to one-hot vector
+            y = encode_label([label]).to(device)
 
-                logits = model(x=None, emb=embedding)
-                # print(logits.shape)
-                outputs = sigmoid(logits)
-                maxpool = torch.max(outputs, dim=0).values
+            # # In-context sampling
+            # samples, distances = context.search_embeddings(embedding, k=2)
+            # samples = torch.tensor(samples, dtype=torch.float32).to(device)
+            # logits = model(embedding, samples)
 
-                # Sanity Check
-                if ti in torch.randint(0, 1000, (10,)).tolist():
-                    print(f"True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
+            logits = model(x=None, emb=embedding)
+            outputs = sigmoid(logits)
+            maxpool = torch.max(outputs, dim=0).values
 
-                loss = cross_entropy(maxpool, y)
-                training_loss += loss.item()/(ti + 1)
-                loss.backward()
-                optimizer.step()
+            # Sanity Check
+            if ti in torch.randint(0, 1000, (2,)).tolist():
+                print(f"Training: True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
+
+            loss = cross_entropy(maxpool, y)
+            training_loss += loss.item()/(ti + 1)
+            loss.backward()
+            optimizer.step()
 
         model.eval()
         with torch.no_grad():
             val_loss = 0
+            y_pred = []
+            y_true = []
             for vi, (embedding, label, audio_path) in enumerate(validation):
                 embedding.to(device)
                 y = encode_label([label]).to(device)
+
+                # # In-context sampling
+                # samples, distances = context.search_embeddings(embedding, k=2)
+                # samples = torch.tensor(samples, dtype=torch.float32).to(device)
+                # logits = model(embedding, samples, val=val)
 
                 logits = model(x=None, emb=embedding)
                 outputs = sigmoid(logits)
                 maxpool = torch.max(outputs, dim=0).values
 
-                # Calculate uncertainty
-                uncertainty.append(uncertaintyEntropy(torch.unsqueeze(maxpool, 0))[0])
-                file_path.append(audio_path)
+                # Sanity Check
+                if vi in torch.randint(0, 1000, (2,)).tolist():
+                    print(f"Validation: True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
+
+                # # Calculate uncertainty
+                # uncertainty.append(uncertaintyEntropy(torch.unsqueeze(maxpool, 0))[0])
+                # file_path.append(audio_path)
 
                 loss = cross_entropy(maxpool, y)
                 val_loss += loss.item()/(vi + 1)
 
-                binary_tensor = torch.zeros(585)
-                binary_tensor[maxpool.argmax().item()] = 1
-
                 y_pred.append(species_list[maxpool.argmax().item()])
                 y_true.append(label)
 
-                labels = [label.replace(" ", "") for label in labels]
+        if log:
+            print(f"Epoch: {epoch}: Training loss: {training_loss}, Validation loss: {val_loss}")
+            wandb.log({"Training loss": training_loss, "Validation loss": val_loss})
 
-            if eval:
-                y_pred = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_pred]
-                y_true = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_true]
-                y_true = [label.replace(" ", "") for label in y_true]
-                # labels = [label for label in labels if (label != "ZZZ_Unsure" and label != "ZZZ_Multi" and label != "Not Bird" and label != "Other Bird" and label != "Eurasian Curlew" )]
-                labels = [label for label in labels if (label != "Unsure" and label != "NotBird" and label != "MultiBird" and label != "OtherBird" and label != "EurasianCurlew" and label != "CommonBuzzard" )]
-                
-                labels.sort()
-                labels.append("Unsure")
+    if eval:
+        y_pred = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_pred]
+        y_true = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_true]
+        labels = [label for label in labels if (label != "Unsure" and label != "Not Bird" and label != "Multi Bird" and label != "Other Bird" and label != "Eurasian Curlew" and label != "Common Buzzard" )]
+        
+        labels.sort()
+        labels.append("Unsure")
 
-                print(y_true)
+        print(f"Precision ({average}): {precision_score(y_true, y_pred, average=average)}")
+        print(f"Recall ({average}): {recall_score(y_true, y_pred, average=average)}")
+        print(f"F1 Score ({average}): {f1_score(y_true, y_pred, average=average)}")
 
+        # Plot confusion matrix
+        cf_matrix = confusion_matrix(y_true, y_pred, labels=labels)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cf_matrix, display_labels=labels)
+        disp.plot(xticks_rotation='vertical', text_kw={'fontsize': 6})
+        plt.tick_params(labelsize=6)
+        plt.show()
 
-                print(f"Precision ({average}): {precision_score(y_true, y_pred, average=average)}")
-                print(f"Recall ({average}): {recall_score(y_true, y_pred, average=average)}")
-                print(f"F1 Score ({average}): {f1_score(y_true, y_pred, average=average)}")
-
-                # Plot confusion matrix
-                cf_matrix = confusion_matrix(y_true, y_pred, labels=labels)
-                disp = ConfusionMatrixDisplay(confusion_matrix=cf_matrix, display_labels=labels)
-                disp.plot(xticks_rotation='vertical', text_kw={'fontsize': 6})
-                plt.tick_params(labelsize=6)
-                plt.show()
-
-    #     print(f"Epoch: {epoch}: Training loss: {training_loss}, Validation loss: {val_loss}")
-    #     wandb.log({"Training loss": training_loss, "Validation loss": val_loss})
-
-    # torch.save(model.state_dict(), f'./inputs/checkpoints/BirdNet_{epoch}.pt')
+    torch.save(model.state_dict(), f'./inputs/checkpoints/Context_{epoch}.pt')
 
 
     # uncertainty = [i/max(uncertainty) for i in uncertainty]
@@ -224,7 +233,6 @@ def train(dataset, validation, epochs=1, lr=0.001, device='cpu', eval=True, aver
 
     # for i in range(len(uncertainty)):
     #     print(f"File: {file_path[i]}, Uncertainty: {uncertainty[i]}, Label: {y_true[i]}, Prediction: {y_pred[i]}")
-
 
 
 if __name__ == "__main__":
