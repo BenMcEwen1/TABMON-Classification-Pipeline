@@ -1,4 +1,5 @@
 import os.path
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 import flask
 
@@ -18,49 +19,55 @@ classifier: "AvesEcho"
 app = flask.Flask(__name__, static_url_path="", static_folder="static")
 
 
+# TODO: Things to Test
+# - Try different training dataset sizes
+# - Plot attention scores for target and context
+# - Sample selection with redundant point removal (or SIFT)
+# - Dimensionity reduction + PCA of embedding space
+# - Quantify uncertainty and estimate uncertainty reduction
+# - Compare offline context sampling i.e. compute all the embeddings for both train and test sets
+
+# Uncertainty Sampling
+# - 
+
+# Other Datasets
+# - Norway secondary dataset
+# - WABAD dataset
+# - BEANS benchmark
+
 class ContextAwareHead(nn.Module):
     # Context aware classification head for any generic feature extractor
-    def __init__(self, n_classes:int, externalEmbeddingSize:int=320, target_dim:int=3):
+    def __init__(self, n_classes:int, externalEmbeddingSize:int=320, heads:int=2, context:int=0):
         super(ContextAwareHead, self).__init__()
-        self.multihead = nn.MultiheadAttention(externalEmbeddingSize, 1)
-        self.head = nn.Linear(externalEmbeddingSize*target_dim, n_classes)
-        self.relu = torch.nn.ReLU()
-        self.sigmoid = torch.nn.Sigmoid()
+        self.target_dim = 1 + context
         self.externalEmbeddingSize = externalEmbeddingSize
-        self.target_dim = target_dim
+        self.multihead = nn.MultiheadAttention(self.externalEmbeddingSize, heads, batch_first=True)
+        self.head = nn.Linear(externalEmbeddingSize*self.target_dim, n_classes)
+        self.relu = torch.nn.ReLU()
+        self.dropout = torch.nn.Dropout(p=0.2)
 
-    def padding(self, target:torch.Tensor, embeddings:torch.Tensor):
+    def add_context(self, target:torch.Tensor, embeddings:torch.Tensor):
         # Pad context embeddings to target dimension
-        combined = target #torch.cat((target, embeddings), dim=1)
+        combined = torch.cat((target, embeddings), dim=1)
         current_dim = combined.shape[1]
         if current_dim > self.target_dim:
-            raise Exception("Too many embeddings")
-        
-        padding = torch.zeros(target.shape[0], self.target_dim-current_dim, self.externalEmbeddingSize) # B, padding, embedding
-        padded = torch.cat((combined, padding), dim=1)
-        return padded
-    
-    # def sampleContext(self, target:torch.Tensor, samples:torch.Tensor, method:str="nearest"):
-    #     # Similarity search using cosine sim
-    #     similarity = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
-    #     sim = similarity(target, samples)
-    #     if method == "nearest":
-    #         top = torch.topk(sim, 5)
-    #         return torch.index_select(samples, 0, top.indices)
-        
-    # def positionalEncoding(index:int, target:int, embeddings:torch.Tensor, sigma:float=5):
-    #     # Positional encoding of context embeddings, issue: doesn't work for embeddings outside of batch.
-    #     pos = torch.tanh((index-target)/sigma)
-    #     return torch.column_stack((embeddings, pos))
-        
-    def forward(self, target:torch.Tensor, context:torch.Tensor, val=False):
+            cropped = combined[:,:self.target_dim,:]
+            return cropped
+        else:
+            padding = torch.zeros(target.shape[0], self.target_dim-current_dim, self.externalEmbeddingSize) # B, padding, embedding
+            padded = torch.cat((combined, padding), dim=1)
+            return padded
+
+    def forward(self, target:torch.Tensor, context:torch.Tensor):
         # Normalise embeddings
         target = target / target.norm(dim=-1, keepdim=True)
         context = context / context.norm(dim=-1, keepdim=True)
 
-        x = self.padding(target, context)
+        x = self.add_context(target, context)
         x, _ = self.multihead(x, x, x)
         x = self.relu(x)
+        x = self.dropout(x)
+
         x = x.reshape(x.shape[0], -1)
         x = self.head(x)
         return x

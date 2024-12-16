@@ -11,7 +11,14 @@ from util import load_species_list
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
+from uncertainty import generate_uncertainty
+from types import SimpleNamespace
 import wandb
+
+torch.autograd.set_detect_anomaly(True)
+
+annotation_file = "../audio/sound-of-norway/annotation_uncertainty.csv"
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.1):
@@ -32,8 +39,6 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.1):
     for p in outputs:
         uncertainty_array = -(p*torch.log2(p))-(torch.subtract(1, p))*torch.log2(torch.subtract(1, p))
         uncertainty_array = torch.nan_to_num(uncertainty_array)
-        # if threshold:
-        #     filtered_uncertainty = [x for x in uncertainty_array if x > threshold]
         av_uncertainty = sum(uncertainty_array)/len(uncertainty_array)
         uncertainty.append(av_uncertainty.item())
     return uncertainty
@@ -45,18 +50,25 @@ class MLP(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x, emb):
-        x = self.sigmoid(emb)
         x = self.fc1(emb.squeeze(1))
         return x
 
 
 class AudioDataset(Dataset):
     # ANNOTATIONS, AUDIO_DIR, mel_spectrogram, 16000, False
-    def __init__(self, annotations_file, audio_dir, val):
+    def __init__(self, annotations_file, audio_dir, val, subset=False, shuffle=False, uncertainty=False):
         super(AudioDataset, self).__init__()
         self.val = val
         self.annotations = self._filter_annotations(pd.read_csv(annotations_file))
-        self.annotations = self.annotations.sample(frac=1).reset_index(drop=True) # shuffle
+
+        if shuffle:
+            self.annotations = self.annotations.sample(frac=1).reset_index(drop=True)
+        elif uncertainty:
+            self.annotations = self.annotations.sort_values(by=['Uncertainty'], ascending=False)
+
+        if subset:
+            self.annotations = self.annotations[:600] # Subset
+        
         self.audio_dir = audio_dir
 
     def __len__(self):
@@ -89,158 +101,174 @@ class AudioDataset(Dataset):
         return data.loc[data['Data_split'] == self.val]
 
 
-def train(dataset, validation, epochs=30, lr=0.001, weight_decay=0.0001, device='cpu', eval=True, log=True, average='macro'):
-    if log:
-        wandb.init(
-            project="Context-aware Head",
-            config={
-                "learning_rate": lr,
-                "architecture": "BirdNet + Context",
-                "dataset": "Sounds of Norway (Benchmark)",
-                "epochs": epochs,
-                "weight decay": weight_decay
-            }
-        )
+def train(log=True, plot=True, resample=False, save=False, average='macro', min_loss=100000, config=None):
+    dataset = AudioDataset(annotation_file, "../audio/sound-of-norway/Train/", "Train", shuffle=True, subset=False)
+    validation = AudioDataset(annotation_file, "../audio/sound-of-norway/Test/", "Test")
     
-    species_list = load_species_list('inputs/list_en_ml.csv')
+    with wandb.init(project="Uncertainty Sampling Comparison", config=config):
+        config = wandb.config
 
-    df = pd.read_csv('../audio/benchmark_sound-of-norway/annotation_adjusted.csv')
-    df = df[df['Data_split'] != 0]
-    labels = df['new_label'].unique().tolist()
+        species_list = load_species_list('inputs/list_en_ml.csv')
 
-    # Override to test only Sounds of Norway labels
-    species_list = labels
-    print(species_list)
+        df = pd.read_csv('../audio/sound-of-norway/annotation_adjusted.csv')
+        df = df[df['Data_split'] != 0]
+        labels = df['new_label'].unique().tolist()
 
-    # model = ContextAwareHead(n_classes=len(species_list)).to(device)
-    context = Database('../audio/benchmark_sound-of-norway/Train/embeddings.bin')
+        # Override to test only Sounds of Norway labels
+        species_list = labels
 
-    # model = avesecho(NumClasses=585).to(device)
-    # model.load_state_dict(torch.load('./inputs/checkpoints/avesecho_fc_SoN.pt', map_location=device))
+        # model = ContextAwareHead(n_classes=len(species_list), heads=config.heads, context=config.context).to(device)
+        # context = Database('../audio/sound-of-norway/combined.bin')
+        # model.load_state_dict(torch.load('./inputs/checkpoints/Context_jhpq1ily.pt', map_location=device))
 
-    model = MLP(input_size=320, num_classes=len(species_list)).to(device)
-    # model.load_state_dict(torch.load('./inputs/checkpoints/BirdNet_filtered_labels.pt', map_location=device))
+        # model = avesecho(NumClasses=585).to(device)
+        # model.load_state_dict(torch.load('./inputs/checkpoints/avesecho_fc_SoN.pt', map_location=device))
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    cross_entropy = torch.nn.BCELoss()
+        model = MLP(input_size=320, num_classes=len(species_list)).to(device)
+        model.load_state_dict(torch.load('./inputs/checkpoints/BirdNet_49.pt', map_location=device))
 
-    def encode_label(labels):
-        one_hot = torch.zeros(len(species_list))
-        for label in labels:
-            if label not in species_list:
-                # Actual labels: ZZZ_Unsure, ZZZ_Unsure: Not bird,  ZZZ_Unsure: Other bird 
-                index = species_list.index("Unsure")
-                one_hot[index] = 1
-            else:
-                index = species_list.index(label)
-                one_hot[index] = 1
-        return one_hot
-    
-    uncertainty = []
-    file_path = []
+        optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+        cross_entropy = torch.nn.BCELoss()
 
-    # TODO: Add dataloader
-    for epoch in range(epochs):
-        training_loss = 0
-        for ti, (embedding, label, audio_path) in enumerate(dataset):
-            model.train()
-            embedding.to(device)
-            optimizer.zero_grad()
+        def encode_label(labels):
+            one_hot = torch.zeros(len(species_list))
+            for label in labels:
+                if label not in species_list: 
+                    index = species_list.index("Unsure")
+                    one_hot[index] = 1
+                else:
+                    index = species_list.index(label)
+                    one_hot[index] = 1
+            return one_hot
 
-            # Convert label to one-hot vector
-            y = encode_label([label]).to(device)
+        for epoch in range(config.epochs):
+            training_loss = 0
+            increment = 20
 
-            # # In-context sampling
-            # samples, distances = context.search_embeddings(embedding, k=2)
-            # samples = torch.tensor(samples, dtype=torch.float32).to(device)
-            # logits = model(embedding, samples)
+            if resample:
+                dataset = AudioDataset(annotation_file, "../audio/sound-of-norway/Train/", "Train", shuffle=False, uncertainty=True)
 
-            logits = model(x=None, emb=embedding)
-            outputs = sigmoid(logits)
-            maxpool = torch.max(outputs, dim=0).values
+            for ti, (embedding, label, _) in enumerate(dataset):
+                if ti >= (epoch+1)*increment:
+                    break
 
-            # Sanity Check
-            if ti in torch.randint(0, 1000, (2,)).tolist():
-                print(f"Training: True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
-
-            loss = cross_entropy(maxpool, y)
-            training_loss += loss.item()/(ti + 1)
-            loss.backward()
-            optimizer.step()
-
-        model.eval()
-        with torch.no_grad():
-            val_loss = 0
-            y_pred = []
-            y_true = []
-            for vi, (embedding, label, audio_path) in enumerate(validation):
+                model.train()
                 embedding.to(device)
+                optimizer.zero_grad()
+
+                # Convert label to one-hot vector
                 y = encode_label([label]).to(device)
 
-                # # In-context sampling
-                # samples, distances = context.search_embeddings(embedding, k=2)
+                # In-context sampling
+                # samples, _ = context.search_embeddings(embedding, k=config.context+1)
                 # samples = torch.tensor(samples, dtype=torch.float32).to(device)
-                # logits = model(embedding, samples, val=val)
+                # logits = model(embedding, samples)
 
                 logits = model(x=None, emb=embedding)
                 outputs = sigmoid(logits)
                 maxpool = torch.max(outputs, dim=0).values
 
-                # Sanity Check
-                if vi in torch.randint(0, 1000, (2,)).tolist():
-                    print(f"Validation: True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
-
-                # # Calculate uncertainty
-                # uncertainty.append(uncertaintyEntropy(torch.unsqueeze(maxpool, 0))[0])
-                # file_path.append(audio_path)
-
                 loss = cross_entropy(maxpool, y)
-                val_loss += loss.item()/(vi + 1)
+                training_loss += loss.item()/(ti + 1)
+                loss.backward()
+                optimizer.step()
 
-                y_pred.append(species_list[maxpool.argmax().item()])
-                y_true.append(label)
+            model.eval()
+            with torch.no_grad():
+                val_loss = 0
+                y_pred = []
+                y_true = []
+                uncertainty = []
+                for vi, (embedding, label, _) in enumerate(validation):
+                    embedding.to(device)
+                    y = encode_label([label]).to(device)
 
-        if log:
-            print(f"Epoch: {epoch}: Training loss: {training_loss}, Validation loss: {val_loss}")
-            wandb.log({"Training loss": training_loss, "Validation loss": val_loss})
+                    # In-context sampling
+                    # samples, _ = context.search_embeddings(embedding, k=config.context+1)
+                    # samples = torch.tensor(samples, dtype=torch.float32).to(device)
+                    # logits = model(embedding, samples)
 
-    if eval:
-        y_pred = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_pred]
-        y_true = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_true]
-        labels = [label for label in labels if (label != "Unsure" and label != "Not Bird" and label != "Multi Bird" and label != "Other Bird" and label != "Eurasian Curlew" and label != "Common Buzzard" )]
-        
-        labels.sort()
-        labels.append("Unsure")
+                    logits = model(x=None, emb=embedding)
+                    outputs = sigmoid(logits)
+                    maxpool = torch.max(outputs, dim=0).values
 
-        print(f"Precision ({average}): {precision_score(y_true, y_pred, average=average)}")
-        print(f"Recall ({average}): {recall_score(y_true, y_pred, average=average)}")
-        print(f"F1 Score ({average}): {f1_score(y_true, y_pred, average=average)}")
+                    # Sanity Check
+                    if vi in torch.randint(0, 200, (2,)).tolist():
+                        print(f"Validation: True Label: {label} | Predicted label: {species_list[maxpool.argmax().item()]}")
 
-        # Plot confusion matrix
-        cf_matrix = confusion_matrix(y_true, y_pred, labels=labels)
-        disp = ConfusionMatrixDisplay(confusion_matrix=cf_matrix, display_labels=labels)
-        disp.plot(xticks_rotation='vertical', text_kw={'fontsize': 6})
-        plt.tick_params(labelsize=6)
-        plt.show()
+                    # Calculate uncertainty
+                    batch = embedding.shape[0]
+                    uncertainty.append(uncertaintyEntropy(torch.unsqueeze(maxpool, 0))[0]/batch)
 
-    torch.save(model.state_dict(), f'./inputs/checkpoints/Context_{epoch}.pt')
+                    loss = cross_entropy(maxpool, y)
+                    val_loss += loss.item()/(vi + 1)
 
+                    y_pred.append(species_list[maxpool.argmax().item()])
+                    y_true.append(label)
 
-    # uncertainty = [i/max(uncertainty) for i in uncertainty]
+            if log:
+                print(f"Epoch: {epoch}: Training loss: {training_loss}, Validation loss: {val_loss}")
+                wandb.log({"val_loss": val_loss, "Total Uncertainty": sum(uncertainty), "F1 Score": f1_score(y_true, y_pred, average=average)})
 
-    # mapping = {k: i for i, k in enumerate(sorted(uncertainty, reverse=True))}
-    # print(*mapping.keys())
+                if val_loss < min_loss:
+                    best_epoch = epoch
+                    best_model = model
+                    min_loss = val_loss
 
-    # for i in range(len(uncertainty)):
-    #     print(f"File: {file_path[i]}, Uncertainty: {uncertainty[i]}, Label: {y_true[i]}, Prediction: {y_pred[i]}")
+            if resample:
+                generate_uncertainty(n_heads=config.heads, n_context=config.context, model=model)
+
+        if plot:
+            y_pred = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_pred]
+            y_true = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_true]
+            labels = [label for label in labels if (label != "Unsure" and label != "Not Bird" and label != "Multi Bird" and label != "Other Bird" and label != "Eurasian Curlew" and label != "Common Buzzard" )]
+            
+            labels.sort()
+            labels.append("Unsure")
+
+            print(f"Precision ({average}): {precision_score(y_true, y_pred, average=average)}")
+            print(f"Recall ({average}): {recall_score(y_true, y_pred, average=average)}")
+            print(f"F1 Score ({average}): {f1_score(y_true, y_pred, average=average)}")
+
+            # Plot confusion matrix
+            cf_matrix = confusion_matrix(y_true, y_pred, labels=labels)
+            disp = ConfusionMatrixDisplay(confusion_matrix=cf_matrix, display_labels=labels)
+            disp.plot(xticks_rotation='vertical', text_kw={'fontsize': 4})
+            plt.tick_params(labelsize=4)
+            plt.show()
+
+        if save:
+            torch.save(best_model.state_dict(), f'./inputs/checkpoints/ContextOffline_{wandb.run.id}_{best_epoch}.pt')
 
 
 if __name__ == "__main__":
-    annotation_file = "../audio/benchmark_sound-of-norway/annotation_split.csv"
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"Device: {device}")
+    config = {
+        "epochs": 1,
+        "lr": 0.001,
+        "context": 2,
+        "heads": 2,
+        "weight_decay": 0.00001,
+        "save": False
+    }
 
-    dataset = AudioDataset(annotation_file, "../audio/benchmark_sound-of-norway/Train/", "Train")
-    val = AudioDataset(annotation_file, "../audio/benchmark_sound-of-norway/Test/", "Test")
+    config = SimpleNamespace(**config)
+    train(config=config)
 
-    train(dataset, val, device=device)
+
+    # # Define sweep config
+    # context_sweep = {
+    #     "name": "Context (offline)",
+    #     "method": "random",
+    #     "metric": {"goal": "minimize", "name": "val_loss"},
+    #     "parameters": {
+    #         "epochs": {"value": 10},
+    #         "heads": {"value": 2},
+    #         "lr": {"value": 0.001},
+    #         "context": {"values": [0, 1, 2, 4]},
+    #         "weight_decay": {"value": 0.00001} # Definitely 0.00001
+    #     },
+    # }
+
+    # # Initialize sweep by passing in config.
+    # sweep_id = wandb.sweep(sweep=context_sweep, project="Context-model sweep")
+    # wandb.agent(sweep_id, function=train)

@@ -6,6 +6,7 @@ from models import AvesEcho
 import faiss
 import numpy as np
 
+
 default_algorithm_mode = os.getenv("ALGORITHM_MODE", AlgorithmMode.DIRECTORIES.value)
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -60,7 +61,9 @@ class Database:
                     embedding_path = os.path.join(path, filename)
                     embedding = torch.load(embedding_path, map_location=torch.device(device))
                     embedding = torch.squeeze(embedding, 1)
-                    self.index.add(embedding)
+                    if embedding.shape[1] == self.dimension:
+                        print(f"{embedding_path}")
+                        self.index.add(embedding)
         faiss.write_index(self.index, os.path.join(audio_path, 'embeddings.bin'))
 
     def search_embeddings(self, query:torch.Tensor, k:int=2):
@@ -84,14 +87,14 @@ class Database:
         vectors = vectors.reshape(batch, k, 320)
         return vectors, distances
 
-audio_path = '../audio/benchmark_sound-of-norway/Train/'
+audio_path = '../audio/sound-of-norway/'
 
 # query = torch.load('../audio/xeno-canto/single_fc.pt', map_location=torch.device(device))
 
 if __name__ == "__main__":
     database = Database() # embeddings_path='../audio/xeno-canto/embeddings.bin'
-    # database.generate_embeddings(audio_path, regenerate=False)
-    database.collect(audio_path)
+    database.generate_embeddings(audio_path, model_name='passt', regenerate=False)
+    # database.collect(audio_path)
 
     # vectors, distances, indices = database.search_embeddings(query)
     # print(distances)
