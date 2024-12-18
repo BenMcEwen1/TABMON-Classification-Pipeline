@@ -35,6 +35,17 @@ app = flask.Flask(__name__, static_url_path="", static_folder="static")
 # - WABAD dataset
 # - BEANS benchmark
 
+class MLP(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(MLP, self).__init__()
+        self.fc1 = nn.Linear(input_size, num_classes)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x, emb):
+        x = self.fc1(emb.squeeze(1))
+        return x
+    
+
 class ContextAwareHead(nn.Module):
     # Context aware classification head for any generic feature extractor
     def __init__(self, n_classes:int, externalEmbeddingSize:int=320, heads:int=2, context:int=0):
@@ -128,7 +139,7 @@ class AvesEcho:
         self.args = args
         self.algorithm_mode = self.determine_algorithm_mode(args.algorithm_mode)
 
-        print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode.")
+        print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode, model {self.model_name}.")
 
         # Load the model
         if self.model_name == 'passt':
@@ -182,7 +193,8 @@ class AvesEcho:
 
         # Iterate through each audio file
         with tempfile.TemporaryDirectory() as temporary_directory:
-            for audio_file in audio_files:
+            print(f"Generating embeddings for {len(audio_files)} files.")
+            for audio_file in tqdm(audio_files):
                 filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
                 file_extension = os.path.splitext(filename)[1].lower()
 
@@ -198,7 +210,6 @@ class AvesEcho:
 
                     # Check if embedding path exists
                     if (not os.path.exists(embedding_path)) or regenerate:
-                        print(f"Generating embeddings for audio file {filename}...")
                         _embeddings = emb(audio_file_path)
                         if save:
                             torch.save(_embeddings, embedding_path)
@@ -207,7 +218,6 @@ class AvesEcho:
                         except:
                             pass
                     else:
-                        print(f"Retrieving embeddings for audio file {filename}...")
                         _embeddings = torch.load(embedding_path)
         return _embeddings
 

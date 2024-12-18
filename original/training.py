@@ -2,13 +2,10 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 import torch
-from models import avesecho, ContextAwareHead
-from embeddings_old import embed
-from embeddings import Database
+from models import avesecho, ContextAwareHead, MLP
+from embeddings import Embeddings
 from torch.nn.functional import sigmoid
-import torch.nn as nn
 from util import load_species_list
-from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
 from uncertainty import generate_uncertainty
@@ -43,16 +40,6 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.1):
         uncertainty.append(av_uncertainty.item())
     return uncertainty
 
-class MLP(nn.Module):
-    def __init__(self, input_size, num_classes):
-        super(MLP, self).__init__()
-        self.fc1 = nn.Linear(input_size, num_classes)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x, emb):
-        x = self.fc1(emb.squeeze(1))
-        return x
-
 
 class AudioDataset(Dataset):
     # ANNOTATIONS, AUDIO_DIR, mel_spectrogram, 16000, False
@@ -75,6 +62,7 @@ class AudioDataset(Dataset):
         return len(self.annotations)
 
     def __getitem__(self, index):
+        embed = Embeddings().generate_embeddings
         audio_path = self._get_audio_path(index)
         label = self._get_audio_label(index)
 
@@ -87,7 +75,6 @@ class AudioDataset(Dataset):
         else:
             print(f"Generating embedding for {audio_path}")
             embedding = embed(audio_path)
-
         return embedding, label, audio_path
 
     def _get_audio_path(self, index):

@@ -23,8 +23,6 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold, e
 
         files = inputs['file']
         outputs = model(images, emb)  # Forward pass
-        # Temperature scaling
-        #outputs = T_scaling(outputs, temperature)
         outputs = F.sigmoid(outputs)
 
         if allowed_species is None:
@@ -102,7 +100,7 @@ def inference(model, data_loader, device, mapping, allowed_species, threshold, e
         all_images.extend(files)
 
     if embeddings:
-        return emb # NOTE: important difference beteen fc and passt
+        return emb # NOTE: important difference beteen fc (emb) and passt (outputs)
     else:
         return all_predictions, all_scores, all_images
 

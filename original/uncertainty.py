@@ -3,7 +3,6 @@ import pandas as pd
 from torch.utils.data import Dataset
 import torch
 from models import avesecho, ContextAwareHead
-from embeddings_old import embed
 from embeddings import Database
 from torch.nn.functional import sigmoid
 import torch.nn as nn
