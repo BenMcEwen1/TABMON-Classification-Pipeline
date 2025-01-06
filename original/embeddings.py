@@ -59,7 +59,7 @@ class Embeddings:
         # Collect individual embeddings into a database
         for path, _, files in os.walk(audio_path):
             for filename in files:
-                embedding_filename = os.path.splitext(filename)[0] + suffix + '.pt'
+                embedding_filename = os.path.splitext(filename)[0] + "_passt" + '.pt'
                 file_extension = os.path.splitext(filename)[1].lower()
                 if file_extension == '.mp3':
                     embedding_path = os.path.join(path, embedding_filename)
@@ -101,10 +101,11 @@ class Embeddings:
             torch.Tensor: The k nearest neighbors of the query embeddings, with shape (B, k, embedding_dim).
         """
         batch = query.shape[0]
+        assert query.shape == (batch, 1, self.dimension), "Query shape must be (B, 1, embedding_dim)"
+        
         distances, indices = self.index.search(np.squeeze(query,1), k)
-
         vectors = self.index.reconstruct_batch(indices.flatten())
-        vectors = vectors.reshape(batch, k, 320)
+        vectors = vectors.reshape(batch, k, self.dimension)
         return vectors, distances
     
     def plot_embeddings(self, method:str='pca', labels=None):

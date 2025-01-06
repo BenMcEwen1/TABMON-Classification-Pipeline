@@ -2,32 +2,43 @@
 This is a data and classification pipeline repository for the [TABMON](https://www.biodiversa.eu/2024/04/15/tabmon/) (Transnational Acoustic Biodiversity Monitoring Network). The purpose of this repository is to provide an end-to-end framework from raw field data to inference of essential biodiversity variables (EBVs).
 
 Author: Ben McEwen \
-Source: AvesEcho (author: Burooj Ghani) [paper](https://arxiv.org/abs/2409.15383) \
+Source: AvesEcho (Ghani et al. 2024) [paper](https://arxiv.org/abs/2409.15383)
 
-### Getting Started
-
+### Getting Started 🌱
 *Set Up:*\
 Create conda or virtualenv environment and specify python version 3.11.10 i.e. `conda create --name tabmon python=3.11.10`.
 Install dependencies `pip install -r requirements.txt`
 
 *To Run Inference:*\
-Place audio into `/audio` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `../audio/<my-audio>/`.
-After installing dependencies navigate to `/original` then run:\
+Place audio into `/audio` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `../audio/<data>/`.
+After installing dependencies navigate to `/original` then run:
 ```
-python analyze.py --i '../audio/<my-audio>' --model_name 'fc' --add_csv --add_filtering
+python analyze.py --i '../audio/<data>' --model_name 'fc' --add_csv --add_filtering
 ```
-Both 'fc' and 'passt' are setup.
+Both 'fc' and 'passt' models are setup.
 
-It is recommended to pre-generate sample embeddings before inference.
+For efficient testing it is recommended to pre-generate sample embeddings before inference.
 *To generate embeddings* navigate to `/original` then run:
 ```
-python embeddings.py --i '../audio/subset' --model_name 'fc'
+python embeddings.py --i '../audio/<data>' --model_name 'fc'
 ```
 
+*Model fine-tuning:*\
+The config file `config.yml` specifies file paths and hyperparameters required for training. You will need to set the following:
+Pretrained weights path within `/inputs/checkpoints/<weights.pt>`
+Annotations path (within data directory) `../audio/<data>/<annotations.csv>`
+Data path for both training and evaluation sets `../audio/<data>/Train/` and `../audio/<data>/Test/`
+
+```
+python training.py 
+```
+
+*Note: the dataloader is specific to Sounds of Norway annotation protocol, if annotation column names/labels are different you will need to adjust this within `training.py`*
+
 ### Next Steps
-- [ ] Documentation for model training and evaluation
+- [X] Documentation for model training and evaluation
 - [ ] Embedding based pre-trained model evaluation (bacpipe)
-- [ ] Evaluation of PaSST on Sounds of Norway dataset
+- [X] Evaluation of PaSST on Sounds of Norway dataset
 - [ ] Visualise uncertainty sampling and sample ranking
 
 ### Structure
@@ -35,7 +46,8 @@ python embeddings.py --i '../audio/subset' --model_name 'fc'
 `original/analyze.py` - Current file for model inference \
 `original/embeddings.py` - Pre-generate embeddings for audio samples 
 
-#### Research Questions
+
+### Research Questions 🚀
 This is just a list of research questions I am interested in:
 - Spatiotemporal fine-tuning for acoustic species distribution modelling - adapting to specific domains (new locations and specific times)
 - Mutliscale audio classification

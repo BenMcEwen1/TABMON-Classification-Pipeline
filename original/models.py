@@ -211,6 +211,7 @@ class AvesEcho:
                     # Check if embedding path exists
                     if (not os.path.exists(embedding_path)) or regenerate:
                         _embeddings = emb(audio_file_path)
+                        print(_embeddings)
                         if save:
                             torch.save(_embeddings, embedding_path)
                         try:

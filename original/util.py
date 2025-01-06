@@ -2,10 +2,23 @@
 # Define some utility functions
 import os.path
 import os
+from types import SimpleNamespace
 
 from algorithm_mode import AlgorithmMode
 from config import *
 from species_list import get_species_list
+
+
+class NestedNamespace(SimpleNamespace):
+    def __init__(self, dictionary):
+        # Convert all dictionary items to attributes, recursively handling nested dictionaries
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                value = NestedNamespace(value)  # Recursively convert nested dictionaries
+            setattr(self, key, value)
+
+    def __repr__(self):
+        return f"{self.__dict__}"
 
 
 @dataclasses.dataclass    

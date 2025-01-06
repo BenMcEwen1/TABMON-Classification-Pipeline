@@ -5,18 +5,18 @@ import torch
 from models import avesecho, ContextAwareHead, MLP
 from embeddings import Embeddings
 from torch.nn.functional import sigmoid
-from util import load_species_list
+from util import load_species_list, NestedNamespace
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
 from uncertainty import generate_uncertainty
-from types import SimpleNamespace
+import yaml
+import argparse
 import wandb
 
 torch.autograd.set_detect_anomaly(True)
 
-annotation_file = "../audio/sound-of-norway/annotation_uncertainty.csv"
+# annotation_file = "../audio/sound-of-norway/annotation_uncertainty.csv"
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 
 def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.1):
     """
@@ -43,10 +43,12 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.1):
 
 class AudioDataset(Dataset):
     # ANNOTATIONS, AUDIO_DIR, mel_spectrogram, 16000, False
-    def __init__(self, annotations_file, audio_dir, val, subset=False, shuffle=False, uncertainty=False):
+    def __init__(self, annotations_file, audio_dir, val, suffix, subset=False, shuffle=False, uncertainty=False):
         super(AudioDataset, self).__init__()
         self.val = val
+        self.suffix = suffix
         self.annotations = self._filter_annotations(pd.read_csv(annotations_file))
+        self.audio_dir = audio_dir
 
         if shuffle:
             self.annotations = self.annotations.sample(frac=1).reset_index(drop=True)
@@ -55,8 +57,6 @@ class AudioDataset(Dataset):
 
         if subset:
             self.annotations = self.annotations[:600] # Subset
-        
-        self.audio_dir = audio_dir
 
     def __len__(self):
         return len(self.annotations)
@@ -67,7 +67,7 @@ class AudioDataset(Dataset):
         label = self._get_audio_label(index)
 
         path = os.path.dirname(audio_path)
-        filename = os.path.basename(os.path.splitext(audio_path)[0].lower()) + '.pt'
+        filename = os.path.basename(os.path.splitext(audio_path)[0].lower()) + self.suffix + '.pt'
         embedding_path = os.path.join(path, filename)
 
         if os.path.exists(embedding_path):
@@ -88,33 +88,31 @@ class AudioDataset(Dataset):
         return data.loc[data['Data_split'] == self.val]
 
 
-def train(log=True, plot=True, resample=False, save=False, average='macro', min_loss=100000, config=None):
-    dataset = AudioDataset(annotation_file, "../audio/sound-of-norway/Train/", "Train", shuffle=True, subset=False)
-    validation = AudioDataset(annotation_file, "../audio/sound-of-norway/Test/", "Test")
+def train(log=True, plot=True, save=False, resample=False, average='macro', min_loss=100000, config=None):
+    dataset = AudioDataset(config.data.annotations_path, config.data.train_path, "Train", suffix=f"_{config.parameters.model_name}", shuffle=True, subset=False)
+    validation = AudioDataset(config.data.annotations_path, config.data.eval_path, "Test", suffix=f"_{config.parameters.model_name}")
     
     with wandb.init(project="Uncertainty Sampling Comparison", config=config):
-        config = wandb.config
+        species_list = load_species_list(config.data.species_list_path)
 
-        species_list = load_species_list('inputs/list_en_ml.csv')
-
-        df = pd.read_csv('../audio/sound-of-norway/annotation_adjusted.csv')
+        df = pd.read_csv(config.data.annotations_path)
         df = df[df['Data_split'] != 0]
         labels = df['new_label'].unique().tolist()
 
         # Override to test only Sounds of Norway labels
         species_list = labels
 
-        # model = ContextAwareHead(n_classes=len(species_list), heads=config.heads, context=config.context).to(device)
-        # context = Database('../audio/sound-of-norway/combined.bin')
+        model = ContextAwareHead(n_classes=len(species_list), externalEmbeddingSize=585, heads=config.parameters.heads, context=config.parameters.context).to(device)
+        context = Embeddings('../audio/sound-of-norway_old/sound-of-norway/passt_subset.bin', dimension=585)
         # model.load_state_dict(torch.load('./inputs/checkpoints/Context_jhpq1ily.pt', map_location=device))
 
         # model = avesecho(NumClasses=585).to(device)
         # model.load_state_dict(torch.load('./inputs/checkpoints/avesecho_fc_SoN.pt', map_location=device))
 
-        model = MLP(input_size=320, num_classes=len(species_list)).to(device)
-        model.load_state_dict(torch.load('./inputs/checkpoints/BirdNet_49.pt', map_location=device))
+        # model = MLP(input_size=585, num_classes=len(species_list)).to(device)
+        # model.load_state_dict(torch.load(config.data.model_weights, map_location=device))
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+        optimizer = torch.optim.Adam(model.parameters(), lr=config.parameters.lr, weight_decay=config.parameters.weight_decay)
         cross_entropy = torch.nn.BCELoss()
 
         def encode_label(labels):
@@ -128,14 +126,15 @@ def train(log=True, plot=True, resample=False, save=False, average='macro', min_
                     one_hot[index] = 1
             return one_hot
 
-        for epoch in range(config.epochs):
+        for epoch in range(config.parameters.epochs):
             training_loss = 0
             increment = 20
 
             if resample:
-                dataset = AudioDataset(annotation_file, "../audio/sound-of-norway/Train/", "Train", shuffle=False, uncertainty=True)
+                dataset = AudioDataset(config.data.annotations_path, config.data.train_path, "Train", suffix=f"_{config.parameters.model_name}", shuffle=False, uncertainty=True)
 
             for ti, (embedding, label, _) in enumerate(dataset):
+                embedding = torch.unsqueeze(embedding, 1)
                 if ti >= (epoch+1)*increment:
                     break
 
@@ -147,11 +146,11 @@ def train(log=True, plot=True, resample=False, save=False, average='macro', min_
                 y = encode_label([label]).to(device)
 
                 # In-context sampling
-                # samples, _ = context.search_embeddings(embedding, k=config.context+1)
-                # samples = torch.tensor(samples, dtype=torch.float32).to(device)
-                # logits = model(embedding, samples)
+                samples, _ = context.search_embeddings(embedding, k=config.parameters.context+1)
+                samples = torch.tensor(samples, dtype=torch.float32).to(device)
+                logits = model(embedding, samples)
 
-                logits = model(x=None, emb=embedding)
+                # logits = model(x=None, emb=embedding)
                 outputs = sigmoid(logits)
                 maxpool = torch.max(outputs, dim=0).values
 
@@ -167,15 +166,16 @@ def train(log=True, plot=True, resample=False, save=False, average='macro', min_
                 y_true = []
                 uncertainty = []
                 for vi, (embedding, label, _) in enumerate(validation):
+                    embedding = torch.unsqueeze(embedding, 1)
                     embedding.to(device)
                     y = encode_label([label]).to(device)
 
                     # In-context sampling
-                    # samples, _ = context.search_embeddings(embedding, k=config.context+1)
-                    # samples = torch.tensor(samples, dtype=torch.float32).to(device)
-                    # logits = model(embedding, samples)
+                    samples, _ = context.search_embeddings(embedding, k=config.parameters.context+1)
+                    samples = torch.tensor(samples, dtype=torch.float32).to(device)
+                    logits = model(embedding, samples)
 
-                    logits = model(x=None, emb=embedding)
+                    # logits = model(x=None, emb=embedding)
                     outputs = sigmoid(logits)
                     maxpool = torch.max(outputs, dim=0).values
 
@@ -203,9 +203,10 @@ def train(log=True, plot=True, resample=False, save=False, average='macro', min_
                     min_loss = val_loss
 
             if resample:
-                generate_uncertainty(n_heads=config.heads, n_context=config.context, model=model)
+                generate_uncertainty(n_heads=config.parameters.heads, n_context=config.parameters.context, model=model)
 
         if plot:
+            # Move this to utils
             y_pred = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_pred]
             y_true = ["Unsure" if (label=="Other Bird" or label=="Not Bird" or label=="Multi Bird") else label for label in y_true]
             labels = [label for label in labels if (label != "Unsure" and label != "Not Bird" and label != "Multi Bird" and label != "Other Bird" and label != "Eurasian Curlew" and label != "Common Buzzard" )]
@@ -229,18 +230,10 @@ def train(log=True, plot=True, resample=False, save=False, average='macro', min_
 
 
 if __name__ == "__main__":
-    config = {
-        "epochs": 1,
-        "lr": 0.001,
-        "context": 2,
-        "heads": 2,
-        "weight_decay": 0.00001,
-        "save": False
-    }
 
-    config = SimpleNamespace(**config)
-    train(config=config)
-
+    with open('config.yml', 'r') as file:
+        config = yaml.safe_load(file)
+        train(config=NestedNamespace(config))
 
     # # Define sweep config
     # context_sweep = {

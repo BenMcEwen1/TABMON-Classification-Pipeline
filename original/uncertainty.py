@@ -3,7 +3,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 import torch
 from models import avesecho, ContextAwareHead
-from embeddings import Database
+from embeddings import Embeddings
 from torch.nn.functional import sigmoid
 import torch.nn as nn
 from util import load_species_list
@@ -103,7 +103,7 @@ def generate_uncertainty(n_heads, n_context, model=None, device='cpu'):
     # Override to test only Sounds of Norway labels
     species_list = labels
 
-    context = Database('../audio/sound-of-norway/combined.bin')
+    context = Embeddings('../audio/sound-of-norway/combined.bin')
 
     if model is None:
         print("Loading model...")
