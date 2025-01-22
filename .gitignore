@@ -13,3 +13,4 @@ audio/
 .env
 *.err
 *.out
+PLANNING.md

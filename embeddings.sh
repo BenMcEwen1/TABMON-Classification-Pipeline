@@ -7,6 +7,6 @@
 #SBATCH --gres=gpu:1
 
 source activate avesecho
-cd original
+cd pipeline
 
 python embeddings.py --i '../audio/sound-of-norway/' --model_name 'passt' --regenerate True

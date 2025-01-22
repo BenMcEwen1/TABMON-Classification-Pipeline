@@ -9,4 +9,4 @@
 source activate avesecho
 cd pipeline
 
-python training.py
+python analyze.py --i "../audio/< DATA DIRECTORY >/" --add_csv --model_name fc
