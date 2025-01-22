@@ -3,7 +3,6 @@ benchmark_sound-of-norway/
 testing/
 wandb/
 audio/
-pipeline/
 *.pt
 *.wav
 *.wav

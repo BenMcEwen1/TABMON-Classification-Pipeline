@@ -1,0 +1,15 @@
+data:
+  train_path: '../audio/sound-of-norway_old/Train/'
+  eval_path: '../audio/sound-of-norway_old/Test/'
+  annotations_path: '../audio/sound-of-norway_old/annotation_adjusted.csv'
+  species_list_path: './inputs/list_en_ml.csv'
+
+parameters:
+  model_weights: './inputs/checkpoints/BirdNet_49.pt'
+  model_name: ''
+  epochs: 30
+  lr: 0.001
+  context: 2
+  heads: 1
+  weight_decay: 0.00001
+  save: False 
