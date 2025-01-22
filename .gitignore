@@ -12,6 +12,5 @@ pipeline/
 *.whl
 *.nc
 .env
-slurm.zaffre.34545.err
-slurm.zaffre.34545.out
-
+*.err
+*.out
