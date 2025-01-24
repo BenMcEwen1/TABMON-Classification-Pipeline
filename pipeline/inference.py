@@ -1,7 +1,67 @@
 from config import *
 from util import *
 
-def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool=True):
+def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
+    uncertainty = []
+
+    for confidences in outputs:
+        if isinstance(top_k, int):
+            confidences = torch.topk(confidences, k=top_k)
+            confidences = confidences[0]
+        # Normalize the confidence scores to sum to 1 (if not already normalized)
+        confidences = confidences / torch.sum(confidences)
+        
+        # Compute Shannon entropy
+        shannon_entropy = -torch.sum(confidences * torch.log(confidences + 1e-10))  # Add small epsilon for numerical stability
+        # Compute the maximum possible entropy for the given number of classes
+        num_classes = len(confidences)
+        max_entropy = torch.log(torch.tensor(num_classes))
+        
+        # Normalize the entropy
+        normalized_entropy = shannon_entropy / max_entropy
+        uncertainty.append(normalized_entropy.item())
+    return uncertainty
+
+# # Sanity check
+# x1 = [0.2, 0.2, 0.2] # Max uncertainty = 1.0
+# x2 = [0.299, 0.291, 0.018] # expected high uncertainty
+# x3 = [0.3, 0.1, 0.1] # expected medium
+# x4 = [0.812, 0.025, 0.021] # expected low uncertainty
+# print(renormalizedEntropy(torch.tensor([x1, x2, x3, x4]), top_k=3))
+
+
+def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
+    """
+    Calculate the standard deviation of the output probabilities as a measure of uncertainty.
+
+    Parameters
+    ----------
+    outputs : tensor
+        Output of the model
+    normalise : bool, optional
+        If set to True, normalise the uncertainty values between 0 and 1, by default True
+    top_k : int, optional
+        If set to an integer, only consider the top k values of the output probabilities, by default 5
+
+    Returns
+    -------
+    List of uncertainties per batch
+    """
+    uncertainty = []
+
+    for p in outputs:
+        if isinstance(top_k, int):
+            p = torch.topk(p, k=top_k)
+            p = p[0]
+        uncertainty.append(torch.std(p).item())
+
+    if normalise:
+        max_entropy = torch.log(torch.tensor(len(p)))
+        uncertainty = [1-(x/max_entropy.item()) for x in uncertainty]
+    return uncertainty
+
+
+def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool=True, top_k:int=3):
     """
     Calculate aggregated uncertainty (entropy) for a batch of multi-label classes.
     Binary Entropy - https://en.wikipedia.org/wiki/Binary_entropy_function
@@ -16,7 +76,12 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool
     Returns: List of uncertainties per batch
     """
     uncertainty = []
+
     for p in outputs:
+        if isinstance(top_k, int):
+            p = torch.topk(p, k=top_k)
+            p = p[0]
+    
         uncertainty_array = -(p*torch.log2(p))-(torch.subtract(1, p))*torch.log2(torch.subtract(1, p))
         uncertainty_array = torch.nan_to_num(uncertainty_array)
         if threshold:
@@ -29,7 +94,7 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool
     return uncertainty
 
 def prediction(confidence_batch, filename, species_list, predictions:dict={}, length:int=3, threshold:float=0.0):
-    species_name = species_name = load_species_list(species_list) # BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv
+    species_name = load_species_list(species_list) # BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv
     uncertainty = uncertaintyEntropy(confidence_batch)
 
     results = []
@@ -58,7 +123,7 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
 
 def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0):
     species_name = load_species_list(species_list)
-    uncertainty = uncertaintyEntropy(confidence_batch)
+    uncertainty = renormalizedEntropy(confidence_batch)
     
     # Return top k predictions
     results = []
@@ -144,8 +209,8 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
             confidence_scores = F.sigmoid(outputs['logits'])
 
     if save:
-        prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
-        # k_predictions(confidence_scores, filename, predictions, threshold=0.1)
+        # prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
+        k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.1)
     return emb
 
 

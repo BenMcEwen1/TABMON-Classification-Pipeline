@@ -3,6 +3,7 @@ benchmark_sound-of-norway/
 testing/
 wandb/
 audio/
+cloud/
 *.pt
 *.wav
 *.wav
