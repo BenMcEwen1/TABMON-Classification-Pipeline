@@ -10,27 +10,28 @@ Create conda or virtualenv environment and specify python version 3.11.10 i.e. `
 Install dependencies `pip install -r requirements.txt`
 
 *To Run Inference:*\
-Place audio into `/audio` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `../audio/<data>/`.
-After installing dependencies navigate to `/original` then run:
+Place audio into `audio/` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `audio/<data>/`.
+After installing dependencies run:
 ```
-python analyze.py --i '../audio/<data>' --model_name 'fc' --add_csv --add_filtering
+python -m pipeline.analyze --i 'audio/<data>' --model_name 'fc'
 ```
 Both 'fc' and 'passt' models are setup.
 
 For efficient testing it is recommended to pre-generate sample embeddings before inference.
-*To generate embeddings* navigate to `/original` then run:
+*To generate embeddings* run:
 ```
-python embeddings.py --i '../audio/<data>' --model_name 'fc'
+python -m pipeline.embeddings --i 'audio/<data>' --model_name 'fc'
 ```
+**Note that you must specify module `python -m` and run from the base directory.*
 
 *Model fine-tuning:*\
 The config file `config.yml` specifies file paths and hyperparameters required for training. You will need to set the following:
 Pretrained weights path within `/inputs/checkpoints/<weights.pt>`
-Annotations path (within data directory) `../audio/<data>/<annotations.csv>`
-Data path for both training and evaluation sets `../audio/<data>/Train/` and `../audio/<data>/Test/`
+Annotations path (within data directory) `audio/<data>/<annotations.csv>`
+Data path for both training and evaluation sets `audio/<data>/Train/` and `audio/<data>/Test/`
 
 ```
-python training.py 
+python -m training
 ```
 
 *Note: the dataloader is specific to Sounds of Norway annotation protocol, if annotation column names/labels are different you will need to adjust this within `training.py`*

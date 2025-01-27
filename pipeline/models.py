@@ -4,15 +4,17 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import flask
 
 from werkzeug.datastructures import FileStorage
+from enum import Enum
 
-from config import *
-from dataset import *
-from inference import *
-from util import *
+from pipeline.config import *
+from pipeline.dataset import *
+from pipeline.inference import *
+from pipeline.util import *
 
-from algorithm_mode import AlgorithmMode
-from passt.base import get_basic_model, get_model_passt
+from pipeline.algorithm_mode import AlgorithmMode
+from pipeline.passt.base import get_basic_model, get_model_passt
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 classifier: "AvesEcho"
 
@@ -101,7 +103,7 @@ class avesecho(nn.Module):
     def __init__(self, NumClasses=585, pretrain=True, ExternalEmbeddingSize=320, hidden_layer_size=100):
         super(avesecho, self).__init__()
         self.fc1 = nn.Linear(ExternalEmbeddingSize, NumClasses)
-        self.species_list = "./inputs/list_AvesEcho.csv"
+        self.species_list = f"{current_dir}/inputs/list_AvesEcho.csv"
         
     def forward(self, x, emb):
         x = self.fc1(emb.squeeze(1))
@@ -114,7 +116,7 @@ class birdnet(nn.Module):
     """
     def __init__(self):
         super(birdnet, self).__init__()
-        self.species_list = "./inputs/BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv"
+        self.species_list = f"{current_dir}/inputs/BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv"
         
     def forward(self, logits):
         return F.sigmoid(logits)
@@ -129,6 +131,11 @@ def run_algorithm(args, avesecho_mapping, result_file):
                           maxpool=args.maxpool, add_csv=args.add_csv, embeddings=args.embeddings_mode, args=args)
 
     classifier.analyze(audio_input=args.i, lat=args.lat, lon=args.lon, result_file=result_file)
+
+
+class AlgorithmMode(Enum):
+    DIRECTORIES = "directories"
+    ENDPOINT = "endpoint"
 
 
 class AvesEcho:
@@ -146,8 +153,8 @@ class AvesEcho:
         self.n_classes = len(self.species_list)
         self.split_signals = split_signals
         self.maxpool = maxpool
-        self.args = args
-        self.algorithm_mode = self.determine_algorithm_mode(args.algorithm_mode)
+        self.args = args 
+        self.algorithm_mode = AlgorithmMode("directories")
 
         print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode, model {self.model_name}.")
 
@@ -156,11 +163,11 @@ class AvesEcho:
             self.model = get_basic_model(mode = 'logits', arch="passt_s_kd_p16_128_ap486") # "passt_s_kd_p16_128_ap486"
             self.model.net =  get_model_passt(arch="passt_s_kd_p16_128_ap486", n_classes=self.n_classes)
             self.model = self.model.to(device)
-            self.model.load_state_dict(torch.load('./inputs/checkpoints/best_model_passt.pt', map_location=device))
+            self.model.load_state_dict(torch.load(f'{current_dir}/inputs/checkpoints/best_model_passt.pt', map_location=device))
         if self.model_name == 'fc':
             self.model = avesecho(NumClasses=self.n_classes)
             self.model = self.model.to(device)
-            self.model.load_state_dict(torch.load('./inputs/checkpoints/best_model_fc_1.pt', map_location=device))
+            self.model.load_state_dict(torch.load(f'{current_dir}/inputs/checkpoints/best_model_fc_1.pt', map_location=device))
         if self.model_name == 'birdnet':
             self.model = birdnet()
             self.model = self.model.to(device)
@@ -250,9 +257,9 @@ class AvesEcho:
         if os.path.isfile(audio_input):
             # Make sure the result file has the .json extension
             json_filename = result_file if result_file.endswith('.json') else f'{result_file}.json'
-            json_path = f'outputs/{json_filename}'
+            json_path = f'{current_dir}/pipeline/outputs/{json_filename}'
         else:
-            json_path = result_file or 'outputs/analysis-results.json'
+            json_path = result_file or f'{current_dir}/pipeline/outputs/analysis-results.json'
 
         # Write the analysis results to a JSON file
         with open(json_path, 'w') as json_file:
@@ -283,22 +290,26 @@ class AvesEcho:
 
         # For endpoint mode: write the audio files to a temporary directory.
         with tempfile.TemporaryDirectory() as temporary_directory:
-            for audio_file in audio_files:
-                filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
-                file_extension = os.path.splitext(filename)[1].lower()
+            try:
+                print(audio_files)
+                for audio_file in tqdm(audio_files):
+                    filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
+                    file_extension = os.path.splitext(filename)[1].lower()
 
-                if file_extension in supported_file_extensions:
-                    if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
-                        audio_file_path = audio_file
+                    if file_extension in supported_file_extensions:
+                        if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
+                            audio_file_path = audio_file
+                        else:
+                            audio_file_path = os.path.join(temporary_directory, filename)
+                            with open(audio_file_path, "wb") as output_file:
+                                output_file.write(audio_file.read())
+                        self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
                     else:
-                        audio_file_path = os.path.join(temporary_directory, filename)
-                        with open(audio_file_path, "wb") as output_file:
-                            output_file.write(audio_file.read())
-                    self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
-                else:
-                    print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
-                    return {"error": f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions})."}, 415
-        return predictions, 200
+                        print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
+                        return {"error": f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions})."}, 415
+                return predictions, 200
+            except Exception as e:
+                return {"error": str(e)}, 500
 
     def analyze_audio_file(self, audio_file_path: str, filename:str, filtering_list: list[str], predictions: dict):
         if not os.path.exists(self.outputd):
@@ -317,9 +328,6 @@ class AvesEcho:
         inference_set = InferenceDataset(inference_data, filename, model=self.model_name)
         params_inf = {'batch_size': 64, 'shuffle': False} # , 'num_workers': 5
         inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
-
-        # Maps species common names to scientific names and also across XC and eBird standards and codes
-        # df = pd.read_csv(self.avesecho_mapping, header=None, names=['ScientificName', 'CommonName'])
 
         inference(self.model, inference_generator, device, predictions)
 

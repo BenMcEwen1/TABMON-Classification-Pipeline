@@ -2,16 +2,17 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 import torch
-from models import avesecho, ContextAwareHead, MLP
-from embeddings import Embeddings
 from torch.nn.functional import sigmoid, softmax
-from util import load_species_list, NestedNamespace
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
-from uncertainty import generate_uncertainty
 import yaml
 import argparse
 import wandb
+
+from pipeline.models import avesecho, ContextAwareHead, MLP
+from pipeline.embeddings import Embeddings
+from pipeline.util import load_species_list, NestedNamespace
+from pipeline.uncertainty import generate_uncertainty
 
 torch.autograd.set_detect_anomaly(True)
 

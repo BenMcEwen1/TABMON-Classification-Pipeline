@@ -1,4 +1,4 @@
-from embeddings import Embeddings
+from pipeline.embeddings import Embeddings
 
 embedding_path = "../audio/sound-of-norway/Train/embeddings.bin"
 embeddings = Embeddings(embeddings_path=embedding_path)

@@ -2,8 +2,6 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 import torch
-from models import avesecho, ContextAwareHead
-from embeddings import Embeddings
 from torch.nn.functional import sigmoid
 import torch.nn as nn
 from util import load_species_list
@@ -11,6 +9,9 @@ from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
 import wandb
+
+from pipeline.models import avesecho, ContextAwareHead
+from pipeline.embeddings import Embeddings
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 annotation_file = "../audio/sound-of-norway/annotation_split.csv"

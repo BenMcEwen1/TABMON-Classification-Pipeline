@@ -1,7 +1,9 @@
-from config import *
-from util import *
+from pipeline.config import *
+from pipeline.util import *
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
            
 class InferenceDataset(torch.utils.data.Dataset):
@@ -13,11 +15,11 @@ class InferenceDataset(torch.utils.data.Dataset):
         self.filename = filename
 
         if self.model == "birdnet":
-            self.embedding_model = BirdNet(self.sampleRate, './inputs/checkpoints/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite')
+            self.embedding_model = BirdNet(self.sampleRate, f'{current_dir}/inputs/checkpoints/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite')
         else:
-            self.embedding_model = BirdNet(self.sampleRate, './inputs/checkpoints/BirdNET_GLOBAL_3K_V2.2_Model_FP32.tflite')
+            self.embedding_model = BirdNet(self.sampleRate, f'{current_dir}/inputs/checkpoints/BirdNET_GLOBAL_3K_V2.2_Model_FP32.tflite')
 
-        with open('inputs/global_parameters.json', 'r') as json_file:
+        with open(f'{current_dir}/inputs/global_parameters.json', 'r') as json_file:
             parameters = json.load(json_file)
 
         self.global_mean = parameters['global_mean']

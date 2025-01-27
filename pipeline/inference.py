@@ -1,5 +1,7 @@
-from config import *
-from util import *
+from pipeline.config import *
+from pipeline.util import *
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
     uncertainty = []
@@ -8,12 +10,10 @@ def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
         if isinstance(top_k, int):
             confidences = torch.topk(confidences, k=top_k)
             confidences = confidences[0]
+            
         # Normalize the confidence scores to sum to 1 (if not already normalized)
         confidences = confidences / torch.sum(confidences)
-        
-        # Compute Shannon entropy
-        shannon_entropy = -torch.sum(confidences * torch.log(confidences + 1e-10))  # Add small epsilon for numerical stability
-        # Compute the maximum possible entropy for the given number of classes
+        shannon_entropy = -torch.sum(confidences * torch.log(confidences + 1e-10))
         num_classes = len(confidences)
         max_entropy = torch.log(torch.tensor(num_classes))
         
@@ -115,7 +115,7 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
     
     predictions["files"].append({filename: results})
 
-    with open("./outputs/prediction.json", "w") as json_file:
+    with open(f"{current_dir}/outputs/prediction.json", "w") as json_file:
         json.dump(predictions, json_file, indent=4)
 
     convert_to_tabular(predictions)
@@ -151,7 +151,7 @@ def k_predictions(confidence_batch, filename, species_list, predictions:dict={},
 
     predictions["files"].append({filename: results})
 
-    with open("./outputs/top_k_prediction.json", "w") as json_file:
+    with open(f"{current_dir}/outputs/top_k_prediction.json", "w") as json_file:
         json.dump(predictions, json_file, indent=4)
     return predictions
 
@@ -173,7 +173,7 @@ def convert_to_tabular(predictions):
             rows.append(row)
     
     df = pd.DataFrame(rows)
-    df.to_csv("./outputs/predictions.csv", index=False)
+    df.to_csv(f"{current_dir}/outputs/predictions.csv", index=False)
     return df
 
 def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
@@ -196,6 +196,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     species_list = model.species_list
 
     for i, inputs in enumerate(data_loader):
+        print(i)
         images = inputs['inputs'].to(device)
         emb = inputs['emb'].to(device) # Same for both 'birdnet - v2.4' and 'fc - v2.2'
         filename = inputs['file'][0]

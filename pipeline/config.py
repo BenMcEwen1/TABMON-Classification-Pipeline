@@ -53,6 +53,9 @@ import shutil
 from datetime import datetime
 import logging
 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+tf.get_logger().setLevel("ERROR")
+
 
 # Set the device
 train_on_gpu=torch.cuda.is_available()

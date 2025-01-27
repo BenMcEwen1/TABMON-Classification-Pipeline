@@ -4,9 +4,11 @@ import os.path
 import os
 from types import SimpleNamespace
 
-from algorithm_mode import AlgorithmMode
-from config import *
-from species_list import get_species_list
+from pipeline.algorithm_mode import AlgorithmMode
+from pipeline.config import *
+from pipeline.species_list import get_species_list
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class NestedNamespace(SimpleNamespace):
@@ -97,7 +99,7 @@ class BirdNet(EmbeddingModel):
   class_list: "namespace.ClassList | None" = None
 
   def __post_init__(self):
-    logging.info('Loading BirdNet model...')
+    # logging.info('Loading BirdNet model...')
     if self.model_path.endswith('.tflite'):
       self.tflite = True
     #   with tempfile.NamedTemporaryFile() as tmpf:
@@ -266,7 +268,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     """
     os.makedirs(output_dir, exist_ok=True)
     # Configure logging
-    logging.basicConfig(filename='./outputs/audio_errors.log', level=logging.ERROR, # NOTE: Changed
+    logging.basicConfig(filename=f'{current_dir}/outputs/audio_errors.log', level=logging.ERROR, # NOTE: Changed
                     format='%(asctime)s:%(levelname)s:%(message)s')
 
     try:

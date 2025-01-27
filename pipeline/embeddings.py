@@ -1,14 +1,15 @@
 import os
 import argparse
 import torch
-from algorithm_mode import AlgorithmMode
-from models import AvesEcho
 import faiss
 import numpy as np
 import umap
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import pandas as pd
+
+from pipeline.algorithm_mode import AlgorithmMode
+from pipeline.models import AvesEcho
 
 default_algorithm_mode = os.getenv("ALGORITHM_MODE", AlgorithmMode.DIRECTORIES.value)
 
