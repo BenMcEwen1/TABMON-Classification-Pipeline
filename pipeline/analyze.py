@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Time    : 19/03/24 14:30
-# @Author  : Burooj Ghani
-# @Affiliation  : Naturalis Biodiversity Center
-# @Email   : burooj.ghani at naturalis.nl
-# @File    : analyze.py
-
-
 import argparse
 import os
 import time
@@ -25,8 +17,8 @@ def run():
                             outputd=f'{current_dir}/outputs/temp', avesecho_mapping=f'{current_dir}/inputs/list_AvesEcho.csv',
                             maxpool=False, add_csv=False, embeddings=False, args=None)
     
-    classifier.analyze(audio_input='audio/brambling/', lat=None, lon=None, result_file=f'{current_dir}/outputs/analysis-results.json')
-    return {"status": "complete"}
+    pred = classifier.analyze(audio_input='audio/subset/', lat=None, lon=None, result_file=f'{current_dir}/outputs/analysis-results.json')
+    return pred
 
 
 default_algorithm_mode = os.getenv("ALGORITHM_MODE", AlgorithmMode.DIRECTORIES.value)

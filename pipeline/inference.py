@@ -115,10 +115,7 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
     
     predictions["files"].append({filename: results})
 
-    with open(f"{current_dir}/outputs/prediction.json", "w") as json_file:
-        json.dump(predictions, json_file, indent=4)
-
-    convert_to_tabular(predictions)
+    predictions = convert_to_tabular(predictions)
     return predictions
 
 def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0):
@@ -149,10 +146,11 @@ def k_predictions(confidence_batch, filename, species_list, predictions:dict={},
                 "predictions": pred
             })
 
-    predictions["files"].append({filename: results})
+    predictions["files"].append({
+        filename: results
+        })
 
-    with open(f"{current_dir}/outputs/top_k_prediction.json", "w") as json_file:
-        json.dump(predictions, json_file, indent=4)
+    predictions = convert_ranked_to_tabular(predictions)
     return predictions
 
 
@@ -176,6 +174,34 @@ def convert_to_tabular(predictions):
     df.to_csv(f"{current_dir}/outputs/predictions.csv", index=False)
     return df
 
+def convert_ranked_to_tabular(predictions):
+    # Function to convert json object as created by prediction function to table
+    rows = []
+    metadata = predictions["metadata"]
+    files = predictions["files"]
+
+    for file in files:
+        filename = list(file)
+
+        for result in file[filename[0]]:
+            segment = {
+                "filename": filename[0],
+                "start time": result["start time"],
+                "uncertainty": result["uncertainty"],
+                "energy": result["energy"]
+            }
+            for pred in result["predictions"]:
+                row = {
+                    **segment,
+                    **pred,
+                    **metadata
+                }
+                rows.append(row)
+    
+    df = pd.DataFrame(rows)
+    df.to_csv(f"{current_dir}/outputs/top_k_predictions.csv", index=False)
+    return df
+
 def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     '''
     Perform inference on data in directory, outputs prediction results in .json and .csv formats
@@ -196,7 +222,6 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     species_list = model.species_list
 
     for i, inputs in enumerate(data_loader):
-        print(i)
         images = inputs['inputs'].to(device)
         emb = inputs['emb'].to(device) # Same for both 'birdnet - v2.4' and 'fc - v2.2'
         filename = inputs['file'][0]
@@ -210,9 +235,9 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
             confidence_scores = F.sigmoid(outputs['logits'])
 
     if save:
-        # prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
-        k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.1)
-    return emb
+        # pred = prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
+        pred = k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.1)
+    return emb, pred
 
 
 def process_audio(file_path):

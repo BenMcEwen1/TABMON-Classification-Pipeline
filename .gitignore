@@ -3,7 +3,9 @@ testing/
 wandb/
 audio/
 delete/
-app/
+app/*.csv
+app/templates/
+app/*.md
 *.pt
 *.wav
 *.wav

@@ -1,8 +1,8 @@
-# TABMON Data Pipeline
+# TABMON Classification Pipeline
 This is a data and classification pipeline repository for the [TABMON](https://www.biodiversa.eu/2024/04/15/tabmon/) (Transnational Acoustic Biodiversity Monitoring Network). The purpose of this repository is to provide an end-to-end framework from raw field data to inference of essential biodiversity variables (EBVs).
 
 Author: Ben McEwen \
-Source: AvesEcho (Ghani et al. 2024) [paper](https://arxiv.org/abs/2409.15383)
+**Adapted from AvesEcho pipeline (Ghani et al. 2024) - [paper](https://arxiv.org/abs/2409.15383)*
 
 ### Getting Started 🌱
 *Set Up:*\
@@ -10,6 +10,8 @@ Create conda or virtualenv environment and specify python version 3.11.10 i.e. `
 Install dependencies `pip install -r requirements.txt`
 
 *To Run Inference:*\
+**Note that you must specify module `python -m` and run from the base directory as shown.*
+
 Place audio into `audio/` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `audio/<data>/`.
 After installing dependencies run:
 ```
@@ -22,7 +24,6 @@ For efficient testing it is recommended to pre-generate sample embeddings before
 ```
 python -m pipeline.embeddings --i 'audio/<data>' --model_name 'fc'
 ```
-**Note that you must specify module `python -m` and run from the base directory.*
 
 *Model fine-tuning:*\
 The config file `config.yml` specifies file paths and hyperparameters required for training. You will need to set the following:
@@ -37,15 +38,13 @@ python -m training
 *Note: the dataloader is specific to Sounds of Norway annotation protocol, if annotation column names/labels are different you will need to adjust this within `training.py`*
 
 ### Next Steps
-- [X] Documentation for model training and evaluation
-- [ ] Embedding based pre-trained model evaluation (bacpipe)
-- [X] Evaluation of PaSST on Sounds of Norway dataset
-- [ ] Visualise uncertainty sampling and sample ranking
+- [ ] Setup predictions with sql database for efficient querying
+- [ ] Tidy up redundant AvesEcho/Warbler code
 
 ### Structure
-`loader.py` - Downloads audio from Google Cloud storage, start and end dates as well as download limit can be specified. \
-`original/analyze.py` - Current file for model inference \
-`original/embeddings.py` - Pre-generate embeddings for audio samples 
+`audio/loader.py` - Downloads audio from Google Cloud storage, start and end dates as well as download limit can be specified. \
+`pipeline/analyze.py` - Current file for model inference \
+`pipeline/embeddings.py` - Pre-generate embeddings for audio samples 
 
 
 ### Research Questions 🚀

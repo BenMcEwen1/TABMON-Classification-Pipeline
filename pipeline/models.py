@@ -175,14 +175,8 @@ class AvesEcho:
 
     def analyze(self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None):
         if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
-            self.analyze_directories(audio_input, lat, lon, result_file)
-        else:
-            app.run(
-                debug=self.str2bool(os.getenv("DEBUG")),
-                host=os.getenv("HOST", "0.0.0.0"),
-                port=int(os.getenv("PORT", "5000")),
-                use_reloader=False,
-            )
+            results = self.analyze_directories(audio_input, lat, lon, result_file)
+        return results
 
     def generate_embeddings(self, audio_path: str, regenerate: bool, save: bool):
         def emb(audio_file_path, filename):
@@ -231,7 +225,7 @@ class AvesEcho:
 
                     # Check if embedding path exists
                     if (not os.path.exists(embedding_path)) or regenerate:
-                        _embeddings = emb(audio_file_path, filename)
+                        _embeddings, _ = emb(audio_file_path, filename)
                         if save:
                             torch.save(_embeddings, embedding_path)
                         try:
@@ -252,18 +246,19 @@ class AvesEcho:
                              if not self.ignore_filesystem_object(audio_input, filename)]
                 audio_files += file_path
 
-        analysis_results, _ = self.analyze_audio_files(audio_files, lat, lon)
+        pred,_ = self.analyze_audio_files(audio_files, lat, lon)
 
-        if os.path.isfile(audio_input):
-            # Make sure the result file has the .json extension
-            json_filename = result_file if result_file.endswith('.json') else f'{result_file}.json'
-            json_path = f'{current_dir}/pipeline/outputs/{json_filename}'
-        else:
-            json_path = result_file or f'{current_dir}/pipeline/outputs/analysis-results.json'
+        # if os.path.isfile(audio_input):
+        #     # Make sure the result file has the .json extension
+        #     json_filename = result_file if result_file.endswith('.json') else f'{result_file}.json'
+        #     json_path = f'{current_dir}/pipeline/outputs/{json_filename}'
+        # else:
+        #     json_path = result_file or f'{current_dir}/pipeline/outputs/analysis-results.json'
 
-        # Write the analysis results to a JSON file
-        with open(json_path, 'w') as json_file:
-            json.dump(analysis_results, json_file, indent=4)
+        # # Write the analysis results to a JSON file
+        # with open(json_path, 'w') as json_file:
+        #     json.dump(analysis_results, json_file, indent=4)
+        return pred
 
     def ignore_filesystem_object(self, directory: str, filename: str) -> bool:
         return os.path.isdir(os.path.join(directory, filename)) or filename.startswith(".")
@@ -291,7 +286,6 @@ class AvesEcho:
         # For endpoint mode: write the audio files to a temporary directory.
         with tempfile.TemporaryDirectory() as temporary_directory:
             try:
-                print(audio_files)
                 for audio_file in tqdm(audio_files):
                     filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
                     file_extension = os.path.splitext(filename)[1].lower()
@@ -303,11 +297,8 @@ class AvesEcho:
                             audio_file_path = os.path.join(temporary_directory, filename)
                             with open(audio_file_path, "wb") as output_file:
                                 output_file.write(audio_file.read())
-                        self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
-                    else:
-                        print(f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions}).")
-                        return {"error": f"Audio file '{filename}' has an unsupported extension (supported are: {supported_file_extensions})."}, 415
-                return predictions, 200
+                        pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
+                return pred, 200
             except Exception as e:
                 return {"error": str(e)}, 500
 
@@ -329,13 +320,36 @@ class AvesEcho:
         params_inf = {'batch_size': 64, 'shuffle': False} # , 'num_workers': 5
         inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
 
-        inference(self.model, inference_generator, device, predictions)
+        audio_path = "./audio/"
+        embeddings, pred = inference(self.model, inference_generator, device, predictions)
+        embedding_dir = os.path.join(os.path.dirname(audio_path), "embeddings/")
+        embedding_filename = os.path.splitext(filename)[0].lower() + ".pt"
+        if not os.path.exists(embedding_dir):
+            os.makedirs(embedding_dir)
 
-        # Empty temporary audio chunks directory
+        torch.save(embeddings, os.path.join(embedding_dir, embedding_filename))
+
+        # Filter segments
+        segment_dir = os.path.join(os.path.dirname(audio_path), "segments/")
+        if not os.path.exists(segment_dir):
+            os.makedirs(segment_dir)
+
+        filtered = pred[["filename", "start time"]].drop_duplicates()
+        for _,row in filtered.iterrows():
+            obj_dict = row.to_dict()
+            index = int(obj_dict['start time']/3)
+            segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.wav"
+            
+            path = os.path.join(self.outputd, segment_filename)
+            if os.path.exists(path):
+                shutil.copy2(path, segment_dir)
+
         try:
             shutil.rmtree(self.outputd)
         except:
             pass
+
+        return pred
 
     # def analyze_warblr_audio(self, audio_file_path, lat=None, lon=None):
         
