@@ -9,8 +9,8 @@ import faiss
 
 # Absolute imports
 from app.database import SessionLocal, Device, Audio, Segment, Predictions
-from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, SegmentWithPredictions
-from app.services import add_embedding, apply_filters, segmentsWithPredictions, flatten
+from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema
+from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten
 from pipeline.analyze import run
 
 import pandas as pd
@@ -47,6 +47,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@app.get("/")
+async def status():
+    return {"status", "success"}
 
 
 @app.get("/analyse")
@@ -118,11 +122,13 @@ async def analyse(db:Session=Depends(get_db)):
                 uncertainty=row["uncertainty"],
                 energy=row["energy"],
                 date_processed=datetime.now(),
+                label=None,
+                notes=None,
                 audio_id=audio_id_map[row["filename"]],
                 embedding_id=1
             )
             db.add(segment)
-            db.flush()  # Get the generated `id` immediately
+            db.flush()
             segment_id_map[(row["filename"], row["start time"])] = segment.id
         else: 
             segment_id_map[(row["filename"], row["start time"])] = existing_segment.id
@@ -158,17 +164,26 @@ def export(start_date: datetime | None = None,
            uncertainty: float | None = None,
            energy: float | None = None,
            annotated: bool | None = None,
+           embeddings: bool = False,
            limit: int | None = 100,
            db:Session=Depends(get_db)):
     
-    BASE_DIR = "./audio/segments/"
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filters = locals()
+    EMBEDDING_DIR = "./audio/embeddings/"
+    SEGMENT_DIR = "./audio/segments/"
 
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+
+    filters = locals()
     results, segments = apply_filters(filters)
 
-    filenames = [os.path.join(BASE_DIR, segment.filename) for segment in segments]
-    csv_filename = flatten(results, BASE_DIR, timestamp)
+    if embeddings:
+        filenames = [os.path.join(EMBEDDING_DIR, f'{segment.filename[:-6]}.pt') for segment in segments]
+        prefix = "embeddings"
+    else:
+        filenames = [os.path.join(SEGMENT_DIR, segment.filename) for segment in segments]
+        prefix = "audio"
+
+    csv_filename = flatten(results, SEGMENT_DIR, timestamp)
     filenames.append(csv_filename)
 
     # Create a temporary file for the zip archive
@@ -182,7 +197,7 @@ def export(start_date: datetime | None = None,
             if file_path.exists():
                 zipf.write(file_path, arcname=file_path.name)  # Add file with its filename
     if len(filenames) > 1:
-        return FileResponse(zip_path, filename=f"data_{timestamp}.zip", media_type="application/zip")
+        return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")
     else:
         return HTTPException(status_code=204, detail="No files available")
 
@@ -327,18 +342,23 @@ def create_segment(segment: SegmentSchema, embedding: list[float], db: Session =
 
 @app.get("/segments/", response_model=list[SegmentSchema])
 def read_segment(db: Session = Depends(get_db)):
-    return db.query(Segment).all()
+    return db.query(Segment).limit(100).all()
 
 # @app.get("/segments/{segment_id}", response_model=SegmentSchema)
 # def read_segment(segment_id: int, db:Session=Depends(get_db)):
 #     segment = db.query(Segment).filter(Segment.id == segment_id).first()
 #     return segment
 
-@app.get("/segments/audio/{filename}/", response_class=FileResponse)
+@app.post("/retrieve/")
+def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
+    segments,_ = apply_filters_body(filters, db)
+    return segments
+
+@app.get("/segments/audio/{filename}", response_class=FileResponse)
 def get_segments(filename:str):
     path = f"./audio/segments/{filename}"
     filename = f"{filename}"
-    return FileResponse(path=path, filename=filename, media_type=".wav")
+    return FileResponse(path=path, filename=filename, media_type="audio/mpeg")
 
 
     # return {"status": "complete"}

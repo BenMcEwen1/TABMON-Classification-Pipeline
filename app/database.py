@@ -55,6 +55,10 @@ class Segment(Base):
     date_processed = Column(DateTime)
     embedding_id = Column(Integer, index=True)
 
+    # Human Annotations
+    label = Column(String, index=True)
+    notes = Column(String)
+
     audio_id = Column(Integer, ForeignKey("audio.id"))
 
     audio_file = relationship("Audio", back_populates="segments")
@@ -68,10 +72,6 @@ class Predictions(Base):
     # Model Predictions
     predicted_species = Column(String, index=True)
     confidence = Column(Float)
-
-    # Human Annotations
-    label = Column(String, index=True)
-    notes = Column(String)
 
     segment_id = Column(Integer, ForeignKey("segments.id"))
     segment = relationship("Segment", back_populates="predictions")

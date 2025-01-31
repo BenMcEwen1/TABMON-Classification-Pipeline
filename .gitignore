@@ -6,6 +6,7 @@ delete/
 app/*.csv
 app/templates/
 app/*.md
+pipeline/outputs/
 *.pt
 *.wav
 *.wav

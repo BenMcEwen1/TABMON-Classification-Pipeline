@@ -15,6 +15,41 @@ def segmentsWithPredictions(segments, db):
     ]
     return results
 
+def apply_filters_body(parameters, db):
+    query = db.query(Predictions).join(Segment).join(Audio)
+
+    filters = []
+    if parameters.country:
+        filters.append(Device.country == parameters.country)
+    if parameters.device_id:
+        filters.append(Device.device_id == parameters.device_id)
+    if parameters.start_date:
+        filters.append(Audio.date_recorded >= parameters.start_date)
+    if parameters.end_date:
+        filters.append(Audio.date_recorded <= parameters.end_date)
+    if parameters.energy is not None:
+        filters.append(Segment.energy >= parameters.energy)
+    if parameters.uncertainty is not None:
+        filters.append(Segment.uncertainty >= parameters.uncertainty)
+    if parameters.confidence is not None:
+        filters.append(Predictions.confidence >= parameters.confidence)
+    if parameters.annotated:
+        filters.append(Segment.label != None)
+    if parameters.predicted_species:
+        filters.append(Predictions.predicted_species == parameters.predicted_species)
+
+    # Apply filters if any
+    if filters:
+        query = query.filter(and_(*filters))
+
+    segment_ids = [prediction.segment_id for prediction in query]
+    segment_ids = list(dict.fromkeys(segment_ids)) # deduplicate
+    segments = [db.query(Segment).filter(Segment.id == segment_id).first()  for segment_id in segment_ids]
+    
+    if parameters.query_limit is not None:
+        segments = segments[:parameters.query_limit]
+    return segmentsWithPredictions(segments, db), segments
+
 def apply_filters(filters):
     parameters = SimpleNamespace(**filters)
     query = parameters.db.query(Predictions).join(Segment).join(Audio)
@@ -35,7 +70,7 @@ def apply_filters(filters):
     if parameters.confidence is not None:
         filters.append(Predictions.confidence >= parameters.confidence)
     if parameters.annotated:
-        filters.append(Predictions.label != None)
+        filters.append(Segment.label != None)
     if parameters.predicted_species:
         filters.append(Predictions.predicted_species == parameters.predicted_species)
 
@@ -65,8 +100,8 @@ def flatten(data, BASE_DIR, timestamp):
                     "audio_id": segment["audio_id"],
                     "predicted_species": prediction.predicted_species,
                     "confidence": prediction.confidence,
-                    "notes": prediction.notes,
-                    "label": prediction.label,
+                    "notes": segment["notes"],
+                    "label": segment["label"],
                 }
                 flattened_data.append(row)
 

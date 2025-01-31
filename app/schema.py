@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
@@ -43,6 +43,10 @@ class SegmentSchema(BaseModel):
     uncertainty: Optional[float] = None
     energy: Optional[float] = None
     date_processed: Optional[datetime] = None
+
+    label: Optional[str] = None
+    notes: Optional[str] = None
+    
     audio_id: int
     embedding_id: int
 
@@ -50,6 +54,39 @@ class PredictionSchema(BaseModel):
     predicted_species: str
     confidence: float
     segment_id: int
+
+class RetrievalSchema(BaseModel):
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    country: Optional[str] = Field(None, example=None) 
+    device_id: Optional[int] = None
+    confidence: Optional[float] = None
+    predicted_species: Optional[str] = None
+    uncertainty: Optional[float] = None
+    energy: Optional[float] = None
+    annotated: Optional[bool] = None
+    embeddings: Optional[bool] = None
+    query_limit: Optional[int] = 10
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "start_date": None,
+                    "end_date": None,
+                    "country": None,
+                    "device_id": None,
+                    "confidence": None,
+                    "predicted_species": None,
+                    "uncertainty": None,
+                    "energy": None,
+                    "annotated": None,
+                    "embeddings": False,
+                    "query_limit": 10
+                }
+            ]
+        }
+    }
 
 class SegmentWithPredictions(SegmentSchema):
     predictions: list[PredictionSchema]

@@ -127,7 +127,7 @@ def run_algorithm(args, avesecho_mapping, result_file):
 
     classifier = AvesEcho(model_name=args.model_name, slist=args.slist, flist=args.flist,
                           add_filtering=args.add_filtering, mconf=args.mconf,
-                          outputd="./outputs/temp", avesecho_mapping=avesecho_mapping,
+                          outputd=f"{current_dir}/outputs/temp", avesecho_mapping=avesecho_mapping,
                           maxpool=args.maxpool, add_csv=args.add_csv, embeddings=args.embeddings_mode, args=args)
 
     classifier.analyze(audio_input=args.i, lat=args.lat, lon=args.lon, result_file=result_file)

@@ -10,24 +10,17 @@ def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
         if isinstance(top_k, int):
             confidences = torch.topk(confidences, k=top_k)
             confidences = confidences[0]
-            
+        
         # Normalize the confidence scores to sum to 1 (if not already normalized)
         confidences = confidences / torch.sum(confidences)
-        shannon_entropy = -torch.sum(confidences * torch.log(confidences + 1e-10))
+        entropy = -torch.sum(confidences * torch.log(confidences + 1e-10))
         num_classes = len(confidences)
         max_entropy = torch.log(torch.tensor(num_classes))
         
         # Normalize the entropy
-        normalized_entropy = shannon_entropy / max_entropy
+        normalized_entropy = entropy / max_entropy
         uncertainty.append(normalized_entropy.item())
     return uncertainty
-
-# # Sanity check
-# x1 = [0.2, 0.2, 0.2] # Max uncertainty = 1.0
-# x2 = [0.299, 0.291, 0.018] # expected high uncertainty
-# x3 = [0.3, 0.1, 0.1] # expected medium
-# x4 = [0.812, 0.025, 0.021] # expected low uncertainty
-# print(renormalizedEntropy(torch.tensor([x1, x2, x3, x4]), top_k=3))
 
 
 def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
@@ -213,6 +206,16 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     Returns:
     emb (torch.Tensor): The embeddings of the last batch
     '''
+
+    # # Uncertainty sampling comparison
+    # x1 = [0.2, 0.2, 0.2] # Max uncertainty = 1.0
+    # x2 = [0.299, 0.291, 0.018] # expected high uncertainty
+    # x3 = [0.3, 0.1, 0.1] # expected medium
+    # x4 = [0.812, 0.025, 0.021] # expected low uncertainty
+    # print(renormalizedEntropy(torch.tensor([x1, x2, x3, x4]), top_k=3))
+    # print(uncertaintyEntropy(torch.tensor([x1, x2, x3, x4]), top_k=3))
+    # print(uncertaintySTD(torch.tensor([x1, x2, x3, x4]), top_k=3))
+
     model.eval()  # Set the model to evaluation mode
     torch.set_grad_enabled(False)
     all_filtered_outputs = torch.Tensor()
