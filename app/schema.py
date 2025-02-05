@@ -44,7 +44,7 @@ class SegmentSchema(BaseModel):
     energy: Optional[float] = None
     date_processed: Optional[datetime] = None
 
-    label: Optional[str] = None
+    label: Optional[str | None] = None
     notes: Optional[str] = None
     
     audio_id: int
@@ -66,7 +66,7 @@ class RetrievalSchema(BaseModel):
     energy: Optional[float] = None
     annotated: Optional[bool] = None
     embeddings: Optional[bool] = None
-    query_limit: Optional[int] = 10
+    query_limit: Optional[int] = 100
 
     model_config = {
         "json_schema_extra": {

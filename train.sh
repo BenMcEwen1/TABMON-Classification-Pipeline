@@ -7,6 +7,5 @@
 #SBATCH --gres=gpu:1
 
 source activate avesecho
-cd pipeline
 
-python training.py
+python pipeline.training

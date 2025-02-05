@@ -52,9 +52,20 @@ import time
 import shutil
 from datetime import datetime
 import logging
+import sys
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-tf.get_logger().setLevel("ERROR")
+os.environ["TF_DELEGATE_VERBOSE"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow logs
+tf.get_logger().setLevel("ERROR")  # Suppress TensorFlow logs
+
+class SuppressStdout:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
 
 
 # Set the device
@@ -78,6 +89,3 @@ SPEC_SHAPE = (298, 128) # width x height
 FMIN = 20
 FMAX = 15000
 MAX_AUDIO_FILES = 10000
-
-
-

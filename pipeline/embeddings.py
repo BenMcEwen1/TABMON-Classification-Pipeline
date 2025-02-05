@@ -26,6 +26,8 @@ args = parser.parse_args()
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 
 class Embeddings:
     def __init__(self, embeddings_path:str=None, dimension:int=320):
@@ -49,8 +51,8 @@ class Embeddings:
             regenerate (bool, optional): Whether to regenerate the embeddings even if they already exist. Defaults to False.
         Returns: The generated embedding(s).
         """
-        feature_extractor = AvesEcho(model_name=model_name, slist='./inputs/list_sp_ml.csv', flist='./inputs/species_list_nl.csv',
-                                    add_filtering=False, mconf=None, outputd="./outputs/temp", avesecho_mapping='./inputs/list_AvesEcho.csv',
+        feature_extractor = AvesEcho(model_name=model_name, slist=f'{current_dir}/inputs/list_sp_ml.csv', flist=f'{current_dir}/inputs/species_list_nl.csv',
+                                    add_filtering=False, mconf=None, outputd=f'{current_dir}/outputs/temp', avesecho_mapping=f'{current_dir}/inputs/list_AvesEcho.csv',
                                     maxpool=False, add_csv=False, embeddings=args.embeddings_mode, args=args)
         
         embeddings = feature_extractor.generate_embeddings(audio_path, regenerate, save)

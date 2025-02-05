@@ -3,6 +3,7 @@
 import os.path
 import os
 from types import SimpleNamespace
+import builtins
 
 from pipeline.algorithm_mode import AlgorithmMode
 from pipeline.config import *
@@ -102,14 +103,8 @@ class BirdNet(EmbeddingModel):
     # logging.info('Loading BirdNet model...')
     if self.model_path.endswith('.tflite'):
       self.tflite = True
-    #   with tempfile.NamedTemporaryFile() as tmpf:
-    #     model_file = epath.Path(self.model_path)
-    #     model_file.copy(tmpf.name, overwrite=True)
-    #     self.model = tf.lite.Interpreter(
-    #         tmpf.name, num_threads=self.num_tflite_threads
-    #     )
       self.model = tf.lite.Interpreter(
-        self.model_path, num_threads=self.num_tflite_threads
+          self.model_path, num_threads=self.num_tflite_threads
       )
       self.model.allocate_tensors()
     else:

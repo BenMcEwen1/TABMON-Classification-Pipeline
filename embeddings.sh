@@ -7,6 +7,5 @@
 #SBATCH --gres=gpu:1
 
 source activate avesecho
-cd pipeline
 
-python embeddings.py --i '../audio/sound-of-norway/' --model_name 'passt' --regenerate True
+python pipeline.embeddings --i '../audio/sound-of-norway/' --model_name 'birdnet' --regenerate True

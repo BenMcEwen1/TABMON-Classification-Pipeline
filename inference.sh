@@ -7,6 +7,5 @@
 #SBATCH --gres=gpu:1
 
 source activate avesecho
-cd pipeline
 
-python analyze.py --i "../audio/< DATA DIRECTORY >/" --add_csv --model_name fc
+python pipeline.analyze --i "../audio/< DATA DIRECTORY >/" --model_name 'birdnet'

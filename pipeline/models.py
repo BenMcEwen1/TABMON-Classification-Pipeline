@@ -156,7 +156,7 @@ class AvesEcho:
         self.args = args 
         self.algorithm_mode = AlgorithmMode("directories")
 
-        print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode, model {self.model_name}.")
+        print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode, model: {self.model_name}, device: {device}.")
 
         # Load the model
         if self.model_name == 'passt':
@@ -209,7 +209,7 @@ class AvesEcho:
         # Iterate through each audio file
         with tempfile.TemporaryDirectory() as temporary_directory:
             print(f"Generating embeddings for {len(audio_files)} files.")
-            for audio_file in tqdm(audio_files):
+            for audio_file in tqdm(audio_files, leave=True, dynamic_ncols=True):
                 filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
                 file_extension = os.path.splitext(filename)[1].lower()
 
@@ -257,7 +257,7 @@ class AvesEcho:
 
         # # Write the analysis results to a JSON file
         # with open(json_path, 'w') as json_file:
-        #     json.dump(analysis_results, json_file, indent=4)
+        #     json.dump(pred, json_file, indent=4)
         return pred
 
     def ignore_filesystem_object(self, directory: str, filename: str) -> bool:
@@ -272,11 +272,12 @@ class AvesEcho:
 
         predictions = {
             "metadata":  {
-                "id": None,
-                "lat": None,
-                "lng": None,
+                "device_id": self.args.device_id,
+                "lat": self.args.lat,
+                "lng": self.args.lon,
                 "datetime": str(datetime.now()),
-                "model": self.model_name
+                "model": self.model_name,
+                "model_checkpoint": self.args.model_checkpoint,
             },
             "files": []
         }
@@ -287,6 +288,7 @@ class AvesEcho:
         with tempfile.TemporaryDirectory() as temporary_directory:
             try:
                 for audio_file in tqdm(audio_files):
+                    print(audio_file)
                     filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
                     file_extension = os.path.splitext(filename)[1].lower()
 
@@ -300,7 +302,7 @@ class AvesEcho:
                         pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
                 return pred, 200
             except Exception as e:
-                return {"error": str(e)}, 500
+                print(f"An error occurred: {e}")
 
     def analyze_audio_file(self, audio_file_path: str, filename:str, filtering_list: list[str], predictions: dict):
         if not os.path.exists(self.outputd):

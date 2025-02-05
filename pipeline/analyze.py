@@ -31,14 +31,20 @@ parser.add_argument('--flist', type=str, default=f'{current_dir}/inputs/species_
 parser.add_argument('--i', type=str, default=f'{current_dir}/audio/NH-11_20240415_062840.WAV', help='Input audio sample.')
 parser.add_argument('--o', type=str, default=f'{current_dir}/tmp/avesecho', help='Output directory for temporary audio chunks.')
 parser.add_argument('--mconf', type=float, default=None, help='Minimum confidence threshold for predictions.')
-parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
-parser.add_argument('--lon', type=float, default=None, help='Longitude for geographic filtering.')
 parser.add_argument('--add_filtering', action='store_true', help='Enable geographic filtering.')
 parser.add_argument('--add_csv', action='store_true', help='Save predictions to a CSV file.')
 parser.add_argument('--maxpool', action='store_true', help='Use model for generating temporally-summarised output.')
-parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
 parser.add_argument("--algorithm_mode", default=default_algorithm_mode, help="Use input/output directories or an endpoint.")
 parser.add_argument("--embeddings_mode", type=bool, default=False, help="Generate embeddings for files instead of inference.")
+
+# Device metadata
+parser.add_argument('--device_id', type=str, default=None, required=True, help='Device id - last digits of the serial number (i.e. RPiID-100000007ft35sm --> 7ft35sm).')
+parser.add_argument('--country', type=float, default=None, help='Country')
+parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
+parser.add_argument('--lon', type=float, default=None, help='Longitude for geographic filtering.')
+parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
+parser.add_argument('--model_checkpoint', type=str, default=None, help='Model checkpoint - base if not specified.')
+
 
 if __name__ == "__main__":
     args = parser.parse_args()

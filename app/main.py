@@ -12,6 +12,7 @@ from app.database import SessionLocal, Device, Audio, Segment, Predictions
 from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema
 from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten
 from pipeline.analyze import run
+from pipeline.util import load_species_list
 
 import pandas as pd
 from datetime import datetime
@@ -51,6 +52,31 @@ def get_db():
 @app.get("/")
 async def status():
     return {"status", "success"}
+
+@app.get("/species/")
+async def species_list(db:Session=Depends(get_db)):
+    prediction = db.query(Predictions).all()
+    species_predicted = [p.predicted_species for p in prediction]
+    species = load_species_list("./pipeline/inputs/BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv")
+    all_species = []
+    for name in species:
+        scientific_name = name.split(',')[0]
+        common_name = name.split(',')[1]
+        predicted = name.split(',')[0] in species_predicted
+        all_species.append({"common_name": common_name, "scientific_name": scientific_name, "predicted": predicted})
+    return all_species
+
+# const speciesList = [
+#     { common_name: "Apple", scientific_name: "Malus domestica", predicted: true },
+#     { common_name: "Banana", scientific_name: "Musa acuminata", predicted: false },
+#     { common_name: "Cherry", scientific_name: "Prunus avium", predicted: true },
+#     { common_name: "Date", scientific_name: "Phoenix dactylifera", predicted: false },
+#     { common_name: "Elderberry", scientific_name: "Sambucus nigra", predicted: true },
+#     { common_name: "Fig", scientific_name: "Ficus carica", predicted: false },
+#     { common_name: "Grape", scientific_name: "Vitis vinifera", predicted: true },
+#     { common_name: "Honeydew", scientific_name: "Cucumis melo", predicted: false },
+#   ];
+
 
 
 @app.get("/analyse")
@@ -343,6 +369,15 @@ def create_segment(segment: SegmentSchema, embedding: list[float], db: Session =
 @app.get("/segments/", response_model=list[SegmentSchema])
 def read_segment(db: Session = Depends(get_db)):
     return db.query(Segment).limit(100).all()
+
+@app.post("/label/{id}/", response_model=SegmentSchema)
+def add_label(id:int, label:dict, db:Session=Depends(get_db)):
+    print(label)
+    segment = db.query(Segment).filter(Segment.id == id).first()
+    segment.label = label['label']
+    flag_modified(segment, "label")
+    db.commit()
+    return segment
 
 # @app.get("/segments/{segment_id}", response_model=SegmentSchema)
 # def read_segment(segment_id: int, db:Session=Depends(get_db)):

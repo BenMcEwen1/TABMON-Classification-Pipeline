@@ -142,6 +142,10 @@ def k_predictions(confidence_batch, filename, species_list, predictions:dict={},
     predictions["files"].append({
         filename: results
         })
+    
+    # save predictions to .json
+    with open(f'{current_dir}/outputs/predictions.json', 'w', encoding ='utf8') as json_file:
+        json.dump(predictions, json_file, indent=4)
 
     predictions = convert_ranked_to_tabular(predictions)
     return predictions
@@ -206,16 +210,6 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     Returns:
     emb (torch.Tensor): The embeddings of the last batch
     '''
-
-    # # Uncertainty sampling comparison
-    # x1 = [0.2, 0.2, 0.2] # Max uncertainty = 1.0
-    # x2 = [0.299, 0.291, 0.018] # expected high uncertainty
-    # x3 = [0.3, 0.1, 0.1] # expected medium
-    # x4 = [0.812, 0.025, 0.021] # expected low uncertainty
-    # print(renormalizedEntropy(torch.tensor([x1, x2, x3, x4]), top_k=3))
-    # print(uncertaintyEntropy(torch.tensor([x1, x2, x3, x4]), top_k=3))
-    # print(uncertaintySTD(torch.tensor([x1, x2, x3, x4]), top_k=3))
-
     model.eval()  # Set the model to evaluation mode
     torch.set_grad_enabled(False)
     all_filtered_outputs = torch.Tensor()
@@ -225,6 +219,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     species_list = model.species_list
 
     for i, inputs in enumerate(data_loader):
+        print(inputs)
         images = inputs['inputs'].to(device)
         emb = inputs['emb'].to(device) # Same for both 'birdnet - v2.4' and 'fc - v2.2'
         filename = inputs['file'][0]
