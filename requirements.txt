@@ -10,7 +10,7 @@ soundfile==0.12.1
 tensorflow==2.14.1
 timm==0.6.13
 torchmetrics==1.4.0.post0
-tqdm==4.65.0
+tqdm==4.66.3
 importlib_resources==6.4.0
 mgrs==1.4.6
 resampy==0.4.3
