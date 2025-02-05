@@ -264,7 +264,7 @@ class AvesEcho:
             "metadata":  {
                 "device_id": self.args.device_id,
                 "lat": self.args.lat,
-                "lng": self.args.lon,
+                "lng": self.args.lng,
                 "datetime": str(datetime.now()),
                 "model": self.model_name,
                 "model_checkpoint": self.args.model_checkpoint,

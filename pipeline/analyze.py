@@ -11,13 +11,13 @@ from pipeline.util import get_base_name
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-def run():
+def run(directory, device):
     classifier = AvesEcho(model_name='birdnet', slist=f'{current_dir}/inputs/list_sp_ml.csv', flist=f'{current_dir}/inputs/species_list_nl.csv',
                             add_filtering=False, mconf=None,
                             outputd=f'{current_dir}/outputs/temp', avesecho_mapping=f'{current_dir}/inputs/list_AvesEcho.csv',
-                            maxpool=False, add_csv=False, embeddings=False, args=None)
+                            maxpool=False, add_csv=False, embeddings=False, args=device)
     
-    pred = classifier.analyze(audio_input='audio/subset/', lat=None, lon=None, result_file=f'{current_dir}/outputs/analysis-results.json')
+    pred = classifier.analyze(audio_input=directory, lat=None, lon=None, result_file=f'{current_dir}/outputs/analysis-results.json')
     return pred
 
 
@@ -41,7 +41,7 @@ parser.add_argument("--embeddings_mode", type=bool, default=False, help="Generat
 parser.add_argument('--device_id', type=str, default=None, required=True, help='Device id - last digits of the serial number (i.e. RPiID-100000007ft35sm --> 7ft35sm).')
 parser.add_argument('--country', type=float, default=None, help='Country')
 parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
-parser.add_argument('--lon', type=float, default=None, help='Longitude for geographic filtering.')
+parser.add_argument('--lng', type=float, default=None, help='Longitude for geographic filtering.')
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
 parser.add_argument('--model_checkpoint', type=str, default=None, help='Model checkpoint - base if not specified.')
 

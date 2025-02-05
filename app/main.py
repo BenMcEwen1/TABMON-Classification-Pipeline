@@ -66,22 +66,11 @@ async def species_list(db:Session=Depends(get_db)):
         all_species.append({"common_name": common_name, "scientific_name": scientific_name, "predicted": predicted})
     return all_species
 
-# const speciesList = [
-#     { common_name: "Apple", scientific_name: "Malus domestica", predicted: true },
-#     { common_name: "Banana", scientific_name: "Musa acuminata", predicted: false },
-#     { common_name: "Cherry", scientific_name: "Prunus avium", predicted: true },
-#     { common_name: "Date", scientific_name: "Phoenix dactylifera", predicted: false },
-#     { common_name: "Elderberry", scientific_name: "Sambucus nigra", predicted: true },
-#     { common_name: "Fig", scientific_name: "Ficus carica", predicted: false },
-#     { common_name: "Grape", scientific_name: "Vitis vinifera", predicted: true },
-#     { common_name: "Honeydew", scientific_name: "Cucumis melo", predicted: false },
-#   ];
-
-
-
-@app.get("/analyse")
-async def analyse(db:Session=Depends(get_db)):
-    predictions = run()
+@app.post("/analyse")
+async def analyse(directory:str, device:DeviceSchema, db:Session=Depends(get_db)):
+    print(directory)
+    print(device)
+    predictions = run(directory, device)
     
     def normalize_and_upsert(predictions, Model, Create, filters):
         """
