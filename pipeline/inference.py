@@ -219,7 +219,6 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     species_list = model.species_list
 
     for i, inputs in enumerate(data_loader):
-        print(inputs)
         images = inputs['inputs'].to(device)
         emb = inputs['emb'].to(device) # Same for both 'birdnet - v2.4' and 'fc - v2.2'
         filename = inputs['file'][0]

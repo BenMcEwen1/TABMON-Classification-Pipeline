@@ -193,7 +193,8 @@ class AvesEcho:
             inference_set = InferenceDataset(inference_data, filename, model=self.model_name)
             params_inf = {'batch_size': 124, 'shuffle': False}
             inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
-            return inference(self.model, inference_generator, device, save=False)
+            embeddings,_ = inference(self.model, inference_generator, device, save=False)
+            return embeddings
         
         # Get File list
         if os.path.isfile(audio_path):
@@ -247,17 +248,6 @@ class AvesEcho:
                 audio_files += file_path
 
         pred,_ = self.analyze_audio_files(audio_files, lat, lon)
-
-        # if os.path.isfile(audio_input):
-        #     # Make sure the result file has the .json extension
-        #     json_filename = result_file if result_file.endswith('.json') else f'{result_file}.json'
-        #     json_path = f'{current_dir}/pipeline/outputs/{json_filename}'
-        # else:
-        #     json_path = result_file or f'{current_dir}/pipeline/outputs/analysis-results.json'
-
-        # # Write the analysis results to a JSON file
-        # with open(json_path, 'w') as json_file:
-        #     json.dump(pred, json_file, indent=4)
         return pred
 
     def ignore_filesystem_object(self, directory: str, filename: str) -> bool:
@@ -286,23 +276,23 @@ class AvesEcho:
 
         # For endpoint mode: write the audio files to a temporary directory.
         with tempfile.TemporaryDirectory() as temporary_directory:
-            try:
-                for audio_file in tqdm(audio_files):
-                    print(audio_file)
-                    filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
-                    file_extension = os.path.splitext(filename)[1].lower()
+            for audio_file in tqdm(audio_files):
+                filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
+                file_extension = os.path.splitext(filename)[1].lower()
 
-                    if file_extension in supported_file_extensions:
-                        if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
-                            audio_file_path = audio_file
-                        else:
-                            audio_file_path = os.path.join(temporary_directory, filename)
-                            with open(audio_file_path, "wb") as output_file:
-                                output_file.write(audio_file.read())
+                if file_extension in supported_file_extensions:
+                    if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
+                        audio_file_path = audio_file
+                    else:
+                        audio_file_path = os.path.join(temporary_directory, filename)
+                        with open(audio_file_path, "wb") as output_file:
+                            output_file.write(audio_file.read())
+                    try:
                         pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
-                return pred, 200
-            except Exception as e:
-                print(f"An error occurred: {e}")
+                    except Exception as e:
+                        print(f"An error occurred: {e}")
+                        pass
+            return pred, 200
 
     def analyze_audio_file(self, audio_file_path: str, filename:str, filtering_list: list[str], predictions: dict):
         if not os.path.exists(self.outputd):

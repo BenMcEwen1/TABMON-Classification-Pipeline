@@ -37,7 +37,9 @@ class InferenceDataset(torch.utils.data.Dataset):
         try:
             x, rate = librosa.load(ID, sr=SAMPLE_RATE, offset=0.0, res_type='kaiser_fast')
         except:
-            x, rate = [], SAMPLE_RATE   
+            x, rate = [], SAMPLE_RATE
+
+        birdnet_embedding = np.zeros(320)
         
         x = (x - self.global_mean) / self.global_std
         # convert mixed to tensor
@@ -49,7 +51,7 @@ class InferenceDataset(torch.utils.data.Dataset):
             x = resampler(x)  
             # Create dummy embedding 
             birdnet_embedding = np.zeros(320) 
-            logits = np.zeros(320)
+            logits = np.zeros(585)
         if self.model == 'fc':
             # Compute BirdNETv2.2 embedding
             try:

@@ -265,13 +265,13 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     # Configure logging
     logging.basicConfig(filename=f'{current_dir}/outputs/audio_errors.log', level=logging.ERROR, # NOTE: Changed
                     format='%(asctime)s:%(levelname)s:%(message)s')
-
     try:
-        # Load the signal
         sig, rate = librosa.load(filepath, sr=SAMPLE_RATE, offset=0.0, duration=None, res_type='kaiser_fast')
-    except Exception as e:
-        logging.error(f"Error loading audio from {filepath}: {e}")
-        return []
+        if len(sig) < (signal_length * SAMPLE_RATE):
+            raise Exception(f"Audio {filepath} is too short (min. length 3 seconds)")
+    except Exception as error:
+        logging.error(error)
+        raise Exception(error)
 
     # Split signal into chunks
     sig_splits = [sig[i:i + int(signal_length * rate)] for i in range(0, len(sig), int(signal_length * rate)) if len(sig[i:i + int(signal_length * rate)]) == int(signal_length * rate)]

@@ -37,6 +37,17 @@ python -m pipeline.training
 
 *Note: the dataloader is specific to Sounds of Norway annotation protocol, if annotation column names/labels are different you will need to adjust this within `training.py`*
 
+---
+
+### Database Setup
+The pipeline can also be run using a FastAPI server which stores predictions in an SQL database.
+
+To *start the server* run:
+```
+fastapi dev app/main.py
+```
+The database can be queried using the FastAPI /docs at http://localhost:8000/docs.
+
 ### Next Steps
 - [X] Setup predictions with sql database for efficient querying
 - [ ] Location-based filtering
