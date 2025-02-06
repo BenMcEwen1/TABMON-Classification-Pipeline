@@ -67,26 +67,26 @@ async def species_list(db:Session=Depends(get_db)):
     return all_species
 
 
-@app.get("/devices", response_model=list[DeviceSchema])
-async def devices(db:Session=Depends(get_db)):
-    return db.query(Device).all()
+# @app.get("/devices", response_model=list[DeviceSchema])
+# async def devices(db:Session=Depends(get_db)):
+#     return db.query(Device).all()
 
-@app.get("/audio", response_model=list[AudioSchema])
-async def audio(db:Session=Depends(get_db)):
-    return db.query(Audio).all()
+# @app.get("/audio", response_model=list[AudioSchema])
+# async def audio(db:Session=Depends(get_db)):
+#     return db.query(Audio).all()
 
-@app.get("/segments", response_model=list[SegmentSchema])
-async def segments(db:Session=Depends(get_db)):
-    return db.query(Segment).all()
+# @app.get("/segments", response_model=list[SegmentSchema])
+# async def segments(db:Session=Depends(get_db)):
+#     return db.query(Segment).all()
 
-@app.get("/predictions", response_model=list[PredictionSchema])
-async def predictions(db:Session=Depends(get_db)):
-    return db.query(Predictions).all()
+# @app.get("/predictions", response_model=list[PredictionSchema])
+# async def predictions(db:Session=Depends(get_db)):
+#     return db.query(Predictions).all()
 
 @app.post("/analyse")
 async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
     predictions = run(parameters, db)
-    status = normalise(predictions, db)
+    # status = normalise(predictions, db)
     return status
 
 @app.get("/export/")

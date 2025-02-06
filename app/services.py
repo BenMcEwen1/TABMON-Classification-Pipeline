@@ -8,6 +8,9 @@ import pandas as pd
 from datetime import datetime
 
 def normalise(predictions, db):
+    """
+    This function normalised the database i.e. splits one large table into smaller linked tables so that data can be more efficiently queried.
+    """
     device_map = {}
     device = predictions[["device_id", "lat", "lng", "model", "model_checkpoint"]].drop_duplicates()
     for _,row in predictions.iterrows():
@@ -85,9 +88,9 @@ def normalise(predictions, db):
     try:
         db.commit()
         return {"status": "data added successfully"}
-    except:
+    except Exception as error:
         db.rollback()
-        return {"status": "failed to add data"}
+        return {"status": f"failed to add data - {error}"}
 
 def segmentsWithPredictions(segments, db):
     results = [{

@@ -5,6 +5,8 @@ import time
 from pipeline.algorithm_mode import AlgorithmMode
 from pipeline.models import run_algorithm
 from app.schema import PipelineSchema
+from app.services import normalise
+from app.database import SessionLocal
 
 
 start_time = time.time()
@@ -24,8 +26,16 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 
 def run(args, db=None):
     args = PipelineSchema(**vars(args)) # Additional validation
-    pred = run_algorithm(args)
-    return pred
+    predictions = run_algorithm(args)
+    if db:
+        print("Endpoint")
+        status = normalise(predictions, db)
+    else:
+        print("Directory")
+        db = SessionLocal()
+        status = normalise(predictions, db)
+        db.close()
+    return status
 
 if __name__ == "__main__":
     run(parser.parse_args())
