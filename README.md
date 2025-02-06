@@ -48,9 +48,11 @@ fastapi dev app/main.py
 ```
 The database can be queried using the FastAPI /docs at http://localhost:8000/docs.
 
+---
+
 ### Next Steps
 - [X] Setup predictions with sql database for efficient querying
-- [ ] Location-based filtering
+- [x] Location-based filtering
 - [ ] Specify device information
 - [ ] Tidy up redundant AvesEcho/Warbler code
 

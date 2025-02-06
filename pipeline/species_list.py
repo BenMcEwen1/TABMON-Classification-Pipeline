@@ -14,17 +14,16 @@ def get_species_list(recording_lat, recording_long):
     "Concert WGS84 lat-lon to MGRS UTM coordinates"
 
     # Load occurances data from csv file
-    file_path = "inputs/ebba2_data_occurrence_50km.csv"
+    file_path = "./pipeline/inputs/ebba2_data_occurrence_50km.csv"
     df = pd.read_csv(file_path, delimiter=';')
     
     m = mgrs.MGRS()
     c = m.toMGRS(recording_lat, recording_long)
 
-    input_code = c[0:5] 
 
+    input_code = c[0:3] 
     # Filter the DataFrame based on the input code
     filtered_df = df[df['cell50x50'].str.startswith(input_code)]
-
     # Get the list of unique bird species from the filtered DataFrame
     species_list = pd.DataFrame(filtered_df['birdlife_scientific_name'].drop_duplicates())
     #species_list.loc[len(species_list), 'birdlife_scientific_name'] = 'Noise'

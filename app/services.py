@@ -5,6 +5,89 @@ from app.database import SessionLocal, Device, Audio, Segment, Predictions
 from types import SimpleNamespace
 from sqlalchemy import and_
 import pandas as pd
+from datetime import datetime
+
+def normalise(predictions, db):
+    device_map = {}
+    device = predictions[["device_id", "lat", "lng", "model", "model_checkpoint"]].drop_duplicates()
+    for _,row in predictions.iterrows():
+        existing_device = db.query(Device).filter(Device.device_id == row["device_id"]).first()
+        if not existing_device:
+            device = Device(
+                device_id = row["device_id"],
+                lat = row["lat"],
+                lng = row["lng"],
+                model_name = row["model"],
+                model_checkpoint = row["model_checkpoint"],
+                date_updated = datetime.now()
+            )
+            db.add(device)
+            db.flush()
+            device_map[row["device_id"]] = device.id
+        else:
+            device_map[row["device_id"]] = existing_device.id
+
+    audio_id_map = {}
+    audio_data = predictions[["filename", "device_id"]]
+    for _,row in audio_data.iterrows():
+        existing_audio = db.query(Audio).filter(Audio.filename == row["filename"]).first()
+        if not existing_audio:
+            audio = Audio(
+                filename=row["filename"],
+                device_id=device_map[row["device_id"]],
+            )
+            db.add(audio)
+            db.flush()
+            audio_id_map[row["filename"]] = audio.id
+        else: 
+            audio_id_map[row["filename"]] = existing_audio.id
+
+    segment_id_map = {}
+    segment_data = predictions[["filename", "start time", "uncertainty", "energy"]]
+    for _,row in segment_data.iterrows():
+        existing_segment = db.query(Segment).filter(Segment.audio_id == audio_id_map[row["filename"]], Segment.start_time == row['start time']).first()
+        index = int(row["start time"]/3)
+        
+        if not existing_segment:
+            segment = Segment(
+                start_time=row["start time"],
+                filename=os.path.splitext(row["filename"])[0] + f"_{index}.wav",
+                duration=3,
+                uncertainty=row["uncertainty"],
+                energy=row["energy"],
+                date_processed=datetime.now(),
+                label=None,
+                notes=None,
+                audio_id=audio_id_map[row["filename"]],
+                embedding_id=1
+            )
+            db.add(segment)
+            db.flush()
+            segment_id_map[(row["filename"], row["start time"])] = segment.id
+        else: 
+            segment_id_map[(row["filename"], row["start time"])] = existing_segment.id
+
+    prediction_data = predictions[["filename", "scientific name", "confidence", "start time"]]
+    for _, row in prediction_data.iterrows():
+        existing_prediction = db.query(Predictions).filter(
+            Predictions.predicted_species == row["scientific name"],
+            Predictions.confidence == row["confidence"],
+            Predictions.segment_id == segment_id_map[(row["filename"], row["start time"])]
+            ).first()
+        
+        if not existing_prediction:
+            prediction = Predictions(
+                predicted_species=row["scientific name"],
+                confidence=row["confidence"],
+                segment_id=segment_id_map[(row["filename"], row["start time"])],  # Link to the segment
+            )
+            db.add(prediction)
+    try:
+        db.commit()
+        return {"status": "data added successfully"}
+    except:
+        db.rollback()
+        return {"status": "failed to add data"}
 
 def segmentsWithPredictions(segments, db):
     results = [{

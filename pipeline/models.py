@@ -11,14 +11,12 @@ from pipeline.dataset import *
 from pipeline.inference import *
 from pipeline.util import *
 
-from pipeline.algorithm_mode import AlgorithmMode
+# from pipeline.algorithm_mode import AlgorithmMode
 from pipeline.passt.base import get_basic_model, get_model_passt
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 classifier: "AvesEcho"
-
-app = flask.Flask(__name__, static_url_path="", static_folder="static")
 
 
 # TODO: Things to Test
@@ -82,23 +80,6 @@ class ContextAwareHead(nn.Module):
         x = self.head(x)
         return x
 
-
-@app.route("/v1/analyse", methods=["POST"])
-def analyse_endpoint():
-    """
-    Analyze a batch of audio files. Invoked by calling the analyse endpoint of the Flask web server.
-
-    Expects the POST parameter "media" to specify the audio files.
-    """
-    audio_files = flask.request.files.getlist("media")
-
-    analysis_results, status_code = classifier.analyze_audio_files(audio_files)
-
-    if status_code == 200:
-        return flask.jsonify(analysis_results)
-    else:
-        return analysis_results, status_code
-
 class avesecho(nn.Module):
     def __init__(self, NumClasses=585, pretrain=True, ExternalEmbeddingSize=320, hidden_layer_size=100):
         super(avesecho, self).__init__()
@@ -122,15 +103,13 @@ class birdnet(nn.Module):
         return F.sigmoid(logits)
 
 
-def run_algorithm(args, avesecho_mapping, result_file):
+def run_algorithm(args):
     global classifier
 
-    classifier = AvesEcho(model_name=args.model_name, slist=args.slist, flist=args.flist,
-                          add_filtering=args.add_filtering, mconf=args.mconf,
-                          outputd=f"{current_dir}/outputs/temp", avesecho_mapping=avesecho_mapping,
-                          maxpool=args.maxpool, add_csv=args.add_csv, embeddings=args.embeddings_mode, args=args)
+    classifier = AvesEcho(args=args)
 
-    classifier.analyze(audio_input=args.i, lat=args.lat, lon=args.lon, result_file=result_file)
+    results = classifier.analyze(audio_input=args.i, lat=args.lat, lng=args.lng)
+    return results
 
 
 class AlgorithmMode(Enum):
@@ -139,20 +118,20 @@ class AlgorithmMode(Enum):
 
 
 class AvesEcho:
-    def __init__(self, model_name, slist, flist, add_filtering, mconf, maxpool, add_csv, embeddings, args, outputd, avesecho_mapping):
-        self.slist = slist
-        self.flist = flist
-        self.model_name = model_name
-        self.add_filtering = add_filtering
-        self.add_csv = add_csv
-        self.embeddings = embeddings # NOTE: added
-        self.mconf = mconf
-        self.outputd = outputd
-        self.avesecho_mapping = avesecho_mapping
+    def __init__(self, args):
+        self.slist = args.slist
+        self.flist = args.flist
+        self.model_name = args.model_name
+
+        if args.flist or args.lat and args.lng:
+            self.add_filtering = True # Necessary when we get a species list :/
+        else:
+            self.add_filtering = False
+
+        self.outputd = f"{current_dir}/outputs/temp"
         self.species_list = load_species_list(self.slist)
         self.n_classes = len(self.species_list)
         self.split_signals = split_signals
-        self.maxpool = maxpool
         self.args = args 
         self.algorithm_mode = AlgorithmMode("directories")
 
@@ -173,9 +152,9 @@ class AvesEcho:
             self.model = self.model.to(device)
 
 
-    def analyze(self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None):
+    def analyze(self, audio_input: str, lat: Optional[Any]=None, lng: Optional[Any]=None):
         if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
-            results = self.analyze_directories(audio_input, lat, lon, result_file)
+            results = self.analyze_directories(audio_input, lat, lng)
         return results
 
     def generate_embeddings(self, audio_path: str, regenerate: bool, save: bool):
@@ -237,7 +216,7 @@ class AvesEcho:
                         _embeddings = torch.load(embedding_path)
         return _embeddings
 
-    def analyze_directories(self, audio_input: str, lat: Optional[Any]=None, lon: Optional[Any]=None, result_file: Optional[str]=None) -> None:
+    def analyze_directories(self, audio_input: str, lat: Optional[Any]=None, lng: Optional[Any]=None):
         if os.path.isfile(audio_input):
             audio_files = [audio_input]
         else:
@@ -247,18 +226,16 @@ class AvesEcho:
                              if not self.ignore_filesystem_object(audio_input, filename)]
                 audio_files += file_path
 
-        pred,_ = self.analyze_audio_files(audio_files, lat, lon)
+        pred,_ = self.analyze_audio_files(audio_files, lat, lng)
         return pred
 
     def ignore_filesystem_object(self, directory: str, filename: str) -> bool:
         return os.path.isdir(os.path.join(directory, filename)) or filename.startswith(".")
 
-    def analyze_audio_files(
-        self, audio_files: list[Union[str, FileStorage]], lat: Optional[Any]=None, lon: Optional[Any]=None
-    ) -> tuple[dict[str, Any], int]:
+    def analyze_audio_files(self, audio_files: list[Union[str, FileStorage]], lat: Optional[Any]=None, lng: Optional[Any]=None):
         # Running the model to get predictions, and then returning the results.
 
-        filtering_list = setup_filtering(lat, lon, self.add_filtering, self.flist, self.slist)
+        filtering_list = setup_filtering(lat, lng, self.add_filtering, self.flist, self.slist)
 
         predictions = {
             "metadata":  {
@@ -287,11 +264,11 @@ class AvesEcho:
                         audio_file_path = os.path.join(temporary_directory, filename)
                         with open(audio_file_path, "wb") as output_file:
                             output_file.write(audio_file.read())
-                    try:
-                        pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
-                    except Exception as e:
-                        print(f"An error occurred: {e}")
-                        pass
+                    # try:
+                    pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
+                    # except Exception as e:
+                    #     print(f"An error occurred: {e}")
+                    #     pass
             return pred, 200
 
     def analyze_audio_file(self, audio_file_path: str, filename:str, filtering_list: list[str], predictions: dict):
@@ -313,7 +290,7 @@ class AvesEcho:
         inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
 
         audio_path = "./audio/"
-        embeddings, pred = inference(self.model, inference_generator, device, predictions)
+        embeddings, pred = inference(self.model, inference_generator, device, predictions, filter_list=filtering_list)
         embedding_dir = os.path.join(os.path.dirname(audio_path), "embeddings/")
         embedding_filename = os.path.splitext(filename)[0].lower() + ".pt"
         if not os.path.exists(embedding_dir):
@@ -343,54 +320,7 @@ class AvesEcho:
 
         return pred
 
-    # def analyze_warblr_audio(self, audio_file_path, lat=None, lon=None):
-        
-    #     # Running the model to get predictions, and then returning the results.
-        
-    #     # Starting time
-    #     start_time = time.time()
-
-    #     # Load soundfile
-    #     sound = audio_file_path
-    #     filtering_list = setup_filtering(lat, lon, self.add_filtering, self.flist, self.slist)
-
-    #     if not os.path.exists(self.outputd):
-    #         os.makedirs(self.outputd)
-
-    #     # Split signal into 3s chunks
-    #     self.split_signals(sound, self.outputd, signal_length=3, n_processes=10)
-
-
-    #     # Extract the filename from the path
-    #     filename = sound.split('/')[-1]  # This splits the string by '/' and gets the last element
-        
-
-    #     #Load a list of files for in a dir
-    #     inference_dir = self.outputd
-    #     inference_data = [os.path.join(inference_dir, f) for f in sorted(os.listdir(inference_dir), key=lambda x: int(x.split('_')[-1].split('.')[0]))]
-
-    #     #Inference
-    #     inference_set = InferenceDataset(inference_data, self.n_classes, model=self.model_name)
-    #     params_inf = {'batch_size': 64, 'shuffle': False, 'num_workers': 5}
-    #     inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
-
-    #     # Maps species common names to scientific names and also across XC and eBird standards and codes
-    #     df = pd.read_csv(self.avesecho_mapping, header=None, names=['ScientificName', 'CommonName'])
-
-    #     # Run the inference
-    #     predictions, scores, files = inference_warbler(self.model, inference_generator, device, self.species_list, filtering_list, self.mconf)
-            
-    #     #Compute the elapsed time in seconds
-    #     elapsed_time = time.time() - start_time
-        
-    #     # Print the result
-    #     print(f"It took {elapsed_time:.2f}s to analyze {filename}.")
-
-    #     # Empty temporary audio chunks directory
-    #     shutil.rmtree(self.outputd)
-        
-    #     return predictions, scores
-
+ 
     def determine_algorithm_mode(self, algorithm_mode: str) -> AlgorithmMode:
         """Determine the mode ("directories" or "endpoint") the algorithm will run in. First the "--algorithm-mode"
            command-line argument is used to determine the algorithm mode. If that is not specified, the "ALGORITHM_MODE"

@@ -90,3 +90,38 @@ class RetrievalSchema(BaseModel):
 
 class SegmentWithPredictions(SegmentSchema):
     predictions: list[PredictionSchema]
+
+
+class PipelineSchema(BaseModel):
+    slist: str = 'pipeline/inputs/list_sp_ml.csv'
+    flist: Optional[str] = None
+    i: str = 'audio/brambling'
+
+    device_id: str
+    country: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    model_name: str = 'birdnet'
+    model_checkpoint: Optional[str] = None
+    date_updated: Optional[datetime] = None
+    date_deployed: Optional[datetime] = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "slist": 'pipeline/inputs/list_sp_ml.csv',
+                    "flist": None,
+                    "i": 'audio/brambling',
+                    "device_id": "123456",
+                    "country": None,
+                    "lat": None,
+                    "lng": None,
+                    "model_name":'birdnet',
+                    "model_checkpoint": None,
+                    "date_updated": None,
+                    "date_deployed": None
+                }
+            ]
+        }
+    }

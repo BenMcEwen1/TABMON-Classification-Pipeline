@@ -111,8 +111,17 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
     predictions = convert_to_tabular(predictions)
     return predictions
 
-def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0):
+def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0, filter_list:list=None):
     species_name = load_species_list(species_list)
+
+    if filter_list:
+        species_to_index = {species.split(',')[0]: index  for index, species in enumerate(species_name)}
+
+        filtered_indices = [species_to_index[species] for species in filter_list if species in species_to_index]
+
+        confidence_batch = confidence_batch[:, torch.tensor(filtered_indices, dtype=torch.long)]
+        species_name = [species_name[index] for index in filtered_indices]
+
     uncertainty = renormalizedEntropy(confidence_batch)
     
     # Return top k predictions
@@ -199,7 +208,7 @@ def convert_ranked_to_tabular(predictions):
     df.to_csv(f"{current_dir}/outputs/top_k_predictions.csv", index=False)
     return df
 
-def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
+def inference(model, data_loader, device, predictions:dict={}, save:bool=True, filter_list:list=None):
     '''
     Perform inference on data in directory, outputs prediction results in .json and .csv formats
     Model details:
@@ -212,8 +221,6 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
     '''
     model.eval()  # Set the model to evaluation mode
     torch.set_grad_enabled(False)
-    all_filtered_outputs = torch.Tensor()
-    all_filtered_outputs = all_filtered_outputs.to(device)
 
     model_name = model.__class__.__name__
     species_list = model.species_list
@@ -233,7 +240,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True):
 
     if save:
         # pred = prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
-        pred = k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.1)
+        pred = k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.1, filter_list=filter_list)
     return emb, pred
 
 

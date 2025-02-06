@@ -9,8 +9,8 @@ import faiss
 
 # Absolute imports
 from app.database import SessionLocal, Device, Audio, Segment, Predictions
-from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema
-from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten
+from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema, PipelineSchema
+from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten, normalise
 from pipeline.analyze import run
 from pipeline.util import load_species_list
 
@@ -66,108 +66,28 @@ async def species_list(db:Session=Depends(get_db)):
         all_species.append({"common_name": common_name, "scientific_name": scientific_name, "predicted": predicted})
     return all_species
 
+
+@app.get("/devices", response_model=list[DeviceSchema])
+async def devices(db:Session=Depends(get_db)):
+    return db.query(Device).all()
+
+@app.get("/audio", response_model=list[AudioSchema])
+async def audio(db:Session=Depends(get_db)):
+    return db.query(Audio).all()
+
+@app.get("/segments", response_model=list[SegmentSchema])
+async def segments(db:Session=Depends(get_db)):
+    return db.query(Segment).all()
+
+@app.get("/predictions", response_model=list[PredictionSchema])
+async def predictions(db:Session=Depends(get_db)):
+    return db.query(Predictions).all()
+
 @app.post("/analyse")
-async def analyse(directory:str, device:DeviceSchema, db:Session=Depends(get_db)):
-    print(directory)
-    print(device)
-    predictions = run(directory, device)
-    
-    def normalize_and_upsert(predictions, Model, Create, filters):
-        """
-        Generalized function to normalize and upsert data into a SQLAlchemy model.
-
-        Args:
-            predictions (DataFrame): Pandas DataFrame containing the raw data.
-            Model (Base): SQLAlchemy model class for the target table.
-            Create (BaseModel): Pydantic model representing the expected fields.
-            db (Session): SQLAlchemy database session.
-            filters (list): List of functions to filter for existing entries.
-
-        Returns:
-            Session, dict: The updated database session and a map of identifiers.
-        """
-        fields = list(Create.model_fields)
-        columns = predictions.columns.tolist()
-        exists = [field for field in fields if field in columns]
-
-        id_map = {}
-        data_to_process = predictions[exists].drop_duplicates()
-
-        for _, row in data_to_process.iterrows():
-            # Build an object dictionary
-            obj_dict = row.to_dict()
-
-            # Construct filter query for checking existence
-            query = db.query(Model)
-            for filter_fn in filters:
-                query = query.filter(filter_fn(Model, obj_dict))
-
-            # Check if the entry exists
-            existing_entry = query.first()
-
-            if not existing_entry:
-                # Create a new entry if it doesn't exist
-                new_entry = Model(**obj_dict)
-                db.add(new_entry)
-                db.flush()
-                id_map[obj_dict["filename"]] = new_entry.id
-            else:
-                # Update existing entry if it exists
-                for key, value in obj_dict.items():
-                    setattr(existing_entry, key, value)
-                db.flush()
-                id_map[obj_dict["filename"]] = existing_entry.id
-
-        return db, id_map
-
-    audio_filters = [lambda Model, row: Model.filename == row["filename"]]
-    db, audio_id_map = normalize_and_upsert(predictions, Audio, AudioSchema, audio_filters)    
-
-    segment_id_map = {}
-    segment_data = predictions[["filename", "start time", "uncertainty", "energy"]]
-    for _,row in segment_data.iterrows():
-        existing_segment = db.query(Segment).filter(Segment.audio_id == audio_id_map[row["filename"]], Segment.start_time == row['start time']).first()
-        index = int(row["start time"]/3)
-        
-        if not existing_segment:
-            segment = Segment(
-                start_time=row["start time"],
-                filename=os.path.splitext(row["filename"])[0] + f"_{index}.wav",
-                duration=3,
-                uncertainty=row["uncertainty"],
-                energy=row["energy"],
-                date_processed=datetime.now(),
-                label=None,
-                notes=None,
-                audio_id=audio_id_map[row["filename"]],
-                embedding_id=1
-            )
-            db.add(segment)
-            db.flush()
-            segment_id_map[(row["filename"], row["start time"])] = segment.id
-        else: 
-            segment_id_map[(row["filename"], row["start time"])] = existing_segment.id
-
-    prediction_data = predictions[["filename", "scientific name", "confidence", "start time"]]
-    for _, row in prediction_data.iterrows():
-        existing_prediction = db.query(Predictions).filter(
-            Predictions.predicted_species == row["scientific name"],
-            Predictions.confidence == row["confidence"],
-            Predictions.segment_id == segment_id_map[(row["filename"], row["start time"])]
-            ).first()
-        
-        if not existing_prediction:
-            prediction = Predictions(
-                predicted_species=row["scientific name"],
-                confidence=row["confidence"],
-                segment_id=segment_id_map[(row["filename"], row["start time"])],  # Link to the segment
-            )
-            db.add(prediction)
-    try:
-        db.commit()
-    except:
-        db.rollback()
-    return {"status": "complete"} 
+async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
+    predictions = run(parameters, db)
+    status = normalise(predictions, db)
+    return status
 
 @app.get("/export/")
 def export(start_date: datetime | None = None, 
@@ -292,14 +212,15 @@ def confidence(num_queries:int=100, species: str | None = None, db:Session=Depen
 #     db.refresh(db_device)
 #     return db_device
 
-# @app.delete("/devices/{device_id}")
-# def delete_device(device_id: int, db: Session = Depends(get_db)):
-#     db_device = db.query(Device).filter(Device.id == device_id).first()
-#     if not db_device:
-#         raise HTTPException(status_code=404, detail="Device not found")
-#     db.delete(db_device)
-#     db.commit()
-#     return {"detail": "Device deleted successfully"}
+@app.delete("/devices/")
+def delete_device(db: Session = Depends(get_db)):
+    db_device = db.query(Device).all()
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    for device in db_device:
+        db.delete(device)
+        db.commit()
+    return {"detail": "Device deleted successfully"}
 
 ### Audio ###
 @app.post("/audio/", response_model=AudioSchema)
