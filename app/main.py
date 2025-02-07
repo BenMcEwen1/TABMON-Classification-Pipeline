@@ -66,30 +66,20 @@ async def species_list(db:Session=Depends(get_db)):
         all_species.append({"common_name": common_name, "scientific_name": scientific_name, "predicted": predicted})
     return all_species
 
-
-# @app.get("/devices", response_model=list[DeviceSchema])
-# async def devices(db:Session=Depends(get_db)):
-#     return db.query(Device).all()
-
-# @app.get("/audio", response_model=list[AudioSchema])
-# async def audio(db:Session=Depends(get_db)):
-#     return db.query(Audio).all()
-
-# @app.get("/segments", response_model=list[SegmentSchema])
-# async def segments(db:Session=Depends(get_db)):
-#     return db.query(Segment).all()
-
-# @app.get("/predictions", response_model=list[PredictionSchema])
-# async def predictions(db:Session=Depends(get_db)):
-#     return db.query(Predictions).all()
-
 @app.post("/analyse")
 async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
     predictions = run(parameters, db)
     # status = normalise(predictions, db)
     return status
 
-@app.get("/export/")
+@app.post("/retrieve/")
+def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
+    segments,_ = apply_filters_body(filters, db)
+    return segments
+
+
+
+@app.get("/export/", tags=["Sampling"])
 def export(start_date: datetime | None = None, 
            end_date: datetime | None = None, 
            country: str | None = None, 
@@ -136,38 +126,17 @@ def export(start_date: datetime | None = None,
     else:
         return HTTPException(status_code=204, detail="No files available")
 
-@app.patch("/add_filenames/", response_model=list[SegmentSchema])
-def add_filename(db:Session=Depends(get_db)):
-    segments = db.query(Segment).all()
-    for segment in segments:
-        audio = db.query(Audio).filter(Audio.id == segment.audio_id).first()
-        index = int(segment.start_time/3)
-        filename = audio.filename
-        segment.filename = os.path.splitext(filename)[0] + f"_{index}.wav"
-        flag_modified(segment, "filename")
-    db.commit()
-    return segments
-
-@app.patch("/device/", response_model=DeviceSchema)
-def add_device_name(device_id:int, device_info:DeviceSchema, db:Session=Depends(get_db)):
-    device = db.query(Device).filter(Device.id == device_id).first()
-    device.device_id = device_info.device_id
-    device.lat = device_info.lat
-    device.lng = device_info.lng
-    db.commit()
-    return device
-
-@app.get("/uncertain/")
+@app.get("/uncertain/", tags=["Sampling"])
 def uncertainty(num_queries:int = 100, db:Session=Depends(get_db)):
     segments =  db.query(Segment).order_by(Segment.uncertainty.desc()).limit(num_queries).all()
     return segmentsWithPredictions(segments, db)
 
-@app.get("/energy/")
+@app.get("/energy/", tags=["Sampling"])
 def energy(num_queries:int=100, db:Session=Depends(get_db)):
     segments = db.query(Segment).order_by(Segment.energy.desc()).limit(num_queries).all()
     return segmentsWithPredictions(segments, db)
 
-@app.get("/confidence/")
+@app.get("/confidence/", tags=["Sampling"])
 def confidence(num_queries:int=100, species: str | None = None, db:Session=Depends(get_db)):
     predictions = db.query(Predictions)
     
@@ -181,89 +150,44 @@ def confidence(num_queries:int=100, species: str | None = None, db:Session=Depen
     segments = [db.query(Segment).filter(Segment.id == segment_id).limit(num_queries).first()  for segment_id in segment_ids]
     return segmentsWithPredictions(segments, db)
 
-# ### Devices ###
-# @app.post("/devices/", response_model=DeviceSchema)
-# def create_device(device: DeviceSchema, db: Session = Depends(get_db)):
-#     new_device = Device(**device.dict())
-#     db.add(new_device) 
-#     db.commit()
-#     db.refresh(new_device)
-#     return new_device
 
-# @app.get("/devices/", response_model=list[DeviceSchema])
-# def read_devices(db: Session = Depends(get_db)):
-#     return db.query(Device).all()
 
-# @app.get("/devices/{device_id}", response_model=DeviceSchema)
-# def read_device(device_id: int, db: Session = Depends(get_db)):
-#     device = db.query(Device).filter(Device.id == device_id).first()
-#     if not device:
-#         raise HTTPException(status_code=404, detail="Device not found")
-#     return device
+@app.get("/devices", response_model=list[DeviceSchema], tags=["Devices"])
+async def devices(db:Session=Depends(get_db)):
+    return db.query(Device).all()
 
-# @app.put("/devices/{device_id}", response_model=DeviceSchema)
-# def update_device(device_id: int, device: DeviceSchema, db: Session = Depends(get_db)):
-#     db_device = db.query(Device).filter(Device.id == device_id).first()
-#     if not db_device:
-#         raise HTTPException(status_code=404, detail="Device not found")
-#     for key, value in device.dict().items():
-#         setattr(db_device, key, value)
-#     db.commit()
-#     db.refresh(db_device)
-#     return db_device
-
-@app.delete("/devices/")
-def delete_device(db: Session = Depends(get_db)):
-    db_device = db.query(Device).all()
-    if not db_device:
+@app.get("/devices/{device_id}", response_model=DeviceSchema, tags=["Devices"])
+def read_device(device_id: int, db: Session = Depends(get_db)):
+    device = db.query(Device).filter(Device.id == device_id).first()
+    if not device:
         raise HTTPException(status_code=404, detail="Device not found")
-    for device in db_device:
-        db.delete(device)
-        db.commit()
+    return device
+
+@app.patch("/device/", response_model=DeviceSchema, tags=["Devices"])
+def add_device_name(device_id:int, device_info:DeviceSchema, db:Session=Depends(get_db)):
+    device = db.query(Device).filter(Device.id == device_id).first()
+    device.device_id = device_info.device_id
+    device.lat = device_info.lat
+    device.lng = device_info.lng
+    db.commit()
+    return device
+
+@app.delete("/devices/{device_id}", tags=["Devices"])
+def delete_device(device_id:str, db: Session = Depends(get_db)):
+    device = db.query(Device).filter(Device.id == device_id).all()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    db.delete(device)
+    db.commit()
     return {"detail": "Device deleted successfully"}
 
-### Audio ###
-@app.post("/audio/", response_model=AudioSchema)
-def create_audio(audio: AudioSchema, db: Session = Depends(get_db)):
-    new_audio = Audio(**audio.dict())
-    db.add(new_audio)
-    db.commit()
-    db.refresh(new_audio)
-    return new_audio
 
-# @app.get("/audio/", response_model=list[AudioSchema])
-# def read_audio(db: Session = Depends(get_db)):
-#     return db.query(Audio).all()
 
-# @app.get("/audio/{audio_id}", response_model=AudioSchema)
-# def read_audio(audio_id: int, db: Session = Depends(get_db)):
-#     audio = db.query(Audio).filter(Audio.id == audio_id).first()
-#     if not audio:
-#         raise HTTPException(status_code=404, detail="Audio not found")
-#     return audio
+@app.get("/segments/", response_model=list[SegmentSchema], tags=["Segments"])
+def read_segment(db: Session = Depends(get_db)):
+    return db.query(Segment).all()
 
-# @app.put("/audio/{audio_id}", response_model=AudioSchema)
-# def update_audio(audio_id: int, audio: AudioSchema, db: Session = Depends(get_db)):
-#     db_audio = db.query(Audio).filter(Audio.id == audio_id).first()
-#     if not db_audio:
-#         raise HTTPException(status_code=404, detail="Audio not found")
-#     for key, value in audio.dict().items():
-#         setattr(db_audio, key, value)
-#     db.commit()
-#     db.refresh(db_audio)
-#     return db_audio
-
-# @app.delete("/audio/{audio_id}")
-# def delete_audio(audio_id: int, db: Session = Depends(get_db)):
-#     db_audio = db.query(Audio).filter(Audio.id == audio_id).first()
-#     if not db_audio:
-#         raise HTTPException(status_code=404, detail="Audio not found")
-#     db.delete(db_audio)
-#     db.commit()
-#     return {"detail": "Audio deleted successfully"}
-
-### Segments ###
-@app.post("/segments/", response_model=SegmentSchema)
+@app.post("/segments/", response_model=SegmentSchema, tags=["Segments"])
 def create_segment(segment: SegmentSchema, embedding: list[float], db: Session = Depends(get_db)):
     embedding = torch.tensor([embedding])
     index, id = add_embedding(embedding)
@@ -276,11 +200,7 @@ def create_segment(segment: SegmentSchema, embedding: list[float], db: Session =
     db.refresh(new_segment)
     return new_segment
 
-@app.get("/segments/", response_model=list[SegmentSchema])
-def read_segment(db: Session = Depends(get_db)):
-    return db.query(Segment).limit(100).all()
-
-@app.post("/label/{id}/", response_model=SegmentSchema)
+@app.post("/label/{id}/", response_model=SegmentSchema, tags=["Segments"])
 def add_label(id:int, label:dict, db:Session=Depends(get_db)):
     print(label)
     segment = db.query(Segment).filter(Segment.id == id).first()
@@ -289,81 +209,41 @@ def add_label(id:int, label:dict, db:Session=Depends(get_db)):
     db.commit()
     return segment
 
-# @app.get("/segments/{segment_id}", response_model=SegmentSchema)
-# def read_segment(segment_id: int, db:Session=Depends(get_db)):
-#     segment = db.query(Segment).filter(Segment.id == segment_id).first()
-#     return segment
-
-@app.post("/retrieve/")
-def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
-    segments,_ = apply_filters_body(filters, db)
-    return segments
-
-@app.get("/segments/audio/{filename}", response_class=FileResponse)
-def get_segments(filename:str):
+@app.get("/segments/audio/{filename}", response_class=FileResponse, tags=["Segments"], )
+def get_audio_segment(filename:str):
     path = f"./audio/segments/{filename}"
     filename = f"{filename}"
     return FileResponse(path=path, filename=filename, media_type="audio/mpeg")
 
 
-    # return {"status": "complete"}
 
-# @app.put("/segments/{segment_id}", response_model=SegmentSchema)
-# def update_segment(segment_id:int, segment:SegmentSchema, db:Session=Depends(get_db)):
-#     db_segment = db.query(Segment).filter(Segment.id == segment_id).first()
-#     if not db_segment:
-#         raise HTTPException(status_code=404, detail="Segment not found")
-#     for key, value in segment.dict().items():
-#         setattr(db_segment, key, value)
-#     db.commit()
-#     db.refresh(db_segment)
-#     return db_segment
-
-# @app.delete("/segments/{segment_id}")
-# def delete_segment(segment_id: int, db: Session = Depends(get_db)):
-#     db_segment = db.query(Segment).filter(Segment.id == segment_id).first()
-#     if not db_segment:
-#         raise HTTPException(status_code=404, detail="Segment not found")
-#     db.delete(db_segment)
-#     db.commit()
-#     return {"detail": "Segment deleted successfully"}
-
-### Predictions ###
-# @app.post("/predictions/", response_model=PredictionSchema)
-# def create_prediction(prediction: PredictionSchema, db: Session = Depends(get_db)):
-#     new_prediction = Predictions(**prediction.dict())
-#     db.add(new_prediction)
-#     db.commit()
-#     db.refresh(new_prediction)
-#     return new_prediction
-
-@app.get("/predictions/", response_model=list[PredictionSchema])
+@app.get("/predictions/", response_model=list[PredictionSchema], tags=["Predictions"])
 def read_prediction(db:Session=Depends(get_db)):
     return db.query(Predictions).all()
 
-@app.get("/predictions/{segment_id}", response_model=list[PredictionSchema])
+@app.get("/predictions/{segment_id}", response_model=list[PredictionSchema], tags=["Predictions"])
 def read_prediction(segment_id: int, db: Session = Depends(get_db)):
     prediction = db.query(Predictions).filter(Predictions.segment_id == segment_id).all()
     if not prediction:
         raise HTTPException(status_code=404, detail="Prediction not found")
     return prediction
 
-# @app.put("/predictions/{prediction_id}", response_model=PredictionSchema)
-# def update_prediction(prediction_id: int, prediction: PredictionSchema, db: Session = Depends(get_db)):
-#     db_prediction = db.query(Predictions).filter(Predictions.id == prediction_id).first()
-#     if not db_prediction:
-#         raise HTTPException(status_code=404, detail="Prediction not found")
-#     for key, value in prediction.dict().items():
-#         setattr(db_prediction, key, value)
-#     db.commit()
-#     db.refresh(db_prediction)
-#     return db_prediction
+@app.put("/predictions/{prediction_id}", response_model=PredictionSchema, tags=["Predictions"])
+def update_prediction(prediction_id: int, prediction: PredictionSchema, db: Session = Depends(get_db)):
+    db_prediction = db.query(Predictions).filter(Predictions.id == prediction_id).first()
+    if not db_prediction:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+    for key, value in prediction.dict().items():
+        setattr(db_prediction, key, value)
+    db.commit()
+    db.refresh(db_prediction)
+    return db_prediction
 
-# @app.delete("/predictions/{prediction_id}")
-# def delete_prediction(prediction_id: int, db: Session = Depends(get_db)):
-#     db_prediction = db.query(Predictions).filter(Predictions.id == prediction_id).first()
-#     if not db_prediction:
-#         raise HTTPException(status_code=404, detail="Prediction not found")
-#     db.delete(db_prediction)
-#     db.commit()
-#     return {"detail": "Prediction deleted successfully"}
+@app.delete("/predictions/{prediction_id}", tags=["Predictions"])
+def delete_prediction(prediction_id: int, db: Session = Depends(get_db)):
+    db_prediction = db.query(Predictions).filter(Predictions.id == prediction_id).first()
+    if not db_prediction:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+    db.delete(db_prediction)
+    db.commit()
+    return {"detail": "Prediction deleted successfully"}

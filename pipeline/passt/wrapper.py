@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import os
 
 
 class PasstBasicWrapper(nn.Module):
@@ -29,7 +30,7 @@ class PasstBasicWrapper(nn.Module):
         self.scene_embedding_size = scene_embedding_size
         self.timestamp_embedding_size = timestamp_embedding_size
         self.mode = mode
-        self.species_list = "./inputs/list_AvesEcho.csv"
+        self.species_list = "./pipeline/inputs/list_AvesEcho.csv"
 
     def device(self):
         return self.device_proxy.device

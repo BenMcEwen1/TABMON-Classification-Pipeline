@@ -28,10 +28,8 @@ def run(args, db=None):
     args = PipelineSchema(**vars(args)) # Additional validation
     predictions = run_algorithm(args)
     if db:
-        print("Endpoint")
         status = normalise(predictions, db)
     else:
-        print("Directory")
         db = SessionLocal()
         status = normalise(predictions, db)
         db.close()

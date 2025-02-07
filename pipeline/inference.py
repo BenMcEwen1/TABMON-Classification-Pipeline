@@ -112,6 +112,7 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
     return predictions
 
 def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0, filter_list:list=None):
+    print(species_list)
     species_name = load_species_list(species_list)
 
     if filter_list:

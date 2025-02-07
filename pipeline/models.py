@@ -264,11 +264,11 @@ class AvesEcho:
                         audio_file_path = os.path.join(temporary_directory, filename)
                         with open(audio_file_path, "wb") as output_file:
                             output_file.write(audio_file.read())
-                    try:
-                        pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
-                    except Exception as e:
-                        print(f"An error occurred: {e}")
-                        pass
+                    # try:
+                    pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
+                    # except Exception as e:
+                    #     print(f"An error occurred: {e}")
+                        # pass
             return pred, 200
 
     def analyze_audio_file(self, audio_file_path: str, filename:str, filtering_list: list[str], predictions: dict):
