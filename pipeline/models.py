@@ -135,7 +135,7 @@ class AvesEcho:
         self.args = args 
         self.algorithm_mode = AlgorithmMode("directories")
 
-        print(f"Running AvesEcho-v1 in {self.algorithm_mode.value} mode, model: {self.model_name}, device: {device}.")
+        print(f"Running TABMON-v1 in {self.algorithm_mode.value} mode, model: {self.model_name}, device: {device}.")
 
         # Load the model
         if self.model_name == 'passt':
@@ -310,9 +310,14 @@ class AvesEcho:
             segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.wav"
             
             path = os.path.join(self.outputd, segment_filename)
-            if os.path.exists(path):
-                shutil.copy2(path, segment_dir)
-
+            print(f"Attempting to transfer {path}")
+            try:
+                if os.path.exists(path):
+                    print("File exists")
+                    shutil.copy2(path, segment_dir)
+                print("transfer didn't fail")
+            except Exception as e:
+                print(f"Error copying {path} to {segment_dir}: {e}")
         try:
             shutil.rmtree(self.outputd)
         except:

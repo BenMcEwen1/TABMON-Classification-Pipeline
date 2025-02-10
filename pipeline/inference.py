@@ -22,7 +22,6 @@ def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
         uncertainty.append(normalized_entropy.item())
     return uncertainty
 
-
 def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
     """
     Calculate the standard deviation of the output probabilities as a measure of uncertainty.
@@ -112,7 +111,6 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
     return predictions
 
 def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0, filter_list:list=None):
-    print(species_list)
     species_name = load_species_list(species_list)
 
     if filter_list:

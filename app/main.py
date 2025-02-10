@@ -70,7 +70,7 @@ async def species_list(db:Session=Depends(get_db)):
 async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
     predictions = run(parameters, db)
     # status = normalise(predictions, db)
-    return status
+    return predictions
 
 @app.post("/retrieve/")
 def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):

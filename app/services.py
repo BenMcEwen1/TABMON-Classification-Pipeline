@@ -122,7 +122,7 @@ def apply_filters_body(parameters, db):
     if parameters.annotated:
         filters.append(Segment.label != None)
     if parameters.predicted_species:
-        filters.append(Predictions.predicted_species == parameters.predicted_species)
+        filters.append(Predictions.predicted_species in parameters.predicted_species)
 
     # Apply filters if any
     if filters:

@@ -61,7 +61,7 @@ class RetrievalSchema(BaseModel):
     country: Optional[str] = Field(None, example=None) 
     device_id: Optional[int] = None
     confidence: Optional[float] = None
-    predicted_species: Optional[str] = None
+    predicted_species: Optional[list[str]] = None
     uncertainty: Optional[float] = None
     energy: Optional[float] = None
     annotated: Optional[bool] = None
