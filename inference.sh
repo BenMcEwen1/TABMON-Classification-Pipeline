@@ -8,4 +8,4 @@
 
 source activate avesecho
 
-python pipeline.analyze --i "../audio/< DATA DIRECTORY >/" --model_name 'birdnet' --device_id '< id >'
+python -m pipeline.analyze --i "../audio/< DATA DIRECTORY >/" --model_name 'birdnet' --device_id '< id >'

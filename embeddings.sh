@@ -8,4 +8,4 @@
 
 source activate avesecho
 
-python pipeline.embeddings --i '../audio/sound-of-norway/' --model_name 'birdnet' --regenerate True
+python -m pipeline.embeddings --i '../audio/sound-of-norway/' --model_name 'birdnet' --regenerate True

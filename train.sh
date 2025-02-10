@@ -8,4 +8,4 @@
 
 source activate avesecho
 
-python pipeline.training
+python -m pipeline.training
