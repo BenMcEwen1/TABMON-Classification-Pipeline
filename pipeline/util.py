@@ -280,7 +280,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     with Pool(processes=n_processes) as pool:
         args_list = []
         for s_cnt, chunk in enumerate(sig_splits):
-            save_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(filepath))[0]}_{s_cnt}.wav")
+            save_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(filepath))[0].lower()}_{s_cnt}.wav")
             args_list.append((chunk, save_path, rate))
 
         # Save each chunk in parallel
