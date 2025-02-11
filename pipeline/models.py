@@ -315,13 +315,15 @@ class AvesEcho:
                 if os.path.exists(path):
                     print("File exists")
                     shutil.copy2(path, segment_dir)
-                print("transfer didn't fail")
+                    print("transfer didn't fail")
             except Exception as e:
                 print(f"Error copying {path} to {segment_dir}: {e}")
         try:
             shutil.rmtree(self.outputd)
         except:
             pass
+
+        print(pred)
 
         return pred
 
