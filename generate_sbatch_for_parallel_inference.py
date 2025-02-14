@@ -11,7 +11,7 @@ N_JOBS = 7  # Number of parallel jobs
 SUBSAMPLE_FACTOR = 100 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 random.seed(10)
 
-DATASET_PATH = "/DYNI/tabmon/tabmon/proj_tabmon_NINA" 
+DATASET_PATH = "audio/test_bugg" 
 SBATCH_OUTPUT_FILE = "parallel_inference.sbatch"
 PYTHON_SCRIPT = "inference_parallel.py" 
 CHUNK_FILES_FOLDER = "chunk_files"
@@ -59,7 +59,6 @@ for bugg in bugg_folders:
         for file in recording_files:
             data = [DATASET_PATH, bugg, conf, file, country, site_name, float(lat), float(long) ]
             files_data.append(data)
-
 
 
 # === SPLIT FILES INTO CHUNKS ===
