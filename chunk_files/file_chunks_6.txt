@@ -1,0 +1,1 @@
+['audio/test_bugg/', 'bugg_RPiID-10000000cc849698', 'conf_6f40914', '2024-05-16T09_05_31.340Z.mp3', 'Norway', 'site_name', 59.308576, 4.880927]

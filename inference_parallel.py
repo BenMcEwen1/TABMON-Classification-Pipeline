@@ -4,8 +4,19 @@ import os
 import time
 import ast
 import psutil
+from pipeline.analyze import run
+from types import SimpleNamespace
+import numpy as np
 
 RESULT_FILES_FOLDER = "result_files"
+
+def get_device_ID(bugg_folder_name):
+    """Get device ID (last digits afters 0000000) from the bugg folder name."""
+    indices = [i for i, char in enumerate(bugg_folder_name) if char == '0']
+    indices = np.array(indices)
+    change_indices = np.append(np.diff(indices)-1, 1)
+    last_zero_index = np.where(change_indices != 0)[0][0]
+    return bugg_folder_name[indices[last_zero_index]+1:]
 
 # Function to get current memory usage of the Python process
 def get_memory_usage():
@@ -23,10 +34,9 @@ def print_time_information(time_start, i, number_of_files):
 
     print(f"Processed {i+1}/{number_of_files} files in {elapsed_time/60:.1f} min, {sec_per_file:.1f} sec per file, {remaining_time:.1f} min remaining, Memory used: {get_memory_usage() / (1024 * 1024):.0f} MB", flush=True )
 
-
-
 if __name__ == "__main__":
     time_start = time.time()
+    i = 0
 
     chunk_file = sys.argv[1] 
     job_id = chunk_file.split('_')[-1].split('.')[0] #job identifier based on the chunk name
@@ -60,17 +70,34 @@ if __name__ == "__main__":
                     lat = parts[6]
                     long = parts[7]
 
+                    args = {
+                            "slist": 'pipeline/inputs/list_sp_ml.csv',
+                            "flist": None,
+                            "i": os.path.join(dataset_path, bugg, conf, file),
+                            "device_id": get_device_ID(bugg),
+                            "country": country,
+                            "lat": lat,
+                            "lng": long,
+                            "model_name": 'birdnet',
+                            "model_checkpoint": None,
+                            "date_updated": None,
+                            "date_deployed": None
+                    }
+
+                    args = SimpleNamespace(**args)
+                    print(args)
+                    run(args)
+
+                    # Process the file with the passed parameters
+                    # something like analyze_file(dataset_path, bugg, conf, file, country, lat, long, job_id)
+                    # run(dataset_path, bugg, conf, file, country, lat, long, job_id)
+
                 except Exception as e:
                     print(f"Error parsing line: {line}")
                     print(f"Error: {e}")
 
-            # Process the file with the passed parameters
-            # something like analyze_file(dataset_path, bugg, conf, file, country, lat, long, job_id)
-
-
-            if i % 100 == 0:
+            if (number_of_files != 0) and (i % 100 == 0):
                 print_time_information(time_start, i, number_of_files)
-
 
     print("End processing")
     print_time_information(time_start, i, number_of_files)

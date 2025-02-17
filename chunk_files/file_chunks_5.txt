@@ -1,0 +1,3 @@
+['audio/test_bugg/', 'bugg_RPiID-10000000cc849698', 'conf_6f40914', '2024-05-16T09_25_40.942Z.mp3', 'Norway', 'site_name', 59.308576, 4.880927]
+['audio/test_bugg/', 'bugg_RPiID-10000000cc849698', 'conf_6f40914', '2024-05-16T09_00_28.938Z.mp3', 'Norway', 'site_name', 59.308576, 4.880927]
+['audio/test_bugg/', 'bugg_RPiID-10000000cc849698', 'conf_6f40914', '2024-05-16T10_00_57.753Z.mp3', 'Norway', 'site_name', 59.308576, 4.880927]

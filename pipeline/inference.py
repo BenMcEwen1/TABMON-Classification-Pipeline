@@ -155,7 +155,10 @@ def k_predictions(confidence_batch, filename, species_list, predictions:dict={},
     with open(f'{current_dir}/outputs/predictions.json', 'w', encoding ='utf8') as json_file:
         json.dump(predictions, json_file, indent=4)
 
-    predictions = convert_ranked_to_tabular(predictions)
+    if len(results) > 0:
+        predictions = convert_ranked_to_tabular(predictions)
+    else: 
+        predictions = pd.DataFrame(columns=["filename","start time","uncertainty","energy","rank","confidence","scientific name","common name","device_id","lat","lng","datetime","model","model_checkpoint"])
     return predictions
 
 
@@ -239,7 +242,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, f
 
     if save:
         # pred = prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
-        pred = k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.1, filter_list=filter_list)
+        pred = k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.0, filter_list=filter_list)
     return emb, pred
 
 

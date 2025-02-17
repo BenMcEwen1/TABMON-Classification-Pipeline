@@ -8,10 +8,10 @@ import random
 # === CONFIGURATION ===
 N_JOBS = 7  # Number of parallel jobs
 
-SUBSAMPLE_FACTOR = 100 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
+SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 random.seed(10)
 
-DATASET_PATH = "audio/test_bugg" 
+DATASET_PATH = "audio/test_bugg/" 
 SBATCH_OUTPUT_FILE = "parallel_inference.sbatch"
 PYTHON_SCRIPT = "inference_parallel.py" 
 CHUNK_FILES_FOLDER = "chunk_files"
@@ -19,6 +19,8 @@ RESULT_FILES_FOLDER = "result_files"
 
 META_DATA_PATH = "Bugg deployment form.csv"
 META_DATA_DF = pd.read_csv(os.path.join(DATASET_PATH, META_DATA_PATH) , encoding='utf-8')
+
+print(META_DATA_DF)
 
 
 def get_device_ID(bugg_folder_name):
@@ -30,8 +32,12 @@ def get_device_ID(bugg_folder_name):
     return bugg_folder_name[indices[last_zero_index]+1:]
 
 
+# print(os.path.isdir(os.path.join(DATASET_PATH)))
+# print(f for f in os.listdir(DATASET_PATH))
+
 ## get the list of bugg_folders
 bugg_folders = [f for f in os.listdir(DATASET_PATH) if os.path.isdir(os.path.join(DATASET_PATH, f))]
+print(bugg_folders)
 
 files_data = []
 ## loop over bugg folders
@@ -51,13 +57,17 @@ for bugg in bugg_folders:
     ## loop over conf folders (if in the future there is more than one conf file per bugg)
     for conf in conf_folders:
         recording_files = [f for f in os.listdir(os.path.join(DATASET_PATH, bugg, conf)) if f.endswith(".mp3")]
+        print(recording_files)
 
         #Subsample the list, for testing
         sample_size = int(len(recording_files)/SUBSAMPLE_FACTOR)
         recording_files = random.sample(recording_files, sample_size)
 
+        print(recording_files)
+
         for file in recording_files:
             data = [DATASET_PATH, bugg, conf, file, country, site_name, float(lat), float(long) ]
+            print(data)
             files_data.append(data)
 
 
