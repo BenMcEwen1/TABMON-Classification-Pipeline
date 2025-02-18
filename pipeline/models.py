@@ -316,10 +316,10 @@ class AvesEcho:
                     shutil.copy2(path, segment_dir)
             except Exception as e:
                 print(f"Error copying {path} to {segment_dir}: {e}")
-        try:
-            shutil.rmtree(self.outputd)
-        except:
-            pass
+        # try:
+        #     shutil.rmtree(self.outputd)
+        # except:
+        #     pass
         return pred
 
  

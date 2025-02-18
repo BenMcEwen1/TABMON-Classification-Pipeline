@@ -26,7 +26,6 @@ def get_memory_usage():
 
 
 def print_time_information(time_start, i, number_of_files):
-
     elapsed_time = (time.time() - time_start)
     sec_per_file = elapsed_time/(i+1)
     number_of_remaining_files = number_of_files - i
@@ -85,12 +84,7 @@ if __name__ == "__main__":
                     }
 
                     args = SimpleNamespace(**args)
-                    print(args)
                     run(args)
-
-                    # Process the file with the passed parameters
-                    # something like analyze_file(dataset_path, bugg, conf, file, country, lat, long, job_id)
-                    # run(dataset_path, bugg, conf, file, country, lat, long, job_id)
 
                 except Exception as e:
                     print(f"Error parsing line: {line}")

@@ -1,6 +1,9 @@
 from pipeline.config import *
 from pipeline.util import *
 
+import maad.features
+import maad.sound
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
@@ -110,7 +113,7 @@ def prediction(confidence_batch, filename, species_list, predictions:dict={}, le
     predictions = convert_to_tabular(predictions)
     return predictions
 
-def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=3, length:int=3, threshold:float=0.0, filter_list:list=None):
+def k_predictions(confidence_batch, energy_scores, filename, species_list, predictions:dict={}, k:int=3, length:int=3, confidence_threshold:float=0.0, energy_metric:str="ROItotal", energy_threshold:float=0.0, filter_list:list=None):
     species_name = load_species_list(species_list)
 
     if filter_list:
@@ -128,7 +131,8 @@ def k_predictions(confidence_batch, filename, species_list, predictions:dict={},
     for i, confidence in enumerate(confidence_batch):
         # Append top k predictions per segment
         top_scores, top_indices = torch.topk(confidence, k=k)
-        if max(top_scores) > threshold:
+        energy_score = energy_scores[i]
+        if max(top_scores) > confidence_threshold and energy_score[energy_metric] >= energy_threshold:
             pred = []
             for rank, index in enumerate(top_indices):
                 scientific_name, common_name = species_name[index].split(',')
@@ -143,7 +147,7 @@ def k_predictions(confidence_batch, filename, species_list, predictions:dict={},
             results.append({
                 "start time": length*i,
                 "uncertainty": uncertainty[i],
-                "energy": None,
+                "energy": energy_score,
                 "predictions": pred
             })
 
@@ -210,7 +214,15 @@ def convert_ranked_to_tabular(predictions):
     df.to_csv(f"{current_dir}/outputs/top_k_predictions.csv", index=False)
     return df
 
-def inference(model, data_loader, device, predictions:dict={}, save:bool=True, filter_list:list=None):
+def energy_metrics(audio_batch, sr):
+    energy_scores = []
+    for audio in audio_batch:
+        Sxx_power,tn,fn,ext = maad.sound.spectrogram(audio, sr.item())  
+        df_indices,_ = maad.features.all_spectral_alpha_indices(Sxx_power,tn,fn,extent=ext)
+        energy_scores.append(df_indices.to_dict(orient="index")[0])
+    return energy_scores
+
+def inference(model, data_loader, device, predictions:dict={}, save:bool=True, energy:bool=True, filter_list:list=None):
     '''
     Perform inference on data in directory, outputs prediction results in .json and .csv formats
     Model details:
@@ -228,7 +240,8 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, f
     species_list = model.species_list
 
     for i, inputs in enumerate(data_loader):
-        images = inputs['inputs'].to(device)
+        audio = inputs['inputs'].to(device)
+        sr = inputs['sr'][0]
         emb = inputs['emb'].to(device) # Same for both 'birdnet - v2.4' and 'fc - v2.2'
         filename = inputs['file'][0]
 
@@ -236,13 +249,23 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, f
             logits = inputs['logits'].to(device)
             confidence_scores = model(logits)
         else:
-            outputs = model(images, emb) # PaSST only require spectrogram (image), emb is empty
+            outputs = model(audio, emb) # PaSST only require spectrogram (audio), emb is empty
             emb = outputs["emb"]
             confidence_scores = F.sigmoid(outputs['logits'])
 
+    if energy:
+        energy_scores = energy_metrics(audio, sr)
+
     if save:
-        # pred = prediction(confidence_scores, filename, species_list, predictions, threshold=0.1)
-        pred = k_predictions(confidence_scores, filename, species_list, predictions, threshold=0.0, filter_list=filter_list)
+        pred = k_predictions(confidence_scores, 
+                             energy_scores, 
+                             filename, 
+                             species_list, 
+                             predictions, 
+                             confidence_threshold=0.2, 
+                             energy_metric="ROItotal", 
+                             energy_threshold=0.0, 
+                             filter_list=filter_list)
     return emb, pred
 
 

@@ -63,6 +63,7 @@ class RetrievalSchema(BaseModel):
     confidence: Optional[float] = None
     predicted_species: Optional[list[str]] = None
     uncertainty: Optional[float] = None
+    indice: Optional[str] = None
     energy: Optional[float] = None
     annotated: Optional[bool] = None
     embeddings: Optional[bool] = None
@@ -79,10 +80,11 @@ class RetrievalSchema(BaseModel):
                     "confidence": None,
                     "predicted_species": None,
                     "uncertainty": None,
+                    "indice": None,
                     "energy": None,
                     "annotated": None,
                     "embeddings": False,
-                    "query_limit": 10
+                    "query_limit": 100
                 }
             ]
         }

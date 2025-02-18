@@ -27,7 +27,6 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 def run(args, db=None):
     args = PipelineSchema(**vars(args)) # Additional validation
     predictions = run_algorithm(args)
-    print(predictions)
     if db:
         status = normalise(predictions, db)
     else:
