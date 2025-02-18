@@ -68,4 +68,4 @@ class InferenceDataset(torch.utils.data.Dataset):
                 print("BirdNET embedding failed")
                 birdnet_embedding = np.zeros(1024, dtype=np.float32)
        
-        return {'inputs': x, 'emb': birdnet_embedding, 'file': self.filename, 'logits': logits} 
+        return {'inputs': x, 'sr': rate, 'emb': birdnet_embedding, 'file': self.filename, 'logits': logits} 

@@ -3,7 +3,7 @@ import faiss
 import os
 from app.database import SessionLocal, Device, Audio, Segment, Predictions
 from types import SimpleNamespace
-from sqlalchemy import and_
+from sqlalchemy import and_, cast, JSON
 import pandas as pd
 from datetime import datetime
 
@@ -113,8 +113,9 @@ def apply_filters_body(parameters, db):
         filters.append(Audio.date_recorded >= parameters.start_date)
     if parameters.end_date:
         filters.append(Audio.date_recorded <= parameters.end_date)
-    if parameters.energy is not None:
-        filters.append(Segment.energy >= parameters.energy)
+    if parameters.energy is not None and parameters.indice is not None:
+        indice = parameters.indice
+        filters.append(cast(Segment.energy[indice], JSON) >= parameters.energy)
     if parameters.uncertainty is not None:
         filters.append(Segment.uncertainty >= parameters.uncertainty)
     if parameters.confidence is not None:
@@ -149,8 +150,9 @@ def apply_filters(filters):
         filters.append(Audio.date_recorded >= parameters.start_date)
     if parameters.end_date:
         filters.append(Audio.date_recorded <= parameters.end_date)
-    if parameters.energy is not None:
-        filters.append(Segment.energy >= parameters.energy)
+    if parameters.energy is not None and parameters.indice is not None:
+        indice = parameters.indice
+        filters.append(cast(Segment.energy[indice], JSON) >= parameters.energy)
     if parameters.uncertainty is not None:
         filters.append(Segment.uncertainty >= parameters.uncertainty)
     if parameters.confidence is not None:

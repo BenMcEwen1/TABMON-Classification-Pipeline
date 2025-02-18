@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Float, JSON,  DateTime, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -12,7 +12,6 @@ DATABASE_URL = f"sqlite:///{current_dir}/database.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-
 
 # Device 
 class Device(Base):
@@ -51,7 +50,7 @@ class Segment(Base):
     start_time = Column(Float)
     duration = Column(Float)
     uncertainty = Column(Float)
-    energy = Column(Float)
+    energy = Column(JSON)
     date_processed = Column(DateTime)
     embedding_id = Column(Integer, index=True)
 

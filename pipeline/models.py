@@ -291,6 +291,7 @@ class AvesEcho:
 
         audio_path = "./audio/"
         embeddings, pred = inference(self.model, inference_generator, device, predictions, filter_list=filtering_list)
+
         embedding_dir = os.path.join(os.path.dirname(audio_path), "embeddings/")
         embedding_filename = os.path.splitext(filename)[0].lower() + ".pt"
         if not os.path.exists(embedding_dir):
@@ -310,21 +311,15 @@ class AvesEcho:
             segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.wav"
             
             path = os.path.join(self.outputd, segment_filename)
-            print(f"Attempting to transfer {path}")
             try:
                 if os.path.exists(path):
-                    print("File exists")
                     shutil.copy2(path, segment_dir)
-                    print("transfer didn't fail")
             except Exception as e:
                 print(f"Error copying {path} to {segment_dir}: {e}")
         try:
             shutil.rmtree(self.outputd)
         except:
             pass
-
-        print(pred)
-
         return pred
 
  
