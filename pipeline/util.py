@@ -246,10 +246,27 @@ def generate_sampling_weights(labels, list_IDs):
 
 
 def save_chunk(args):
-    #Function to save a single chunk of audio data to a file.
+    # Saves a single chunk of audio data to a file.
     chunk, save_path, rate = args
-    sf.write(save_path, chunk, rate)
+    sf.write(save_path, chunk, rate, subtype='PCM_16')
 
+from concurrent.futures import ThreadPoolExecutor
+import maad.features
+import maad.sound
+import maad.util
+
+def ROIfilter(audio, sr, signal_length):
+    if len(audio) == int(signal_length*sr):
+        Sxx_power,tn,fn,_ = maad.sound.spectrogram(audio,sr)
+        Sxx = maad.sound.median_equalizer(Sxx_power) 
+        Sxx_dB = maad.util.power2dB(Sxx)
+        roi_total,_ = maad.features.region_of_interest_index(Sxx_dB,tn,fn)
+        if roi_total > 0:
+            return True
+        else:
+            return False
+    else:
+        return False
 
 def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     """
@@ -261,30 +278,51 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     - signal_length: Length of each audio chunk in seconds.
     - n_processes: Number of processes to use in multiprocessing. If None, the number will be determined automatically.
     """
+
+    start_time = time.time() 
     os.makedirs(output_dir, exist_ok=True)
     # Configure logging
     logging.basicConfig(filename=f'{current_dir}/outputs/audio_errors.log', level=logging.ERROR, # NOTE: Changed
                     format='%(asctime)s:%(levelname)s:%(message)s')
+    print(f"[split_signal] {(time.time() - start_time):.2f}s to mkdir")
+
+    start_time = time.time()
     try:
-        sig, rate = librosa.load(filepath, sr=SAMPLE_RATE, offset=0.0, duration=None, res_type='kaiser_fast')
+        sig, rate = librosa.load(filepath, sr=SAMPLE_RATE, res_type='kaiser_fast')
         if len(sig) < (signal_length * SAMPLE_RATE):
             raise Exception(f"Audio {filepath} is too short (min. length 3 seconds)")
     except Exception as error:
         logging.error(error)
         raise Exception(error)
+    print(f"[split_signal] {(time.time() - start_time):.2f}s to resample")
 
-    # Split signal into chunks
+    # Testing with ROI removal - 
+    # Issues - Using sig from librosa results in 2000+ rois when there is nothing
+    #        - maad only works with .wav by files are .mp3. Converting to .wav still results in 50+ rois when there is nothing
+    # s, fs = maad.sound.load("audio/2024-05-07t12_00_57.834z.wav")
+    # Sxx_power,tn,fn,_ = maad.sound.spectrogram(s,fs)
+    # Sxx_noNoise= maad.sound.median_equalizer(Sxx_power) 
+    # Sxx_dB_noNoise = maad.util.power2dB(Sxx_noNoise)
+    # ROItotal, ROIcover = maad.features.region_of_interest_index(Sxx_dB_noNoise, tn, fn)
+    # print(ROItotal)
+    # if ROItotal == 0:
+    #     return None
+
+    start_time = time.time()
+    # sig_splits = [sig[i:i + int(signal_length * rate)] for i in range(0, len(sig), int(signal_length * rate)) if ROIfilter(sig[i:i + int(signal_length * rate)], SAMPLE_RATE, signal_length)]
     sig_splits = [sig[i:i + int(signal_length * rate)] for i in range(0, len(sig), int(signal_length * rate)) if len(sig[i:i + int(signal_length * rate)]) == int(signal_length * rate)]
+    print(f"[split_signal] {(time.time() - start_time):.2f}s to split audio chunks")
 
     # Prepare multiprocessing
-    with Pool(processes=n_processes) as pool:
+    start_time = time.time()
+    with ThreadPoolExecutor(max_workers=None) as executor:
         args_list = []
         for s_cnt, chunk in enumerate(sig_splits):
             save_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(filepath))[0].lower()}_{s_cnt}.wav")
             args_list.append((chunk, save_path, rate))
 
-        # Save each chunk in parallel
-        pool.map(save_chunk, args_list)
+        executor.map(save_chunk, args_list)
+    print(f"[split_signal] {(time.time() - start_time):.2f}s to save audio chunks")
 
 
 """ def split_signals(filepath, output_dir, signal_length=15):

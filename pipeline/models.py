@@ -105,8 +105,9 @@ class birdnet(nn.Module):
 
 def run_algorithm(args):
     global classifier
-
+    start_time = time.time()
     classifier = AvesEcho(args=args)
+    print(f"{(time.time() - start_time):.2f}s initialise model")
 
     results = classifier.analyze(audio_input=args.i, lat=args.lat, lng=args.lng)
     return results
@@ -157,66 +158,67 @@ class AvesEcho:
             results = self.analyze_directories(audio_input, lat, lng)
         return results
 
-    def generate_embeddings(self, audio_path: str, regenerate: bool, save: bool):
-        def emb(audio_file_path, filename):
-            # Load soundfile and split signal into 3s chunks
-            self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=10)
+    # def generate_embeddings(self, audio_path: str, regenerate: bool, save: bool):
+    #     def emb(audio_file_path, filename):
+    #         # Load soundfile and split signal into 3s chunks
+    #         self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=10)
 
-            # Load a list of files for in a dir
-            inference_dir = self.outputd
-            inference_data = [
-                os.path.join(inference_dir, f)
-                for f in sorted(os.listdir(inference_dir), key=lambda x: int(x.split('_')[-1].split('.')[0]))]
+    #         # Load a list of files for in a dir
+    #         inference_dir = self.outputd
+    #         inference_data = [
+    #             os.path.join(inference_dir, f)
+    #             for f in sorted(os.listdir(inference_dir), key=lambda x: int(x.split('_')[-1].split('.')[0]))]
 
-            # Inference
-            inference_set = InferenceDataset(inference_data, filename, model=self.model_name)
-            params_inf = {'batch_size': 124, 'shuffle': False}
-            inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
-            embeddings,_ = inference(self.model, inference_generator, device, save=False)
-            return embeddings
+    #         # Inference
+    #         inference_set = InferenceDataset(inference_data, filename, model=self.model_name)
+    #         params_inf = {'batch_size': 124, 'shuffle': False}
+    #         inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
+    #         embeddings,_ = inference(self.model, inference_generator, device, save=False)
+    #         return embeddings
         
-        # Get File list
-        if os.path.isfile(audio_path):
-            audio_files = [audio_path]
-        else:
-            audio_files = []
-            for path, _, files in os.walk(audio_path):
-                file_path = [os.path.join(path, filename) for filename in files
-                             if not self.ignore_filesystem_object(audio_path, filename)]
-                audio_files += file_path
-        supported_file_extensions = ['.wav', '.mp3', '.ogg', '.flac']
+    #     # Get File list
+    #     if os.path.isfile(audio_path):
+    #         audio_files = [audio_path]
+    #     else:
+    #         audio_files = []
+    #         for path, _, files in os.walk(audio_path):
+    #             file_path = [os.path.join(path, filename) for filename in files
+    #                          if not self.ignore_filesystem_object(audio_path, filename)]
+    #             audio_files += file_path
+    #     supported_file_extensions = ['.wav', '.mp3', '.ogg', '.flac']
 
-        # Iterate through each audio file
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            print(f"Generating embeddings for {len(audio_files)} files.")
-            for audio_file in tqdm(audio_files, leave=True, dynamic_ncols=True):
-                filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
-                file_extension = os.path.splitext(filename)[1].lower()
+    #     # Iterate through each audio file
+    #     with tempfile.TemporaryDirectory() as temporary_directory:
+    #         print(f"Generating embeddings for {len(audio_files)} files.")
+    #         for audio_file in tqdm(audio_files, leave=True, dynamic_ncols=True):
+    #             filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
+    #             file_extension = os.path.splitext(filename)[1].lower()
 
-                if file_extension in supported_file_extensions:
-                    if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
-                        audio_file_path = audio_file
-                    else:
-                        audio_file_path = os.path.join(temporary_directory, filename)
-                        with open(audio_file_path, "wb") as output_file:
-                            output_file.write(audio_file.read())
+    #             if file_extension in supported_file_extensions:
+    #                 if self.algorithm_mode == AlgorithmMode.DIRECTORIES:
+    #                     audio_file_path = audio_file
+    #                 else:
+    #                     audio_file_path = os.path.join(temporary_directory, filename)
+    #                     with open(audio_file_path, "wb") as output_file:
+    #                         output_file.write(audio_file.read())
 
-                    embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + f"_{self.model_name}.pt")
+    #                 embedding_path = os.path.join(os.path.dirname(audio_file_path), os.path.splitext(filename)[0].lower() + f"_{self.model_name}.pt")
 
-                    # Check if embedding path exists
-                    if (not os.path.exists(embedding_path)) or regenerate:
-                        _embeddings, _ = emb(audio_file_path, filename)
-                        if save:
-                            torch.save(_embeddings, embedding_path)
-                        try:
-                            shutil.rmtree(self.outputd)
-                        except:
-                            pass
-                    else:
-                        _embeddings = torch.load(embedding_path)
-        return _embeddings
+    #                 # Check if embedding path exists
+    #                 if (not os.path.exists(embedding_path)) or regenerate:
+    #                     _embeddings, _ = emb(audio_file_path, filename)
+    #                     if save:
+    #                         torch.save(_embeddings, embedding_path)
+    #                     try:
+    #                         shutil.rmtree(self.outputd)
+    #                     except:
+    #                         pass
+    #                 else:
+    #                     _embeddings = torch.load(embedding_path)
+    #     return _embeddings
 
     def analyze_directories(self, audio_input: str, lat: Optional[Any]=None, lng: Optional[Any]=None):
+        start_time = time.time()
         if os.path.isfile(audio_input):
             audio_files = [audio_input]
         else:
@@ -225,6 +227,7 @@ class AvesEcho:
                 file_path = [os.path.join(path, filename) for filename in files
                              if not self.ignore_filesystem_object(audio_input, filename)]
                 audio_files += file_path
+        print(f"{(time.time() - start_time):.2f}s to collect audio files")
 
         pred,_ = self.analyze_audio_files(audio_files, lat, lng)
         return pred
@@ -235,7 +238,9 @@ class AvesEcho:
     def analyze_audio_files(self, audio_files: list[Union[str, FileStorage]], lat: Optional[Any]=None, lng: Optional[Any]=None):
         # Running the model to get predictions, and then returning the results.
 
+        start_time = time.time()
         filtering_list = setup_filtering(lat, lng, self.add_filtering, self.flist, self.slist)
+        print(f"{(time.time() - start_time):.2f}s to setup filtering")
 
         predictions = {
             "metadata":  {
@@ -253,7 +258,7 @@ class AvesEcho:
 
         # For endpoint mode: write the audio files to a temporary directory.
         with tempfile.TemporaryDirectory() as temporary_directory:
-            for audio_file in tqdm(audio_files):
+            for audio_file in tqdm(audio_files, disable=True):
                 filename = os.path.basename(audio_file) if self.algorithm_mode == AlgorithmMode.DIRECTORIES else audio_file.filename
                 file_extension = os.path.splitext(filename)[1].lower()
 
@@ -275,23 +280,35 @@ class AvesEcho:
         if not os.path.exists(self.outputd):
             os.makedirs(self.outputd)
 
+        # Check ROI here #
+
         # Load soundfile and split signal into 3s chunks
-        self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=10)
+        start_time = time.time()
+        self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=None)
+        print(f"{(time.time() - start_time):.2f}s to split signal")
 
         # Load a list of files for in a dir
+        start_time = time.time()
         inference_data = [
             os.path.join(self.outputd, f)
             for f in sorted(os.listdir(self.outputd), key=lambda x: int(x.split('_')[-1].split('.')[0]))
         ]
+        print(f"{(time.time() - start_time):.2f}s to prepare file paths")
 
         # Inference
+        start_time = time.time()
         inference_set = InferenceDataset(inference_data, filename, model=self.model_name)
         params_inf = {'batch_size': 64, 'shuffle': False} # , 'num_workers': 5
         inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
+        print(f"{(time.time() - start_time):.2f}s to load inference data")
 
         audio_path = "./audio/"
+        print("starting inference")
+        start_time = time.time()
         embeddings, pred = inference(self.model, inference_generator, device, predictions, filter_list=filtering_list)
+        print(f"{(time.time() - start_time):.2f}s to run inference")
 
+        start_time = time.time()
         embedding_dir = os.path.join(os.path.dirname(audio_path), "embeddings/")
         embedding_filename = os.path.splitext(filename)[0].lower() + ".pt"
         if not os.path.exists(embedding_dir):
@@ -316,6 +333,8 @@ class AvesEcho:
                     shutil.copy2(path, segment_dir)
             except Exception as e:
                 print(f"Error copying {path} to {segment_dir}: {e}")
+        print(f"{(time.time() - start_time):.2f}s to save segments and embeddings")
+            
         try:
             shutil.rmtree(self.outputd)
         except:

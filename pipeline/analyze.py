@@ -26,15 +26,20 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 
 def run(args, db=None):
     args = PipelineSchema(**vars(args)) # Additional validation
+    start_time = time.time()
     predictions = run_algorithm(args)
+    print(f"{(time.time() - start_time):.2f}s for full analysis")
+
+    start_time = time.time()
     if db:
         status = normalise(predictions, db)
     else:
         db = SessionLocal()
         status = normalise(predictions, db)
         db.close()
+    print(f"{(time.time() - start_time):.2f}s to store predictions in database")
     return status
 
 if __name__ == "__main__":
     run(parser.parse_args())
-    print(f"It took {(time.time() - start_time):.2f}s to analyze the audio files.")
+    # print(f"It took {(time.time() - start_time):.2f}s to analyze the audio files.")

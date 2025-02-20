@@ -35,7 +35,7 @@ class InferenceDataset(torch.utils.data.Dataset):
 
         # Open the file with librosa (limited to the first certain number of seconds)
         try:
-            x, rate = librosa.load(ID, sr=SAMPLE_RATE, offset=0.0, res_type='kaiser_fast')
+            x, rate = librosa.load(ID, sr=SAMPLE_RATE, offset=0.0) #, res_type='kaiser_fast'
         except:
             x, rate = [], SAMPLE_RATE
 
@@ -62,8 +62,10 @@ class InferenceDataset(torch.utils.data.Dataset):
                 birdnet_embedding = np.zeros(320, dtype=np.float32)
         if self.model == 'birdnet':
             try:
+                start_time = time.time()
                 outputs, logits = embed_sample(self.embedding_model, x.numpy(), SAMPLE_RATE)
                 birdnet_embedding = np.expand_dims(outputs, axis=0)
+                # print(f"{(time.time() - start_time):.2f}s to compute BirdNET embedding")
             except:
                 print("BirdNET embedding failed")
                 birdnet_embedding = np.zeros(1024, dtype=np.float32)

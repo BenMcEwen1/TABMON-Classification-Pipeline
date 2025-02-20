@@ -239,6 +239,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
     model_name = model.__class__.__name__
     species_list = model.species_list
 
+    start_time = time.time()
     for i, inputs in enumerate(data_loader):
         audio = inputs['inputs'].to(device)
         sr = inputs['sr'][0]
@@ -252,11 +253,15 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
             outputs = model(audio, emb) # PaSST only require spectrogram (audio), emb is empty
             emb = outputs["emb"]
             confidence_scores = F.sigmoid(outputs['logits'])
+    print(f"[inference] {(time.time() - start_time):.2f}s to calculate confidence scores (should be faster with GPU)")
 
     if energy:
+        start_time = time.time()
         energy_scores = energy_metrics(audio, sr)
+        print(f"[inference] {(time.time() - start_time):.2f}s to calculate energy metrics")
 
     if save:
+        start_time = time.time()
         pred = k_predictions(confidence_scores, 
                              energy_scores, 
                              filename, 
@@ -266,6 +271,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
                              energy_metric="ROItotal", 
                              energy_threshold=0.0, 
                              filter_list=filter_list)
+        print(f"[inference] {(time.time() - start_time):.2f}s to calculate k_predictions")
     return emb, pred
 
 
