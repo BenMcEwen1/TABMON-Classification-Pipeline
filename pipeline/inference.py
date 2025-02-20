@@ -257,7 +257,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
 
     if energy:
         start_time = time.time()
-        energy_scores = energy_metrics(audio, sr)
+        energy_scores = energy_metrics(audio.cpu(), sr)
         print(f"[inference] {(time.time() - start_time):.2f}s to calculate energy metrics")
 
     if save:
