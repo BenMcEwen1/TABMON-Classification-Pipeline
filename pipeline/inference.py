@@ -1,11 +1,9 @@
 from pipeline.config import *
 from pipeline.util import *
 
-import maad.features
-import maad.sound
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+@display_time
 def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
     uncertainty = []
 
@@ -28,7 +26,6 @@ def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
 def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
     """
     Calculate the standard deviation of the output probabilities as a measure of uncertainty.
-
     Parameters
     ----------
     outputs : tensor
@@ -37,7 +34,6 @@ def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
         If set to True, normalise the uncertainty values between 0 and 1, by default True
     top_k : int, optional
         If set to an integer, only consider the top k values of the output probabilities, by default 5
-
     Returns
     -------
     List of uncertainties per batch
@@ -88,31 +84,32 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool
         uncertainty = [x/max(uncertainty) for x in uncertainty]
     return uncertainty
 
-def prediction(confidence_batch, filename, species_list, predictions:dict={}, length:int=3, threshold:float=0.0):
-    species_name = load_species_list(species_list) # BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv
-    uncertainty = uncertaintyEntropy(confidence_batch)
+# def prediction(confidence_batch, filename, species_list, predictions:dict={}, length:int=3, threshold:float=0.0):
+#     species_name = load_species_list(species_list) # BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.csv
+#     uncertainty = uncertaintyEntropy(confidence_batch)
 
-    results = []
-    for i, confidence in enumerate(confidence_batch):
-        # Return maximum confidence prediction
-        index = torch.argmax(confidence)
-        if confidence[index] > threshold:
-            scientific_name, common_name = species_name[index].split(',')
-            pred = {
-                "start time": length*i,
-                "uncertainty": uncertainty[i],
-                "confidence": confidence[index].item(),
-                "energy": None,
-                "scientific name": scientific_name,
-                "common name": common_name,
-            }
-            results.append(pred)
+#     results = []
+#     for i, confidence in enumerate(confidence_batch):
+#         # Return maximum confidence prediction
+#         index = torch.argmax(confidence)
+#         if confidence[index] > threshold:
+#             scientific_name, common_name = species_name[index].split(',')
+#             pred = {
+#                 "start time": length*i,
+#                 "uncertainty": uncertainty[i],
+#                 "confidence": confidence[index].item(),
+#                 "energy": None,
+#                 "scientific name": scientific_name,
+#                 "common name": common_name,
+#             }
+#             results.append(pred)
     
-    predictions["files"].append({filename: results})
+#     predictions["files"].append({filename: results})
 
-    predictions = convert_to_tabular(predictions)
-    return predictions
+#     predictions = convert_to_tabular(predictions)
+#     return predictions
 
+@display_time
 def k_predictions(confidence_batch, energy_scores, filename, species_list, predictions:dict={}, k:int=3, length:int=3, confidence_threshold:float=0.0, energy_metric:str="ROItotal", energy_threshold:float=0.0, filter_list:list=None):
     species_name = load_species_list(species_list)
 
@@ -166,25 +163,25 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
     return predictions
 
 
-def convert_to_tabular(predictions):
-    # Function to convert json object as created by prediction function to table
-    rows = []
-    metadata = predictions["metadata"]
-    files = predictions["files"]
+# def convert_to_tabular(predictions):
+#     # Function to convert json object as created by prediction function to table
+#     rows = []
+#     metadata = predictions["metadata"]
+#     files = predictions["files"]
 
-    for file in files:
-        filename = list(file)
-        for result in file[filename[0]]:
-            row = {
-                "filename": filename[0],
-                **result,
-                **metadata
-            }
-            rows.append(row)
+#     for file in files:
+#         filename = list(file)
+#         for result in file[filename[0]]:
+#             row = {
+#                 "filename": filename[0],
+#                 **result,
+#                 **metadata
+#             }
+#             rows.append(row)
     
-    df = pd.DataFrame(rows)
-    df.to_csv(f"{current_dir}/outputs/predictions.csv", index=False)
-    return df
+#     df = pd.DataFrame(rows)
+#     df.to_csv(f"{current_dir}/outputs/predictions.csv", index=False)
+#     return df
 
 def convert_ranked_to_tabular(predictions):
     # Function to convert json object as created by prediction function to table
@@ -214,6 +211,7 @@ def convert_ranked_to_tabular(predictions):
     df.to_csv(f"{current_dir}/outputs/top_k_predictions.csv", index=False)
     return df
 
+@display_time
 def energy_metrics(audio_batch, sr):
     energy_scores = []
     for audio in audio_batch:
@@ -222,6 +220,7 @@ def energy_metrics(audio_batch, sr):
         energy_scores.append(df_indices.to_dict(orient="index")[0])
     return energy_scores
 
+@display_time
 def inference(model, data_loader, device, predictions:dict={}, save:bool=True, energy:bool=True, filter_list:list=None):
     '''
     Perform inference on data in directory, outputs prediction results in .json and .csv formats
@@ -239,7 +238,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
     model_name = model.__class__.__name__
     species_list = model.species_list
 
-    start_time = time.time()
+    # start_time = time.time()
     for i, inputs in enumerate(data_loader):
         audio = inputs['inputs'].to(device)
         sr = inputs['sr'][0]
@@ -253,15 +252,11 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
             outputs = model(audio, emb) # PaSST only require spectrogram (audio), emb is empty
             emb = outputs["emb"]
             confidence_scores = F.sigmoid(outputs['logits'])
-    print(f"[inference] {(time.time() - start_time):.2f}s to calculate confidence scores (should be faster with GPU)")
 
     if energy:
-        start_time = time.time()
         energy_scores = energy_metrics(audio.cpu(), sr)
-        print(f"[inference] {(time.time() - start_time):.2f}s to calculate energy metrics")
 
     if save:
-        start_time = time.time()
         pred = k_predictions(confidence_scores, 
                              energy_scores, 
                              filename, 
@@ -271,42 +266,41 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
                              energy_metric="ROItotal", 
                              energy_threshold=0.0, 
                              filter_list=filter_list)
-        print(f"[inference] {(time.time() - start_time):.2f}s to calculate k_predictions")
     return emb, pred
 
 
-def process_audio(file_path):
-    # Load the audio file. Open the file with librosa (limited to the first certain number of seconds)
-    try:
-        audio, sr = librosa.load(file_path, sr=SAMPLE_RATE, offset=0.0, res_type='kaiser_fast')
-    except:
-        audio, sr = [], SAMPLE_RATE
-    return audio
+# def process_audio(file_path):
+#     # Load the audio file. Open the file with librosa (limited to the first certain number of seconds)
+#     try:
+#         audio, sr = librosa.load(file_path, sr=SAMPLE_RATE, offset=0.0, res_type='kaiser_fast')
+#     except:
+#         audio, sr = [], SAMPLE_RATE
+#     return audio
 
 
-def max_pool(predictions, scores):
-    final_species = []
-    final_scores = []
-    # Iterate through each chunk
-    for chunk_species, chunk_scores in zip(predictions, scores):
-        for species, score in zip(chunk_species, chunk_scores):
-            if species in final_species:
-                # Get the index of the existing species in the final list
-                index = final_species.index(species)
-                # Compare and keep the higher score
-                final_scores[index] = max(final_scores[index], score)
-            else:
-                # Add new species and its score to the final lists
-                final_species.append(species)
-                final_scores.append(score)
-    return final_species, final_scores            
+# def max_pool(predictions, scores):
+#     final_species = []
+#     final_scores = []
+#     # Iterate through each chunk
+#     for chunk_species, chunk_scores in zip(predictions, scores):
+#         for species, score in zip(chunk_species, chunk_scores):
+#             if species in final_species:
+#                 # Get the index of the existing species in the final list
+#                 index = final_species.index(species)
+#                 # Compare and keep the higher score
+#                 final_scores[index] = max(final_scores[index], score)
+#             else:
+#                 # Add new species and its score to the final lists
+#                 final_species.append(species)
+#                 final_scores.append(score)
+#     return final_species, final_scores            
 
 
-def T_scaling(logits, temperature):
-  return torch.div(logits, temperature)
+# def T_scaling(logits, temperature):
+#   return torch.div(logits, temperature)
 
 
-# Define the function that takes Count and Threshold as input and applies the specified formula
-def adjusted_threshold(count, threshold):
-    c = count / (count + 100)
-    return threshold * c + 0.1 * (1 - c)
+# # Define the function that takes Count and Threshold as input and applies the specified formula
+# def adjusted_threshold(count, threshold):
+#     c = count / (count + 100)
+#     return threshold * c + 0.1 * (1 - c)

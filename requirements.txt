@@ -21,3 +21,4 @@ fastapi==0.115.7
 pydantic==2.10.6
 sqlalchemy==2.0.37
 fastapi[standard]
+scikit-maad==1.4.3

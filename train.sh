@@ -6,6 +6,6 @@
 #SBATCH -e slurm.%N.%j.err # STDERR
 #SBATCH --gres=gpu:1
 
-source activate avesecho
+source activate tabmon
 
 python -m pipeline.training

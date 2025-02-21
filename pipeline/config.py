@@ -53,6 +53,15 @@ import shutil
 from datetime import datetime
 import logging
 import sys
+from types import SimpleNamespace
+
+from concurrent.futures import ThreadPoolExecutor
+import maad.features
+import maad.sound
+import maad.util
+
+import time
+import functools
 
 os.environ["TF_DELEGATE_VERBOSE"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow logs
