@@ -1,7 +1,7 @@
 # TABMON Classification Pipeline
 This is a data and classification pipeline repository for the [TABMON](https://www.biodiversa.eu/2024/04/15/tabmon/) (Transnational Acoustic Biodiversity Monitoring Network). The purpose of this repository is to provide an end-to-end framework from raw field data to inference of essential biodiversity variables (EBVs).
 
-Author: Ben McEwen \
+Authors: Ben McEwen, Corentin Bernard \
 **Adapted from the AvesEcho pipeline (Ghani et al. 2024) - [paper](https://arxiv.org/abs/2409.15383)*
 
 ### Getting Started 🌱

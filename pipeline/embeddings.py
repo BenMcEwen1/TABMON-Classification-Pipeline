@@ -1,26 +1,13 @@
-import os
-import argparse
-import torch
-import faiss
-import numpy as np
-import umap
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
-import pandas as pd
-
-from pipeline.algorithm_mode import AlgorithmMode
+from pipeline.config import *
 from pipeline.models import AvesEcho
 
-default_algorithm_mode = os.getenv("ALGORITHM_MODE", AlgorithmMode.DIRECTORIES.value)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
 parser.add_argument('--model_name', type=str, default='fc', help='Name of the model to use, either fc or passt')
-parser.add_argument('--slist', type=str, default='./inputs/list_sp_ml.csv', help='Path to the species list.')
-parser.add_argument('--flist', type=str, default='./inputs/species_list_nl.csv', help='Path to the filter list of species.')
-parser.add_argument('--i', type=str, default='audio/NH-11_20240415_062840.WAV', help='Input audio sample.')
-parser.add_argument("--algorithm_mode", default=default_algorithm_mode, help="Use input/output directories or an endpoint.")
-parser.add_argument("--embeddings_mode", type=bool, default=True, help="Generate embeddings for files instead of inference.")
+parser.add_argument('--slist', type=str, default=f'{current_dir}/inputs/list_sp_ml.csv', help='Path to the species list.')
+parser.add_argument('--i', type=str, default=f'{current_dir}/audio/test_bugg', required=True, help='Input audio sample.')
+parser.add_argument('--flist', type=str, default=f'{current_dir}/inputs/species_list_nl.csv', help='Path to the filter list of species.')
 parser.add_argument("--regenerate", type=bool, default=False, help="If embeddings already exist, regenerate them.")
 args = parser.parse_args()
 
@@ -42,7 +29,7 @@ class Embeddings:
     def __len__(self):
         return self.index.ntotal
     
-    def generate_embeddings(self, audio_path, model_name:str='fc', regenerate:bool=False, save:bool=True):
+    def generate_embeddings(self, args):
         """
         Generate embeddings for the given audio file or directory using the given model.
         Args:
@@ -51,11 +38,8 @@ class Embeddings:
             regenerate (bool, optional): Whether to regenerate the embeddings even if they already exist. Defaults to False.
         Returns: The generated embedding(s).
         """
-        feature_extractor = AvesEcho(model_name=model_name, slist=f'{current_dir}/inputs/list_sp_ml.csv', flist=f'{current_dir}/inputs/species_list_nl.csv',
-                                    add_filtering=False, mconf=None, outputd=f'{current_dir}/outputs/temp', avesecho_mapping=f'{current_dir}/inputs/list_AvesEcho.csv',
-                                    maxpool=False, add_csv=False, embeddings=args.embeddings_mode, args=args)
-        
-        embeddings = feature_extractor.generate_embeddings(audio_path, regenerate, save)
+        feature_extractor = AvesEcho(args=args)
+        embeddings,_ = feature_extractor.analyze_directories(args.i, lat=None, lng=None)
         return embeddings
 
     def collect(self, audio_path, suffix:str="", index:str='embeddings.bin'):
@@ -135,4 +119,4 @@ class Embeddings:
 
 if __name__ == "__main__":
     database = Embeddings()
-    database.generate_embeddings(audio_path=args.i, model_name=args.model_name, regenerate=args.regenerate)
+    database.generate_embeddings(args)

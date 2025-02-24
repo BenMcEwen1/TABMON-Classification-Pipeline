@@ -6,6 +6,6 @@
 #SBATCH -e slurm.%N.%j.err # STDERR
 #SBATCH --gres=gpu:1
 
-source activate avesecho
+source activate tabmon
 
 python -m pipeline.embeddings --i '../audio/sound-of-norway/' --model_name 'birdnet' --regenerate True

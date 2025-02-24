@@ -6,6 +6,6 @@
 #SBATCH -e slurm.%N.%j.err # STDERR
 #SBATCH --gres=gpu:1
 
-source activate avesecho
+source activate tabmon
 
-python -m pipeline.analyze --i "../audio/< DATA DIRECTORY >/" --model_name 'birdnet' --device_id '< id >'
+python -m pipeline.analyze --i "< DATA DIRECTORY >" --model_name 'birdnet' --device_id '< id >'
