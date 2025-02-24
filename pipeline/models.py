@@ -79,8 +79,8 @@ class birdnet(nn.Module):
 def run_algorithm(args):
     global classifier
     classifier = AvesEcho(args=args)
-    results = classifier.analyze_directories(audio_input=args.i, lat=args.lat, lng=args.lng)
-    return results
+    embeddings, results = classifier.analyze_directories(audio_input=args.i, lat=args.lat, lng=args.lng)
+    return embeddings, results
 
 
 class AvesEcho:
@@ -125,8 +125,8 @@ class AvesEcho:
                              if not self.ignore_filesystem_object(audio_input, filename)]
                 audio_files += file_path
 
-        pred = self.analyze_audio_files(audio_files, lat, lng)
-        return pred
+        embeddings, pred = self.analyze_audio_files(audio_files, lat, lng)
+        return embeddings, pred
 
     def ignore_filesystem_object(self, directory: str, filename: str) -> bool:
         return os.path.isdir(os.path.join(directory, filename)) or filename.startswith(".")
@@ -157,8 +157,8 @@ class AvesEcho:
 
                 if file_extension in supported_file_extensions:
                     audio_file_path = audio_file
-                    pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
-            return pred
+                    embeddings, pred = self.analyze_audio_file(audio_file_path, filename, filtering_list, predictions)
+            return embeddings, pred
 
     def analyze_audio_file(self, audio_file_path: str, filename:str, filtering_list: list[str], predictions: dict):
         if not os.path.exists(self.outputd):
@@ -210,4 +210,4 @@ class AvesEcho:
             shutil.rmtree(self.outputd)
         except:
             pass
-        return pred
+        return embeddings, pred

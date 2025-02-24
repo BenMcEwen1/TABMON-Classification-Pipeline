@@ -1,9 +1,24 @@
 from pipeline.config import *
-from pipeline.species_list import get_species_list
 
-ENABLE_PROFILING = True  # Toggle this to enable/disable timing
+ENABLE_PROFILING = False  # Toggle this to enable/disable timing
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
+def get_species_list(recording_lat, recording_long):
+    "Concert WGS84 lat-lon to MGRS UTM coordinates"
+
+    # Load occurances data from csv file
+    file_path = "./pipeline/inputs/ebba2_data_occurrence_50km.csv"
+    df = pd.read_csv(file_path, delimiter=';')
+    
+    m = mgrs.MGRS()
+    c = m.toMGRS(recording_lat, recording_long)
+
+    input_code = c[0:3] 
+    filtered_df = df[df['cell50x50'].str.startswith(input_code)]
+    species_list = pd.DataFrame(filtered_df['birdlife_scientific_name'].drop_duplicates())
+    return species_list
+
 
 def display_time(func):
     @functools.wraps(func)
@@ -12,7 +27,7 @@ def display_time(func):
             start_time = time.time()
             result = func(*args, **kwargs)
             end_time = time.time()
-            print(f"{func.__name__} took {end_time - start_time:.4f} seconds")
+            print(f"[{func.__name__}] took {end_time - start_time:.4f} seconds")
             return result
         else:
             return func(*args, **kwargs)
@@ -127,13 +142,10 @@ class BirdNet(EmbeddingModel):
     
       embeddings.append(self.model.get_tensor(embedding_idx))
       logits.append(self.model.get_tensor(output_details['index']))
-    # Create [Batch, 1, Features]
     embeddings = np.array(embeddings)
     logits = np.array(logits)
-    
     return embeddings, logits
     
-
   def embed(self, audio_array: np.ndarray) -> np.ndarray:
     framed_audio = self.frame_audio(
         audio_array, self.window_size_s, self.hop_size_s
@@ -191,10 +203,11 @@ def save_chunk(args):
     sf.write(save_path, chunk, rate, subtype='PCM_16')
 
 @display_time
-def ROIfilter(audio, original_sr, sr, low_freq:int=200, threshold:float=9.0):
+def ROIfilter(audio, sr, threshold:float=0.01):
+    EPS = np.finfo(float).eps
     Sxx_power,tn,fn,_ = maad.sound.spectrogram(audio, sr)
-    Sxx_power[fn > original_sr/2,:] = np.min(Sxx_power) # remove aliasing in high frequencies due to upsampling
-    Sxx_power[fn < low_freq,:] = np.min(Sxx_power) # remove low frequencies
+    Sxx_power[fn > 18000,:] = EPS # remove aliasing in high frequencies due to upsampling
+    Sxx_power[fn < 200,:] = EPS # remove low frequencies
     if Sxx_power.max() > 0 :
         Sxx_noNoise= maad.sound.median_equalizer(Sxx_power) 
         Sxx_dB_noNoise = maad.util.power2dB(Sxx_noNoise)
@@ -225,7 +238,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
         logging.error(error)
         raise Exception(error)
 
-    roicover = ROIfilter(sig, original_rate, SAMPLE_RATE)
+    roicover = ROIfilter(sig, SAMPLE_RATE)
     if roicover:
         return None # Skip
 

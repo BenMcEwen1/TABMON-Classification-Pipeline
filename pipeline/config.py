@@ -54,6 +54,11 @@ from datetime import datetime
 import logging
 import sys
 from types import SimpleNamespace
+import mgrs
+import faiss
+import umap
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 from concurrent.futures import ThreadPoolExecutor
 import maad.features
