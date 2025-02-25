@@ -76,20 +76,20 @@ class birdnet(nn.Module):
         return F.sigmoid(logits)
 
 @display_time
-def run_algorithm(args):
+def run_algorithm(args, id=None):
     global classifier
-    classifier = AvesEcho(args=args)
+    classifier = AvesEcho(args=args, id=id)
     embeddings, results = classifier.analyze_directories(audio_input=args.i, lat=args.lat, lng=args.lng)
     print("predictions generated")
     return embeddings, results
 
 
 class AvesEcho:
-    def __init__(self, args):
+    def __init__(self, args, id):
         self.slist = args.slist
         self.flist = args.flist
         self.model_name = args.model_name
-        self.outputd = f"{current_dir}/outputs/temp/{args.model_checkpoint}"
+        self.outputd = f"{current_dir}/outputs/temp/{id}"
         self.species_list = load_species_list(self.slist)
         self.n_classes = len(self.species_list)
         self.split_signals = split_signals
@@ -186,23 +186,27 @@ class AvesEcho:
 
         audio_path = "./audio/"
         embeddings, pred = inference(self.model, inference_generator, device, predictions, filter_list=filtering_list)
-
+        
+        # Make embeddings directory
         embedding_dir = os.path.join(os.path.dirname(audio_path), "embeddings/")
-        embedding_filename = os.path.splitext(filename)[0].lower() + ".pt"
         if not os.path.exists(embedding_dir):
             os.makedirs(embedding_dir)
-        torch.save(embeddings, os.path.join(embedding_dir, embedding_filename))
 
-        # Filter segments
+        # Make segments directory
         segment_dir = os.path.join(os.path.dirname(audio_path), "segments/")
         if not os.path.exists(segment_dir):
             os.makedirs(segment_dir)
 
+        # Save segments and embeddings
         filtered = pred[["filename", "start time"]].drop_duplicates()
         for _,row in filtered.iterrows():
             obj_dict = row.to_dict()
             index = int(obj_dict['start time']/3)
             segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.wav"
+
+            # Save embedding
+            embedding_filename = os.path.splitext(filename)[0].lower() + f"_{index}.pt"
+            torch.save(embeddings[index], os.path.join(embedding_dir, embedding_filename))
             
             path = os.path.join(self.outputd, segment_filename)
             try:
