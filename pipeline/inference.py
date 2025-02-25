@@ -104,7 +104,7 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
         # Append top k predictions per segment
         top_scores, top_indices = torch.topk(confidence, k=k)
         energy_score = energy_scores[i]
-        if max(top_scores) > confidence_threshold and energy_score[energy_metric] >= energy_threshold:
+        if max(top_scores) > confidence_threshold:
             pred = []
             for rank, index in enumerate(top_indices):
                 scientific_name, common_name = species_name[index].split(',')

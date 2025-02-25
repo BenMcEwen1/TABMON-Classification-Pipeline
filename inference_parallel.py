@@ -55,40 +55,41 @@ if __name__ == "__main__":
             line = line.strip()  # Remove leading/trailing whitespace
 
             if line:  # Check if the line is not empty
-                try:
-                    # Safely parse the list (it will turn the string into an actual Python list)
-                    parts = ast.literal_eval(line)
-                    
-                    # Extract the parts as required
-                    dataset_path = parts[0]
-                    bugg = parts[1]
-                    conf = parts[2]
-                    file = parts[3]
-                    country = parts[4]
-                    site = parts[5]
-                    lat = parts[6]
-                    long = parts[7]
+                # try:
+                # Safely parse the list (it will turn the string into an actual Python list)
+                parts = ast.literal_eval(line)
+                
+                # Extract the parts as required
+                dataset_path = parts[0]
+                bugg = parts[1]
+                conf = parts[2]
+                file = parts[3]
+                country = parts[4]
+                site = parts[5]
+                lat = parts[6]
+                long = parts[7]
 
-                    args = {
-                            "slist": 'pipeline/inputs/list_sp_ml.csv',
-                            "flist": None,
-                            "i": os.path.join(dataset_path, bugg, conf, file),
-                            "device_id": get_device_ID(bugg),
-                            "country": country,
-                            "lat": lat,
-                            "lng": long,
-                            "model_name": 'birdnet',
-                            "model_checkpoint": None,
-                            "date_updated": None,
-                            "date_deployed": None
-                    }
+                args = {
+                        "slist": 'pipeline/inputs/list_sp_ml.csv',
+                        "flist": None,
+                        "i": os.path.join(dataset_path, bugg, conf, file),
+                        "device_id": get_device_ID(bugg),
+                        "country": country,
+                        "lat": lat,
+                        "lng": long,
+                        "model_name": 'birdnet',
+                        "model_checkpoint": job_id,
+                        "date_updated": None,
+                        "date_deployed": None
+                }
 
-                    args = SimpleNamespace(**args)
-                    run(args)
+                args = SimpleNamespace(**args)
+                print(args)
+                run(args)
 
-                except Exception as e:
-                    print(f"Error parsing line: {line}")
-                    print(f"Error: {e}")
+                # except Exception as e:
+                #     print(f"Error parsing line: {line}")
+                #     print(f"Error: {e}")
 
             if (number_of_files != 0) and (i % 100 == 0):
                 print_time_information(time_start, i, number_of_files)
