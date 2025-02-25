@@ -102,11 +102,14 @@ def export(start_date: datetime | None = None,
     filters = locals()
     results, segments = apply_filters(filters)
 
+    for segment in segments:
+        print(f'{segment.filename[:-4].lower()}.pt')
+
     if embeddings:
-        filenames = [os.path.join(EMBEDDING_DIR, f'{segment.filename[:-6]}.pt') for segment in segments]
+        filenames = [os.path.join(EMBEDDING_DIR, f'{segment.filename[:-4].lower()}.pt') for segment in segments]
         prefix = "embeddings"
     else:
-        filenames = [os.path.join(SEGMENT_DIR, segment.filename) for segment in segments]
+        filenames = [os.path.join(SEGMENT_DIR, segment.filename.lower()) for segment in segments]
         prefix = "audio"
 
     csv_filename = flatten(results, SEGMENT_DIR, timestamp)
