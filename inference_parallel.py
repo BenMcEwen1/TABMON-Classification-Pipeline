@@ -78,14 +78,13 @@ if __name__ == "__main__":
                         "lat": lat,
                         "lng": long,
                         "model_name": 'birdnet',
-                        "model_checkpoint": job_id,
+                        "model_checkpoint": None,
                         "date_updated": None,
                         "date_deployed": None
                 }
 
                 args = SimpleNamespace(**args)
-                print(args)
-                run(args)
+                run(args, id=job_id)
 
                 # except Exception as e:
                 #     print(f"Error parsing line: {line}")
