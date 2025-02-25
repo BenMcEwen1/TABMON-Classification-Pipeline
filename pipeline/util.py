@@ -213,7 +213,7 @@ def ROIfilter(audio, sr, threshold:float=0.01):
         Sxx_dB_noNoise = maad.util.power2dB(Sxx_noNoise)
         _, ROIcover = maad.features.region_of_interest_index(Sxx_dB_noNoise, tn, fn)
         if ROIcover < threshold:
-            return True
+            return True # Skip
     return False
 
 @display_time
@@ -240,7 +240,6 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
 
     roicover = ROIfilter(sig, SAMPLE_RATE)
     if roicover:
-        print("skipping audio - ROI Filter")
         return None # Skip
 
     sig_splits = [sig[i:i + int(signal_length * SAMPLE_RATE)] for i in range(0, len(sig), int(signal_length * SAMPLE_RATE)) if len(sig[i:i + int(signal_length * SAMPLE_RATE)]) == int(signal_length * SAMPLE_RATE)]

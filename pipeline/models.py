@@ -201,7 +201,7 @@ class AvesEcho:
             segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.wav"
 
             # Save embedding
-            embedding_filename = os.path.splitext(filename)[0].lower() + f"_{index}.pt"
+            embedding_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.pt"
             torch.save(embeddings[index], os.path.join(embedding_dir, embedding_filename))
             
             path = os.path.join(self.outputd, segment_filename)
