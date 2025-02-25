@@ -1,6 +1,6 @@
 from pipeline.config import *
 
-ENABLE_PROFILING = True  # Toggle this to enable/disable timing
+ENABLE_PROFILING = False  # Toggle this to enable/disable timing
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 

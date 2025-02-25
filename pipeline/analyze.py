@@ -22,7 +22,6 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 def run(args, db=None, id=None):
     args = PipelineSchema(**vars(args)) # Additional validation
     _,predictions = run_algorithm(args, id)
-    print(predictions)
     if predictions is None:
         print(f"Skipping audio file {args.i}")
         return None

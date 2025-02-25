@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name tabmon_pipeline
 #SBATCH -p GPU
-#SBATCH -o slurm.%N.%j.out # STDOUT
-#SBATCH -e slurm.%N.%j.err # STDERR
+#SBATCH -o log/slurm.%N.%j.out # STDOUT
+#SBATCH -e log/slurm.%N.%j.err # STDERR
 #SBATCH --array=0-6
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
 #SBATCH --cpus-per-task=1

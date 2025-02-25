@@ -80,7 +80,6 @@ def run_algorithm(args, id=None):
     global classifier
     classifier = AvesEcho(args=args, id=id)
     embeddings, results = classifier.analyze_directories(audio_input=args.i, lat=args.lat, lng=args.lng)
-    print("predictions generated")
     return embeddings, results
 
 
@@ -168,7 +167,6 @@ class AvesEcho:
         # Load soundfile and split signal into 3s chunks
         status = self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=None)
         if status == None:
-            print("Skipping file")
             return None, None # Skip
         
         # Load a list of files for in a dir
@@ -176,8 +174,6 @@ class AvesEcho:
             os.path.join(self.outputd, f)
             for f in sorted(os.listdir(self.outputd), key=lambda x: int(x.split('_')[-1].split('.')[0]))
         ]
-
-        print("Running inference")
 
         # Inference
         inference_set = InferenceDataset(inference_data, filename, model=self.model_name)
