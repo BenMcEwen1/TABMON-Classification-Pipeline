@@ -1,6 +1,6 @@
 from pipeline.config import *
 
-ENABLE_PROFILING = False  # Toggle this to enable/disable timing
+ENABLE_PROFILING = True  # Toggle this to enable/disable timing
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -240,6 +240,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
 
     roicover = ROIfilter(sig, SAMPLE_RATE)
     if roicover:
+        print("skipping audio - ROI Filter")
         return None # Skip
 
     sig_splits = [sig[i:i + int(signal_length * SAMPLE_RATE)] for i in range(0, len(sig), int(signal_length * SAMPLE_RATE)) if len(sig[i:i + int(signal_length * SAMPLE_RATE)]) == int(signal_length * SAMPLE_RATE)]

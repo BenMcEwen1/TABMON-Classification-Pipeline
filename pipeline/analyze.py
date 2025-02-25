@@ -17,11 +17,12 @@ parser.add_argument('--country', type=float, default=None, help='Country')
 parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
 parser.add_argument('--lng', type=float, default=None, help='Longitude for geographic filtering.')
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
-parser.add_argument('--model_checkpoint', type=str, default=None, help='Model checkpoint - base if not specified.')
+parser.add_argument('--model_checkpoint', type=str, default="", help='Model checkpoint - base if not specified.')
 
 def run(args, db=None):
     args = PipelineSchema(**vars(args)) # Additional validation
     _,predictions = run_algorithm(args)
+    print(predictions)
     if predictions is None:
         print(f"Skipping audio file {args.i}")
         return None
