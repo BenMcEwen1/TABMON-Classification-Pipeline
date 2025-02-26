@@ -102,9 +102,6 @@ def export(start_date: datetime | None = None,
     filters = locals()
     results, segments = apply_filters(filters)
 
-    for segment in segments:
-        print(f'{segment.filename[:-4].lower()}.pt')
-
     if embeddings:
         filenames = [os.path.join(EMBEDDING_DIR, f'{segment.filename[:-4].lower()}.pt') for segment in segments]
         prefix = "embeddings"
