@@ -61,18 +61,19 @@ if __name__ == "__main__":
                     
                     # Extract the parts as required
                     dataset_path = parts[0]
-                    bugg = parts[1]
-                    conf = parts[2]
-                    file = parts[3]
-                    country = parts[4]
-                    site = parts[5]
-                    lat = parts[6]
-                    long = parts[7]
+                    country_folder = parts[1]
+                    bugg = parts[2]
+                    conf = parts[3]
+                    file = parts[4]
+                    country = parts[5]
+                    site = parts[6]
+                    lat = parts[7]
+                    long = parts[8]
 
                     args = {
                             "slist": 'pipeline/inputs/list_sp_ml.csv',
                             "flist": None,
-                            "i": os.path.join(dataset_path, bugg, conf, file),
+                            "i": os.path.join(dataset_path, country_folder, bugg, conf, file),
                             "device_id": get_device_ID(bugg),
                             "country": country,
                             "lat": lat,
