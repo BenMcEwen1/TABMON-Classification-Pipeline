@@ -216,7 +216,7 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
                              filename, 
                              species_list, 
                              predictions, 
-                             confidence_threshold=0.2, 
+                             confidence_threshold=0, 
                              energy_metric="ROItotal", 
                              energy_threshold=0.0, 
                              filter_list=filter_list)

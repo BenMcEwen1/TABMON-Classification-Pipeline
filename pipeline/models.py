@@ -165,7 +165,7 @@ class AvesEcho:
             os.makedirs(self.outputd)
 
         # Load soundfile and split signal into 3s chunks
-        status = self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=None)
+        status = self.split_signals(audio_file_path, self.outputd, signal_length=3, n_processes=None, args=self.args)
         if status == None:
             return None, None # Skip
         
@@ -198,10 +198,10 @@ class AvesEcho:
         for _,row in filtered.iterrows():
             obj_dict = row.to_dict()
             index = int(obj_dict['start time']/3)
-            segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.wav"
+            segment_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{self.args.device_id}_{index}.wav"
 
             # Save embedding
-            embedding_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{index}.pt"
+            embedding_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{self.args.device_id}_{index}.pt"
             torch.save(embeddings[index], os.path.join(embedding_dir, embedding_filename))
             
             path = os.path.join(self.outputd, segment_filename)

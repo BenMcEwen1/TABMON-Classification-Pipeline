@@ -46,7 +46,7 @@ def normalise(predictions, db):
             audio_id_map[row["filename"]] = existing_audio.id
 
     segment_id_map = {}
-    segment_data = predictions[["filename", "start time", "uncertainty", "energy"]]
+    segment_data = predictions[["filename", "device_id", "start time", "uncertainty", "energy"]]
     for _,row in segment_data.iterrows():
         existing_segment = db.query(Segment).filter(Segment.audio_id == audio_id_map[row["filename"]], Segment.start_time == row['start time']).first()
         index = int(row["start time"]/3)
@@ -54,7 +54,7 @@ def normalise(predictions, db):
         if not existing_segment:
             segment = Segment(
                 start_time=row["start time"],
-                filename=os.path.splitext(row["filename"])[0] + f"_{index}.wav",
+                filename=os.path.splitext(row["filename"])[0] + f"_{row['device_id']}_{index}.wav",
                 duration=3,
                 uncertainty=row["uncertainty"],
                 energy=row["energy"],

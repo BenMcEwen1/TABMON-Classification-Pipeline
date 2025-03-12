@@ -41,7 +41,7 @@ class SegmentSchema(BaseModel):
     filename: Optional[str] = None
     duration: Optional[float] = None
     uncertainty: Optional[float] = None
-    energy: Optional[float] = None
+    energy: Optional[dict] = None
     date_processed: Optional[datetime] = None
 
     label: Optional[str | None] = None

@@ -216,6 +216,12 @@ def get_audio_segment(filename:str):
     filename = f"{filename}"
     return FileResponse(path=path, filename=filename, media_type="audio/mpeg")
 
+@app.get("/audio_file/{filename}", response_class=FileResponse, tags=["Segments"], )
+def get_audio_segment(filename:str):
+    path = f"./audio/{filename}"
+    filename = f"{filename}"
+    return FileResponse(path=path, filename=filename, media_type="audio/mpeg")
+
 
 
 @app.get("/predictions/", response_model=list[PredictionSchema], tags=["Predictions"])
