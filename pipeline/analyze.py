@@ -19,7 +19,7 @@ parser.add_argument('--lng', type=float, default=None, help='Longitude for geogr
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
 parser.add_argument('--model_checkpoint', type=str, default=None, help='Model checkpoint - base if not specified.')
 
-def run(args, db=None, id=None):
+def run(args, db=None, id="wabad"):
     args = PipelineSchema(**vars(args)) # Additional validation
     _, predictions = run_algorithm(args, id)
     if predictions is None:
@@ -30,7 +30,13 @@ def run(args, db=None, id=None):
         status = normalise(predictions, db)
     else:
         db = SessionLocal()
-        status = normalise(predictions, db)
+        status = None
+        attempts = 1
+        while status is None and attempts < 10:
+            status = normalise(predictions, db)
+            if status is None:
+                print(f"[Database write failed] attempt {attempts}, retying...")
+            attempts += 1
         db.close()
     return status
 

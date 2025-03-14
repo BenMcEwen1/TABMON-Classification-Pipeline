@@ -59,7 +59,7 @@ class RetrievalSchema(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     country: Optional[str] = Field(None, example=None) 
-    device_id: Optional[int] = None
+    device_id: Optional[str] = None
     confidence: Optional[float] = None
     predicted_species: Optional[list[str]] = None
     uncertainty: Optional[float] = None

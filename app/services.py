@@ -90,7 +90,7 @@ def normalise(predictions, db):
         return {"status": "data added successfully"}
     except Exception as error:
         db.rollback()
-        return {"status": f"failed to add data - {error}"}
+        return None
 
 def segmentsWithPredictions(segments, db):
     results = [{

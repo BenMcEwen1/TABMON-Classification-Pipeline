@@ -152,6 +152,7 @@ class AvesEcho:
         # For endpoint mode: write the audio files to a temporary directory.
         with tempfile.TemporaryDirectory() as temporary_directory:
             for audio_file in tqdm(audio_files, disable=True):
+                print(f"Processing audio file: {audio_file}")
                 filename = os.path.basename(audio_file) 
                 file_extension = os.path.splitext(filename)[1].lower()
 

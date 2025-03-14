@@ -77,13 +77,17 @@ def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
     segments,_ = apply_filters_body(filters, db)
     return segments
 
+@app.get("/count")
+def count(db:Session=Depends(get_db)):
+    return len(db.query(Segment).all())
+
 
 
 @app.get("/export/", tags=["Sampling"])
 def export(start_date: datetime | None = None, 
            end_date: datetime | None = None, 
            country: str | None = None, 
-           device_id: int | None = None,
+           device_id: str | None = None,
            confidence: float | None = None,
            predicted_species: str | None = None,
            uncertainty: float | None = None,
