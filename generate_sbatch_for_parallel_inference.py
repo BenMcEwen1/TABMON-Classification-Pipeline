@@ -9,9 +9,16 @@ from datetime import datetime
 today_date = datetime.today().strftime('%Y-%m-%d')
 
 # === CONFIGURATION ===
-N_JOBS = 4  # Number of parallel jobs
+N_JOBS = 10  # Number of parallel jobs
 
-SUBSAMPLE_FACTOR = 10000 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
+MONTH_SELECTION = ["2024-03","2024-04","2024-05"]
+
+
+# useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
+USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
+
+
+SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 random.seed(11)
 
 #DATASET_PATH = "audio/test_bugg/" 
@@ -26,6 +33,7 @@ RESULT_FILES_FOLDER = "result_files"
 META_DATA_PATH = "Bugg deployment form.csv"
 META_DATA_DF = pd.read_csv(os.path.join(DATASET_PATH, META_DATA_PATH) , encoding='utf-8')
 
+
 def get_device_ID(bugg_folder_name):
     """Get device ID (last digits afters 0000000) from the bugg folder name."""
     indices = [i for i, char in enumerate(bugg_folder_name) if char == '0']
@@ -34,12 +42,12 @@ def get_device_ID(bugg_folder_name):
     last_zero_index = np.where(change_indices != 0)[0][0]
     return bugg_folder_name[indices[last_zero_index]+1:]
 
-try :
-    with open(os.path.join(PIPE_LINE_PATH, 'already_processed_files.txt'), 'r') as file:
-        already_processed_files = [line.strip() for line in file]
-except:
-    print("No file with the list of already processed files")
-    already_processed_files = []
+
+def get_file_date(bugg_file_name):
+    """Get file year-month"""
+    fulldate = bugg_file_name.split("-")
+    year_month = fulldate[0] + '-' + fulldate[1]
+    return year_month
 
 
 
@@ -53,6 +61,7 @@ for country_folder in COUNTRY_FOLDERS_LIST:
     ## loop over bugg folders
     for bugg_folder in bugg_folder_list:
 
+        print(country_folder,bugg_folder)
         #Get metadata 
         bugg_ID = get_device_ID(bugg_folder)
 
@@ -68,26 +77,30 @@ for country_folder in COUNTRY_FOLDERS_LIST:
             
             ## loop over conf folders (if in the future there is more than one conf file per bugg)
             for conf_folder in conf_folder_list:
-                recording_files = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, conf_folder)) if f.endswith(".mp3")]
 
-                #Subsample the list, for testing
-                sample_size = int(len(recording_files)/SUBSAMPLE_FACTOR)
-                recording_files = random.sample(recording_files, sample_size)
+                if [bugg_ID, conf_folder] not in USELESS_BUGGS:
 
-                for file in recording_files:
-                    if os.path.join(country_folder, bugg_folder, conf_folder, file) not in already_processed_files:
-                        data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long) ]
-                        files_data.append(data)
-                        already_processed_files.append(os.path.join(country_folder, bugg_folder, conf_folder, file))
+                    recording_files = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, conf_folder)) if f.endswith(".mp3")]
+
+                    #Subsample the list, for testing
+                    sample_size = int(len(recording_files)/SUBSAMPLE_FACTOR)
+                    recording_files = random.sample(recording_files, sample_size)
+
+                    for file in recording_files:
+                        
+                        file_year_month = get_file_date(file)
+
+                        if file_year_month in MONTH_SELECTION:
+
+                            data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long) ]
+                            files_data.append(data)
+                else :
+                    print([bugg_ID, conf_folder], " in list of not usable buggs")
         else:
             print("No metadata for ", country_folder, bugg_folder)
 
 
 
-# Export list the list of already processed files
-with open(os.path.join(PIPE_LINE_PATH,'already_processed_files.txt'), 'w') as file:
-    for item in already_processed_files:
-        file.write(f"{item}\n")
 
 
 # === SPLIT FILES INTO CHUNKS ===
@@ -125,7 +138,7 @@ SBATCH_TEMPLATE = f"""#!/bin/bash
 #SBATCH --cpus-per-task=2  
 #SBATCH --nodes=1                
 #SBATCH --mem-per-cpu=4G        
-#SBATCH --time=1-24:00:00    
+#SBATCH --time=7-00:00:00    
   
 
 echo "Executing on the machine:" $(hostname)
