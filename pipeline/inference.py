@@ -4,7 +4,7 @@ from pipeline.util import *
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 @display_time
-def renormalizedEntropy(outputs:torch.tensor, top_k:int=3):
+def renormalizedEntropy(outputs:torch.tensor, top_k:int=5):
     uncertainty = []
 
     for confidences in outputs:
@@ -52,7 +52,7 @@ def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
     return uncertainty
 
 
-def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool=True, top_k:int=3):
+def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool=True, top_k:int=5):
     """
     Calculate aggregated uncertainty (entropy) for a batch of multi-label classes.
     Binary Entropy - https://en.wikipedia.org/wiki/Binary_entropy_function
@@ -86,7 +86,7 @@ def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool
 
 
 @display_time
-def k_predictions(confidence_batch, energy_scores, filename, species_list, predictions:dict={}, k:int=3, length:int=3, confidence_threshold:float=0.0, energy_metric:str="ROItotal", energy_threshold:float=0.0, filter_list:list=None):
+def k_predictions(confidence_batch, energy_scores, filename, species_list, predictions:dict={}, k:int=5, length:int=3, confidence_threshold:float=0.0, energy_metric:str="ROItotal", energy_threshold:float=0.0, filter_list:list=None):
     species_name = load_species_list(species_list)
 
     if filter_list:
