@@ -87,9 +87,11 @@ def normalise(predictions, db):
             db.add(prediction)
     try:
         db.commit()
+        print("Write successful")
         return {"status": "data added successfully"}
     except Exception as error:
         db.rollback()
+        print(f"Write failed: {error}")
         return None
 
 def segmentsWithPredictions(segments, db):
