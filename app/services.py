@@ -1,7 +1,7 @@
 import torch
 import faiss
 import os
-from app.database import SessionLocal, Device, Audio, Segment, Predictions
+from app.database import Device, Audio, Segment, Predictions
 from types import SimpleNamespace
 from sqlalchemy import and_, cast, JSON
 import pandas as pd

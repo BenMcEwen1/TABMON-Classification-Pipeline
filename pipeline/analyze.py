@@ -3,6 +3,7 @@ from pipeline.models import run_algorithm
 from app.schema import PipelineSchema
 from app.services import normalise
 from app.database import SessionLocal
+from sqlalchemy.exc import OperationalError
 
 
 start_time = time.time()
@@ -21,21 +22,36 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 
 def run(args, db=None, id="wabad"):
     args = PipelineSchema(**vars(args)) # Additional validation
-    _, predictions = run_algorithm(args, id)
+    # _, predictions = run_algorithm(args, id)
+    predictions = pd.read_csv(f"{current_dir}/outputs/top_k_predictions.csv")
     if predictions is None:
         print(f"Skipping audio file {args.i}")
         return None
-
+    
     if db:
         status = normalise(predictions, db)
     else:
-        db = SessionLocal()
         status = None
         attempts = 1
-        while status is None and attempts < 10:
-            status = normalise(predictions, db)
-            if status is None:
-                print(f"[Database write failed] attempt {attempts}, retying...")
+        while status is None and attempts < 20:
+            try:
+                session = SessionLocal()
+                db = session()
+                status = normalise(predictions, db)
+            except OperationalError:  # Specifically catch SQLite lock errors
+                print(f"[Database locked] attempt {attempts}, retrying...")
+                time.sleep(5)  # Short delay before retrying
+            except Exception as e:
+                print(f"[Unexpected error]: {e}")  # Catch other unexpected errors
+                break  # Exit loop on unknown errors
+            finally:
+                if "db" in locals():
+                    db.close()  # Always close the session properly
+            #     except Exception as e:
+            #         print("Database locked")
+
+            # if status is None:
+            #     print(f"[Database write failed] attempt {attempts}, retying...")
             attempts += 1
         db.close()
     return status

@@ -1,8 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, JSON,  DateTime, ForeignKey, create_engine
+import os
+from sqlalchemy import Column, Integer, String, Float, JSON, DateTime, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Database URL
@@ -10,10 +10,15 @@ DATABASE_URL = f"sqlite:///{current_dir}/database.db"
 
 # SQLAlchemy Setup
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 30})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def SessionLocal():
+    """Returns a new session instance instead of creating one globally."""
+    session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return session
+
 Base = declarative_base()
 
-# Device 
+# Define models (unchanged)
 class Device(Base):
     __tablename__ = "devices"
     id = Column(Integer, primary_key=True, index=True)
@@ -22,27 +27,21 @@ class Device(Base):
     lat = Column(Float)
     lng = Column(Float)
     date_deployed = Column(DateTime)
-
     model_name = Column(String)
     model_checkpoint = Column(String)
     date_updated = Column(DateTime)
-
     audio_files = relationship("Audio", back_populates="device")
 
-# Audio File 
 class Audio(Base):
     __tablename__ = "audio"
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, index=True)
     sample_rate = Column(Integer)
     date_recorded = Column(DateTime)
-
     device_id = Column(Integer, ForeignKey("devices.id"))
-
     device = relationship("Device", back_populates="audio_files")
     segments = relationship("Segment", back_populates="audio_file")
 
-# Segment
 class Segment(Base):
     __tablename__ = "segments"
     id = Column(Integer, primary_key=True, index=True)
@@ -53,27 +52,30 @@ class Segment(Base):
     energy = Column(JSON)
     date_processed = Column(DateTime)
     embedding_id = Column(Integer, index=True)
-
-    # Human Annotations
     label = Column(String, index=True)
     notes = Column(String)
-
     audio_id = Column(Integer, ForeignKey("audio.id"))
-
     audio_file = relationship("Audio", back_populates="segments")
     predictions = relationship("Predictions", back_populates="segment")
 
-# Prediction
 class Predictions(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
-
-    # Model Predictions
     predicted_species = Column(String, index=True)
     confidence = Column(Float)
-
     segment_id = Column(Integer, ForeignKey("segments.id"))
     segment = relationship("Segment", back_populates="predictions")
 
+# ✅ Move the initialization logic into a function
+def initialize_database():
+    """Create tables if they do not exist, using a lock file to prevent multiple initializations."""
+    lock_file = "./db_init.lock"
+    if not os.path.exists(lock_file):
+        with open(lock_file, "w") as f:
+            f.write("Initializing DB")
+        
+        print("Creating tables...")
+        Base.metadata.create_all(bind=engine)  # Create tables
+        print("Tables created.")
 
-Base.metadata.create_all(bind=engine)
+        os.remove(lock_file)  # Remove lock after success

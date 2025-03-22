@@ -8,7 +8,7 @@ import torch
 import faiss
 
 # Absolute imports
-from app.database import SessionLocal, Device, Audio, Segment, Predictions
+from app.database import SessionLocal, initialize_database, Device, Audio, Segment, Predictions
 from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema, PipelineSchema
 from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten, normalise
 from pipeline.analyze import run
@@ -43,7 +43,9 @@ app.add_middleware(
 
 # Dependency: Get a database session
 def get_db():
-    db = SessionLocal()
+    initialize_database() 
+    session = SessionLocal()
+    db = session()
     try:
         yield db
     finally:
