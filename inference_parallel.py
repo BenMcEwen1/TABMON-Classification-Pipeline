@@ -5,6 +5,7 @@ import time
 import ast
 import psutil
 from pipeline.analyze import run
+from app.database import initialize_database
 from types import SimpleNamespace
 import numpy as np
 
@@ -36,6 +37,8 @@ def print_time_information(time_start, i, number_of_files):
 if __name__ == "__main__":
     time_start = time.time()
     i = 0
+
+    initialize_database() # Each process initializes the database
 
     chunk_file = sys.argv[1] 
     job_id = chunk_file.split('_')[-1].split('.')[0] #job identifier based on the chunk name

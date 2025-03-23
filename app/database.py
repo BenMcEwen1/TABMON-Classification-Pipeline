@@ -66,16 +66,12 @@ class Predictions(Base):
     segment_id = Column(Integer, ForeignKey("segments.id"))
     segment = relationship("Segment", back_populates="predictions")
 
-# ✅ Move the initialization logic into a function
+# Initialize database
 def initialize_database():
-    """Create tables if they do not exist, using a lock file to prevent multiple initializations."""
-    lock_file = "./db_init.lock"
-    if not os.path.exists(lock_file):
-        with open(lock_file, "w") as f:
-            f.write("Initializing DB")
-        
+    try:
         print("Creating tables...")
         Base.metadata.create_all(bind=engine)  # Create tables
         print("Tables created.")
-
-        os.remove(lock_file)  # Remove lock after success
+    except:
+        print("Tables being created...")
+        pass
