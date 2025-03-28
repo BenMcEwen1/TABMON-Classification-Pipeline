@@ -22,8 +22,8 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 
 def run(args, db=None, id="wabad"):
     args = PipelineSchema(**vars(args)) # Additional validation
-    # _, predictions = run_algorithm(args, id)
-    predictions = pd.read_csv(f"{current_dir}/outputs/top_k_predictions.csv")
+    _, predictions = run_algorithm(args, id)
+
     if predictions is None:
         print(f"Skipping audio file {args.i}")
         return None
@@ -33,27 +33,29 @@ def run(args, db=None, id="wabad"):
     else:
         status = None
         attempts = 1
-        while status is None and attempts < 20:
+        while status is None and attempts <= 20:
             try:
                 session = SessionLocal()
                 db = session()
                 status = normalise(predictions, db)
-            except OperationalError:  # Specifically catch SQLite lock errors
+            except OperationalError as e:  # Specifically catch SQLite lock errors
+                print(e)
                 print(f"[Database locked] attempt {attempts}, retrying...")
-                time.sleep(5)  # Short delay before retrying
+                time.sleep(1)  # Short delay before retrying
             except Exception as e:
                 print(f"[Unexpected error]: {e}")  # Catch other unexpected errors
                 break  # Exit loop on unknown errors
             finally:
                 if "db" in locals():
                     db.close()  # Always close the session properly
-            #     except Exception as e:
-            #         print("Database locked")
-
-            # if status is None:
-            #     print(f"[Database write failed] attempt {attempts}, retying...")
             attempts += 1
         db.close()
+
+    if status is None:
+        print(f"Failed to process {args.i} after 20 attempts.")
+        filename = os.path.splitext(os.path.basename(args.i))[0]
+        os.makedirs(f"{current_dir}/outputs/failed", exist_ok=True)
+        predictions.to_csv(f"{current_dir}/outputs/failed/{filename}.csv", index=False)
     return status
 
 if __name__ == "__main__":

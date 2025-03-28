@@ -35,9 +35,15 @@ def normalise(predictions, db):
     for _,row in audio_data.iterrows():
         existing_audio = db.query(Audio).filter(Audio.filename == row["filename"]).first()
         if not existing_audio:
+            filename = row['filename']
+            try:
+                date_obj = datetime.strptime(filename.split(".")[0], "%Y-%m-%dT%H_%M_%S")
+            except:
+                date_obj = None
             audio = Audio(
-                filename=row["filename"],
+                filename=filename,
                 device_id=device_map[row["device_id"]],
+                date_recorded=date_obj
             )
             db.add(audio)
             db.flush()

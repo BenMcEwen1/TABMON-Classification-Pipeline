@@ -11,7 +11,7 @@ def lock_database():
     try:
         session.execute(text("BEGIN EXCLUSIVE TRANSACTION;"))  # Lock DB for writes
         print("Lock acquired. Holding for 60 seconds...")
-        time.sleep(60)  # Simulate a long-running write operation
+        time.sleep(500)  # Simulate a long-running write operation
     finally:
         session.commit()  # Release lock
         session.close()

@@ -41,9 +41,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers (e.g., Content-Type, Authorization)
 )
 
+initialize_database()
+
 # Dependency: Get a database session
 def get_db():
-    initialize_database() 
     session = SessionLocal()
     db = session()
     try:
@@ -260,3 +261,19 @@ def delete_prediction(prediction_id: int, db: Session = Depends(get_db)):
     db.delete(db_prediction)
     db.commit()
     return {"detail": "Prediction deleted successfully"}
+
+
+@app.put("/dates", tags=["Patches"])
+def update_dates(db: Session = Depends(get_db)):
+    audio_obj = db.query(Audio).all()
+    for audio in audio_obj:
+        if not audio.date_recorded:
+            filename = audio.filename
+            try:
+                audio.date_recorded = datetime.strptime(filename.split(".")[0], "%Y-%m-%dT%H_%M_%S")
+                flag_modified(audio, "date_recorded")
+                db.commit()
+            except:
+                print(f"Failed to parse date for {filename}")
+                pass
+    return audio
