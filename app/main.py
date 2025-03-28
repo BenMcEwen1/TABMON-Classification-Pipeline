@@ -10,7 +10,7 @@ import faiss
 # Absolute imports
 from app.database import SessionLocal, initialize_database, Device, Audio, Segment, Predictions
 from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema, PipelineSchema
-from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten, normalise
+from app.services import add_embedding, apply_filters, segmentsWithPredictions, flatten, normalise
 from pipeline.analyze import run
 from pipeline.util import load_species_list
 
@@ -22,6 +22,7 @@ import tempfile
 from pathlib import Path
 import zipfile
 import os
+from types import SimpleNamespace
 
 
 app = FastAPI()
@@ -77,13 +78,12 @@ async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
 
 @app.post("/retrieve/")
 def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
-    segments,_ = apply_filters_body(filters, db)
+    segments,_ = apply_filters(filters, db)
     return segments
 
 @app.get("/count")
 def count(db:Session=Depends(get_db)):
     return len(db.query(Segment).all())
-
 
 
 @app.get("/export/", tags=["Sampling"])
@@ -98,7 +98,7 @@ def export(start_date: datetime | None = None,
            energy: float | None = None,
            annotated: bool | None = None,
            embeddings: bool = False,
-           limit: int | None = 100,
+           query_limit: int | None = 100,
            db:Session=Depends(get_db)):
     
     EMBEDDING_DIR = "./audio/embeddings/"
@@ -107,7 +107,8 @@ def export(start_date: datetime | None = None,
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     filters = locals()
-    results, segments = apply_filters(filters)
+    parameters = SimpleNamespace(**filters)
+    results, segments = apply_filters(parameters, db)
 
     if embeddings:
         filenames = [os.path.join(EMBEDDING_DIR, f'{segment.filename[:-4].lower()}.pt') for segment in segments]

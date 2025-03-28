@@ -2,8 +2,8 @@ import torch
 import faiss
 import os
 from app.database import Device, Audio, Segment, Predictions
-from types import SimpleNamespace
 from sqlalchemy import and_, cast, JSON
+from sqlalchemy.orm import selectinload
 import pandas as pd
 from datetime import datetime
 
@@ -109,47 +109,15 @@ def segmentsWithPredictions(segments, db):
     ]
     return results
 
-def apply_filters_body(parameters, db):
-    query = db.query(Predictions).join(Segment).join(Audio)
+def apply_filters(parameters, db):
+    # Start query from Segments instead of Predictions
+    query = db.query(Segment)\
+        .join(Audio)\
+        .join(Device)\
+        .options(selectinload(Segment.predictions))  # Optimized relationship loading
 
     filters = []
-    if parameters.country:
-        filters.append(Device.country == parameters.country)
-    if parameters.device_id:
-        filters.append(Device.device_id == parameters.device_id)
-    if parameters.start_date:
-        filters.append(Audio.date_recorded >= parameters.start_date)
-    if parameters.end_date:
-        filters.append(Audio.date_recorded <= parameters.end_date)
-    if parameters.energy is not None and parameters.indice is not None:
-        indice = parameters.indice
-        filters.append(cast(Segment.energy[indice], JSON) >= parameters.energy)
-    if parameters.uncertainty is not None:
-        filters.append(Segment.uncertainty >= parameters.uncertainty)
-    if parameters.confidence is not None:
-        filters.append(Predictions.confidence >= parameters.confidence)
-    if parameters.annotated:
-        filters.append(Segment.label != None)
-    if parameters.predicted_species:
-        filters.append(Predictions.predicted_species in parameters.predicted_species)
-
-    # Apply filters if any
-    if filters:
-        query = query.filter(and_(*filters))
-
-    segment_ids = [prediction.segment_id for prediction in query]
-    segment_ids = list(dict.fromkeys(segment_ids)) # deduplicate
-    segments = [db.query(Segment).filter(Segment.id == segment_id).first()  for segment_id in segment_ids]
     
-    if parameters.query_limit is not None:
-        segments = segments[:parameters.query_limit]
-    return segmentsWithPredictions(segments, db), segments
-
-def apply_filters(filters):
-    parameters = SimpleNamespace(**filters)
-    query = parameters.db.query(Predictions).join(Segment).join(Audio)
-
-    filters = []
     if parameters.country:
         filters.append(Device.country == parameters.country)
     if parameters.device_id:
@@ -159,25 +127,32 @@ def apply_filters(filters):
     if parameters.end_date:
         filters.append(Audio.date_recorded <= parameters.end_date)
     if parameters.energy is not None and parameters.indice is not None:
-        indice = parameters.indice
-        filters.append(cast(Segment.energy[indice], JSON) >= parameters.energy)
+        filters.append(cast(Segment.energy[parameters.indice], JSON) >= parameters.energy)
     if parameters.uncertainty is not None:
         filters.append(Segment.uncertainty >= parameters.uncertainty)
-    if parameters.confidence is not None:
-        filters.append(Predictions.confidence >= parameters.confidence)
     if parameters.annotated:
         filters.append(Segment.label != None)
-    if parameters.predicted_species:
-        filters.append(Predictions.predicted_species == parameters.predicted_species)
 
-    # Apply filters if any
+    # Filtering Predictions within the same query
+    if parameters.predicted_species or parameters.confidence is not None:
+        query = query.join(Predictions)  # Join Predictions table
+        if parameters.predicted_species:
+            filters.append(Predictions.predicted_species == parameters.predicted_species)
+        if parameters.confidence is not None:
+            filters.append(Predictions.confidence >= parameters.confidence)
+
+    # Apply filters
     if filters:
         query = query.filter(and_(*filters))
 
-    segment_ids = [prediction.segment_id for prediction in query]
-    segment_ids = list(dict.fromkeys(segment_ids)) # deduplicate
-    segments = [parameters.db.query(Segment).filter(Segment.id == segment_id).limit(parameters.limit).first()  for segment_id in segment_ids]
-    return segmentsWithPredictions(segments, parameters.db), segments
+    # Apply ordering if needed (e.g., newest segments first)
+    query = query.order_by(Segment.id.desc())
+
+    # Apply limit for performance
+    query = query.limit(parameters.query_limit)
+
+    segments = query.all()  # Single optimized DB query
+    return segmentsWithPredictions(segments, db), segments
 
 def flatten(data, BASE_DIR, timestamp):
         # Flatten data
