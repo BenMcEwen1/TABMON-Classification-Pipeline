@@ -1,9 +1,12 @@
-from pipeline.config import *
+import time
+import os
+import argparse
+from sqlalchemy.exc import OperationalError
+
 from pipeline.models import run_algorithm
 from app.schema import PipelineSchema
 from app.services import normalise
 from app.database import SessionLocal
-from sqlalchemy.exc import OperationalError
 
 
 start_time = time.time()
@@ -19,6 +22,7 @@ parser.add_argument('--lat', type=float, default=None, help='Latitude for geogra
 parser.add_argument('--lng', type=float, default=None, help='Longitude for geographic filtering.')
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
 parser.add_argument('--model_checkpoint', type=str, default=None, help='Model checkpoint - base if not specified.')
+
 
 def run(args, db=None, id="wabad"):
     args = PipelineSchema(**vars(args)) # Additional validation
@@ -41,7 +45,7 @@ def run(args, db=None, id="wabad"):
             except OperationalError as e:  # Specifically catch SQLite lock errors
                 print(e)
                 print(f"[Database locked] attempt {attempts}, retrying...")
-                time.sleep(1)  # Short delay before retrying
+                time.sleep(5)  # Short delay before retrying
             except Exception as e:
                 print(f"[Unexpected error]: {e}")  # Catch other unexpected errors
                 break  # Exit loop on unknown errors

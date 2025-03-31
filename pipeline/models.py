@@ -1,8 +1,6 @@
-from pipeline.config import *
 from pipeline.dataset import *
 from pipeline.inference import *
 from pipeline.util import *
-
 from pipeline.passt.base import get_basic_model, get_model_passt
 
 current_dir = os.path.dirname(os.path.abspath(__file__))

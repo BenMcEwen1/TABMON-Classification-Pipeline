@@ -21,4 +21,7 @@ pipeline/outputs/temp
 *.err
 *.out
 *.db
+*.db-shm
+*.db-wal
 *.bin
+*.csv

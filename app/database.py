@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import Column, Integer, String, Float, JSON, DateTime, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Float, JSON, DateTime, ForeignKey, create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -10,6 +10,14 @@ DATABASE_URL = f"sqlite:///{current_dir}/database.db"
 
 # SQLAlchemy Setup
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 30})
+
+# Define a listener function to set PRAGMA values
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL;")  # Enables Write-Ahead Logging
+    cursor.execute("PRAGMA synchronous=NORMAL;")  # Adjusts synchronization mode for better performance
+    cursor.close()
 
 def SessionLocal():
     """Returns a new session instance instead of creating one globally."""
@@ -51,8 +59,8 @@ class Segment(Base):
     uncertainty = Column(Float)
     energy = Column(JSON)
     date_processed = Column(DateTime)
-    embedding_id = Column(Integer, index=True)
-    label = Column(String, index=True)
+    embedding_id = Column(Integer)
+    label = Column(String)
     notes = Column(String)
     audio_id = Column(Integer, ForeignKey("audio.id"))
     audio_file = relationship("Audio", back_populates="segments")
@@ -61,7 +69,7 @@ class Segment(Base):
 class Predictions(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
-    predicted_species = Column(String, index=True)
+    predicted_species = Column(String)
     confidence = Column(Float)
     segment_id = Column(Integer, ForeignKey("segments.id"))
     segment = relationship("Segment", back_populates="predictions")

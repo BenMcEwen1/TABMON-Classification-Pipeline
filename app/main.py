@@ -76,9 +76,13 @@ async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
     # status = normalise(predictions, db)
     return predictions
 
+import time
 @app.post("/retrieve/")
 def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
+    start = time.time()
     segments,_ = apply_filters(filters, db)
+    end = time.time()
+    print(f"Time taken to retrieve: {end - start} seconds")
     return segments
 
 @app.get("/count")
@@ -190,8 +194,6 @@ def delete_device(device_id:str, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Device deleted successfully"}
 
-
-
 @app.get("/segments/", response_model=list[SegmentSchema], tags=["Segments"])
 def read_segment(db: Session = Depends(get_db)):
     return db.query(Segment).all()
@@ -278,3 +280,7 @@ def update_dates(db: Session = Depends(get_db)):
                 print(f"Failed to parse date for {filename}")
                 pass
     return audio
+
+@app.get("/audio", response_model=list[AudioSchema], tags=["Audio"])
+def read_audio(db: Session = Depends(get_db)):
+    return db.query(Audio).all()

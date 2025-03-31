@@ -1,4 +1,3 @@
-from pipeline.config import *
 from pipeline.util import *
 
 current_dir = os.path.dirname(os.path.abspath(__file__))

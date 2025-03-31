@@ -6,94 +6,135 @@ from sqlalchemy import and_, cast, JSON
 from sqlalchemy.orm import selectinload
 import pandas as pd
 from datetime import datetime
+import time
 
 def normalise(predictions, db):
     """
-    This function normalised the database i.e. splits one large table into smaller linked tables so that data can be more efficiently queried.
+    Optimized function to normalize the database by splitting it into smaller linked tables.
     """
-    device_map = {}
-    device = predictions[["device_id", "lat", "lng", "model", "model_checkpoint"]].drop_duplicates()
-    for _,row in predictions.iterrows():
-        existing_device = db.query(Device).filter(Device.device_id == row["device_id"]).first()
-        if not existing_device:
-            device = Device(
-                device_id = row["device_id"],
-                lat = row["lat"],
-                lng = row["lng"],
-                model_name = row["model"],
-                model_checkpoint = row["model_checkpoint"],
-                date_updated = datetime.now()
-            )
-            db.add(device)
-            db.flush()
-            device_map[row["device_id"]] = device.id
-        else:
-            device_map[row["device_id"]] = existing_device.id
+    start = time.time()
+    # Fetch existing devices, audio, and segments in bulk
+    existing_devices = {d.device_id: d.id for d in db.query(Device).all()}
+    existing_audio = {a.filename: a.id for a in db.query(Audio).all()}
+    existing_segments = {
+        (s.audio_id, s.start_time): s.id for s in db.query(Segment).all()
+    }
 
+    # Prepare bulk insert lists
+    new_devices = []
+    new_audio = []
+    new_segments = []
+    new_predictions = []
+
+    # Device mapping
+    device_map = {}
+    for _, row in predictions.iterrows():
+        if row["device_id"] not in existing_devices and row["device_id"] not in device_map:
+            new_device = Device(
+                device_id=row["device_id"],
+                lat=row["lat"],
+                lng=row["lng"],
+                model_name=row["model"],
+                model_checkpoint=row["model_checkpoint"],
+                date_updated=datetime.now(),
+            )
+            new_devices.append(new_device)
+            device_map[row["device_id"]] = None  # Placeholder for ID
+        else:
+            device_map[row["device_id"]] = existing_devices.get(row["device_id"])
+
+    # Bulk insert devices and update device_map
+    db.add_all(new_devices)
+    db.flush()  # Assign IDs to new devices
+    for device in new_devices:
+        device_map[device.device_id] = device.id
+
+    # Audio mapping
     audio_id_map = {}
-    audio_data = predictions[["filename", "device_id"]]
-    for _,row in audio_data.iterrows():
-        existing_audio = db.query(Audio).filter(Audio.filename == row["filename"]).first()
-        if not existing_audio:
-            filename = row['filename']
+    for _, row in predictions.iterrows():
+        if row["filename"] not in existing_audio and row["filename"] not in audio_id_map:
             try:
-                date_obj = datetime.strptime(filename.split(".")[0], "%Y-%m-%dT%H_%M_%S")
+                date_obj = datetime.strptime(row["filename"].split(".")[0], "%Y-%m-%dT%H_%M_%S")
             except:
                 date_obj = None
-            audio = Audio(
-                filename=filename,
-                device_id=device_map[row["device_id"]],
-                date_recorded=date_obj
+            new_audio.append(
+                Audio(
+                    filename=row["filename"],
+                    device_id=device_map[row["device_id"]],
+                    date_recorded=date_obj,
+                )
             )
-            db.add(audio)
-            db.flush()
-            audio_id_map[row["filename"]] = audio.id
-        else: 
-            audio_id_map[row["filename"]] = existing_audio.id
+            audio_id_map[row["filename"]] = None  # Placeholder for ID
+        else:
+            audio_id_map[row["filename"]] = existing_audio.get(row["filename"])
 
+    # Bulk insert audio and update audio_id_map
+    db.add_all(new_audio)
+    db.flush()  # Assign IDs to new audio
+    for audio in new_audio:
+        audio_id_map[audio.filename] = audio.id
+
+    # Segment mapping
     segment_id_map = {}
-    segment_data = predictions[["filename", "device_id", "start time", "uncertainty", "energy"]]
-    for _,row in segment_data.iterrows():
-        existing_segment = db.query(Segment).filter(Segment.audio_id == audio_id_map[row["filename"]], Segment.start_time == row['start time']).first()
-        index = int(row["start time"]/3)
-        
-        if not existing_segment:
-            segment = Segment(
-                start_time=row["start time"],
-                filename=os.path.splitext(row["filename"])[0] + f"_{row['device_id']}_{index}.wav",
-                duration=3,
-                uncertainty=row["uncertainty"],
-                energy=row["energy"],
-                date_processed=datetime.now(),
-                label=None,
-                notes=None,
-                audio_id=audio_id_map[row["filename"]],
-                embedding_id=1
-            )
-            db.add(segment)
-            db.flush()
-            segment_id_map[(row["filename"], row["start time"])] = segment.id
-        else: 
-            segment_id_map[(row["filename"], row["start time"])] = existing_segment.id
+    for _, row in predictions.iterrows():
+        key = (audio_id_map[row["filename"]], row["start time"])
+        if key not in existing_segments and key not in segment_id_map:
+            index = int(row["start time"] / 3)
 
-    prediction_data = predictions[["filename", "scientific name", "confidence", "start time"]]
-    for _, row in prediction_data.iterrows():
+            if type(row["energy"]) == str:
+                row["energy"] = eval(row["energy"])
+
+            new_segments.append(
+                Segment(
+                    start_time=row["start time"],
+                    filename=os.path.splitext(row["filename"])[0]
+                    + f"_{row['device_id']}_{index}.wav",
+                    duration=3,
+                    uncertainty=row["uncertainty"],
+                    energy=row["energy"],
+                    date_processed=datetime.now(),
+                    label=None,
+                    notes=None,
+                    audio_id=audio_id_map[row["filename"]],
+                    embedding_id=1,
+                )
+            )
+            segment_id_map[key] = None  # Placeholder for ID
+        else:
+            segment_id_map[key] = existing_segments.get(key)
+
+    # Bulk insert segments and update segment_id_map
+    db.add_all(new_segments)
+    db.flush()  # Assign IDs to new segments
+    for segment in new_segments:
+        segment_id_map[(segment.audio_id, segment.start_time)] = segment.id
+
+    # Predictions
+    for _, row in predictions.iterrows():
+        audio_id = audio_id_map[row["filename"]]
+        key = (audio_id, row["start time"])
+        segment_id = segment_id_map[key]
         existing_prediction = db.query(Predictions).filter(
             Predictions.predicted_species == row["scientific name"],
             Predictions.confidence == row["confidence"],
-            Predictions.segment_id == segment_id_map[(row["filename"], row["start time"])]
-            ).first()
-        
+            Predictions.segment_id == segment_id,
+        ).first()
         if not existing_prediction:
-            prediction = Predictions(
-                predicted_species=row["scientific name"],
-                confidence=row["confidence"],
-                segment_id=segment_id_map[(row["filename"], row["start time"])],  # Link to the segment
+            new_predictions.append(
+                Predictions(
+                    predicted_species=row["scientific name"],
+                    confidence=row["confidence"],
+                    segment_id=segment_id,
+                )
             )
-            db.add(prediction)
+
+    # Bulk insert predictions
+    db.add_all(new_predictions)
+
     try:
         db.commit()
-        print("Write successful")
+        end = time.time()
+        print(f"Write successful in {end - start} seconds")
         return {"status": "data added successfully"}
     except Exception as error:
         db.rollback()
