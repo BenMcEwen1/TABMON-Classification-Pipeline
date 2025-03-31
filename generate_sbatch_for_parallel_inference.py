@@ -11,7 +11,8 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 # === CONFIGURATION ===
 N_JOBS = 10  # Number of parallel jobs
 
-MONTH_SELECTION = ["2024-03","2024-04","2024-05"]
+#Already processed : "2024-03","2024-04"
+MONTH_SELECTION = ["2024-05"]
 
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
@@ -125,7 +126,7 @@ for i in range(N_JOBS):
             f.write(f"{file}\n")
 
 
-print(f"Split {len(files_data)} files into {N_JOBS} chunks.")
+print(f"Split {MONTH_SELECTION} : {len(files_data)} files into {N_JOBS} chunks.")
 
 
 # === CREATE SBATCH FILE ===

@@ -94,7 +94,7 @@ if __name__ == "__main__":
                     print(f"Error parsing line: {line}")
                     print(f"Error: {e}")
 
-            if (number_of_files != 0) and (i % 100 == 0):
+            if (number_of_files != 0) and (i % 10 == 0):
                 print_time_information(time_start, i, number_of_files)
 
     print("End processing")
