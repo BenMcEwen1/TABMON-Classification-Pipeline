@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import Column, Integer, String, Float, JSON, DateTime, ForeignKey, create_engine, event
+from sqlalchemy import Column, Integer, String, Float, JSON, DateTime, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -10,14 +10,6 @@ DATABASE_URL = f"sqlite:///{current_dir}/database.db"
 
 # SQLAlchemy Setup
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 30})
-
-# Define a listener function to set PRAGMA values
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL;")  # Enables Write-Ahead Logging
-    cursor.execute("PRAGMA synchronous=NORMAL;")  # Adjusts synchronization mode for better performance
-    cursor.close()
 
 def SessionLocal():
     """Returns a new session instance instead of creating one globally."""

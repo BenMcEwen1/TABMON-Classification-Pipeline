@@ -87,7 +87,7 @@ def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
 
 @app.get("/count")
 def count(db:Session=Depends(get_db)):
-    return len(db.query(Segment).all())
+    return len(db.query(Audio).all())
 
 
 @app.get("/export/", tags=["Sampling"])
