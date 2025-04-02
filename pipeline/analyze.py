@@ -55,11 +55,14 @@ def run(args, db=None, id="wabad"):
             attempts += 1
         db.close()
 
+    filename = os.path.splitext(os.path.basename(args.i))[0]
     if status is None:
         print(f"Failed to process {args.i} after 20 attempts.")
-        filename = os.path.splitext(os.path.basename(args.i))[0]
         os.makedirs(f"{current_dir}/outputs/failed", exist_ok=True)
         predictions.to_csv(f"{current_dir}/outputs/failed/{filename}.csv", index=False)
+    else:
+        os.makedirs(f"{current_dir}/outputs/success", exist_ok=True)
+        predictions.to_csv(f"{current_dir}/outputs/success/{filename}.csv", index=False)
     return status
 
 if __name__ == "__main__":

@@ -25,3 +25,4 @@ pipeline/outputs/temp
 *.db-wal
 *.bin
 *.csv
+*.sql
