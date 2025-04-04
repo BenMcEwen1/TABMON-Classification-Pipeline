@@ -5,6 +5,7 @@ import time
 import ast
 import psutil
 from pipeline.analyze import run
+from app.database import initialize_database
 from types import SimpleNamespace
 import numpy as np
 
@@ -37,6 +38,8 @@ if __name__ == "__main__":
     time_start = time.time()
     i = 0
 
+    initialize_database() # Each process initializes the database
+
     chunk_file = sys.argv[1] 
     job_id = chunk_file.split('_')[-1].split('.')[0] #job identifier based on the chunk name
 
@@ -61,18 +64,19 @@ if __name__ == "__main__":
                     
                     # Extract the parts as required
                     dataset_path = parts[0]
-                    bugg = parts[1]
-                    conf = parts[2]
-                    file = parts[3]
-                    country = parts[4]
-                    site = parts[5]
-                    lat = parts[6]
-                    long = parts[7]
+                    country_folder = parts[1]
+                    bugg = parts[2]
+                    conf = parts[3]
+                    file = parts[4]
+                    country = parts[5]
+                    site = parts[6]
+                    lat = parts[7]
+                    long = parts[8]
 
                     args = {
                             "slist": 'pipeline/inputs/list_sp_ml.csv',
                             "flist": None,
-                            "i": os.path.join(dataset_path, bugg, conf, file),
+                            "i": os.path.join(dataset_path, country_folder, bugg, conf, file),
                             "device_id": get_device_ID(bugg),
                             "country": country,
                             "lat": lat,
@@ -90,7 +94,7 @@ if __name__ == "__main__":
                     print(f"Error parsing line: {line}")
                     print(f"Error: {e}")
 
-            if (number_of_files != 0) and (i % 100 == 0):
+            if (number_of_files != 0) and (i % 10 == 0):
                 print_time_information(time_start, i, number_of_files)
 
     print("End processing")

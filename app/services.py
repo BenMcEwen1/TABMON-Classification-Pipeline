@@ -1,96 +1,143 @@
-import torch
-import faiss
 import os
-from app.database import SessionLocal, Device, Audio, Segment, Predictions
-from types import SimpleNamespace
+from app.database import Device, Audio, Segment, Predictions
 from sqlalchemy import and_, cast, JSON
+from sqlalchemy.orm import selectinload
 import pandas as pd
 from datetime import datetime
+import time
 
 def normalise(predictions, db):
     """
-    This function normalised the database i.e. splits one large table into smaller linked tables so that data can be more efficiently queried.
+    Normalize the database by splitting it into smaller linked tables.
     """
+    start = time.time()
+    # Fetch existing devices, audio, and segments in bulk
+    existing_devices = {d.device_id: d.id for d in db.query(Device).all()}
+    existing_audio = {a.filename: a.id for a in db.query(Audio).all()}
+    existing_segments = {
+        (s.audio_id, s.start_time): s.id for s in db.query(Segment).all()
+    }
+
+    # Prepare bulk insert lists
+    new_devices = []
+    new_audio = []
+    new_segments = []
+    new_predictions = []
+
+    # Device mapping
     device_map = {}
-    device = predictions[["device_id", "lat", "lng", "model", "model_checkpoint"]].drop_duplicates()
-    for _,row in predictions.iterrows():
-        existing_device = db.query(Device).filter(Device.device_id == row["device_id"]).first()
-        if not existing_device:
-            device = Device(
-                device_id = row["device_id"],
-                lat = row["lat"],
-                lng = row["lng"],
-                model_name = row["model"],
-                model_checkpoint = row["model_checkpoint"],
-                date_updated = datetime.now()
+    for _, row in predictions.iterrows():
+        if row["device_id"] not in existing_devices and row["device_id"] not in device_map:
+            new_device = Device(
+                device_id=row["device_id"],
+                lat=row["lat"],
+                lng=row["lng"],
+                model_name=row["model"],
+                model_checkpoint=row["model_checkpoint"],
+                date_updated=datetime.now(),
             )
-            db.add(device)
-            db.flush()
-            device_map[row["device_id"]] = device.id
+            new_devices.append(new_device)
+            device_map[row["device_id"]] = None  # Placeholder for ID
         else:
-            device_map[row["device_id"]] = existing_device.id
+            device_map[row["device_id"]] = existing_devices.get(row["device_id"])
 
+    # Bulk insert devices and update device_map
+    db.add_all(new_devices)
+    db.flush()  # Assign IDs to new devices
+    for device in new_devices:
+        device_map[device.device_id] = device.id
+
+    # Audio mapping
     audio_id_map = {}
-    audio_data = predictions[["filename", "device_id"]]
-    for _,row in audio_data.iterrows():
-        existing_audio = db.query(Audio).filter(Audio.filename == row["filename"]).first()
-        if not existing_audio:
-            audio = Audio(
-                filename=row["filename"],
-                device_id=device_map[row["device_id"]],
+    for _, row in predictions.iterrows():
+        if row["filename"] not in existing_audio and row["filename"] not in audio_id_map:
+            try:
+                date_obj = datetime.strptime(row["filename"].split(".")[0], "%Y-%m-%dT%H_%M_%S")
+            except:
+                date_obj = None
+            new_audio.append(
+                Audio(
+                    filename=row["filename"],
+                    device_id=device_map[row["device_id"]],
+                    date_recorded=date_obj,
+                )
             )
-            db.add(audio)
-            db.flush()
-            audio_id_map[row["filename"]] = audio.id
-        else: 
-            audio_id_map[row["filename"]] = existing_audio.id
+            audio_id_map[row["filename"]] = None  # Placeholder for ID
+        else:
+            audio_id_map[row["filename"]] = existing_audio.get(row["filename"])
 
+    # Bulk insert audio and update audio_id_map
+    db.add_all(new_audio)
+    db.flush()  # Assign IDs to new audio
+    for audio in new_audio:
+        audio_id_map[audio.filename] = audio.id
+
+    # Segment mapping
     segment_id_map = {}
-    segment_data = predictions[["filename", "start time", "uncertainty", "energy"]]
-    for _,row in segment_data.iterrows():
-        existing_segment = db.query(Segment).filter(Segment.audio_id == audio_id_map[row["filename"]], Segment.start_time == row['start time']).first()
-        index = int(row["start time"]/3)
-        
-        if not existing_segment:
-            segment = Segment(
-                start_time=row["start time"],
-                filename=os.path.splitext(row["filename"])[0] + f"_{index}.wav",
-                duration=3,
-                uncertainty=row["uncertainty"],
-                energy=row["energy"],
-                date_processed=datetime.now(),
-                label=None,
-                notes=None,
-                audio_id=audio_id_map[row["filename"]],
-                embedding_id=1
-            )
-            db.add(segment)
-            db.flush()
-            segment_id_map[(row["filename"], row["start time"])] = segment.id
-        else: 
-            segment_id_map[(row["filename"], row["start time"])] = existing_segment.id
+    for _, row in predictions.iterrows():
+        key = (audio_id_map[row["filename"]], row["start time"])
+        if key not in existing_segments and key not in segment_id_map:
+            index = int(row["start time"] / 3)
 
-    prediction_data = predictions[["filename", "scientific name", "confidence", "start time"]]
-    for _, row in prediction_data.iterrows():
+            if type(row["energy"]) == str:
+                row["energy"] = eval(row["energy"])
+
+            new_segments.append(
+                Segment(
+                    start_time=row["start time"],
+                    filename=os.path.splitext(row["filename"])[0]
+                    + f"_{row['device_id']}_{index}.wav",
+                    duration=3,
+                    uncertainty=row["uncertainty"],
+                    energy=row["energy"],
+                    date_processed=datetime.now(),
+                    label=None,
+                    notes=None,
+                    audio_id=audio_id_map[row["filename"]],
+                    embedding_id=1,
+                )
+            )
+            segment_id_map[key] = None  # Placeholder for ID
+        else:
+            segment_id_map[key] = existing_segments.get(key)
+
+    # Bulk insert segments and update segment_id_map
+    db.add_all(new_segments)
+    db.flush()
+    for segment in new_segments:
+        segment_id_map[(segment.audio_id, segment.start_time)] = segment.id
+
+    # Predictions
+    for _, row in predictions.iterrows():
+        audio_id = audio_id_map[row["filename"]]
+        key = (audio_id, row["start time"])
+        segment_id = segment_id_map[key]
         existing_prediction = db.query(Predictions).filter(
             Predictions.predicted_species == row["scientific name"],
             Predictions.confidence == row["confidence"],
-            Predictions.segment_id == segment_id_map[(row["filename"], row["start time"])]
-            ).first()
-        
+            Predictions.segment_id == segment_id,
+        ).first()
         if not existing_prediction:
-            prediction = Predictions(
-                predicted_species=row["scientific name"],
-                confidence=row["confidence"],
-                segment_id=segment_id_map[(row["filename"], row["start time"])],  # Link to the segment
+            new_predictions.append(
+                Predictions(
+                    predicted_species=row["scientific name"],
+                    confidence=row["confidence"],
+                    segment_id=segment_id,
+                )
             )
-            db.add(prediction)
+
+    # Bulk insert predictions
+    db.add_all(new_predictions)
+
     try:
         db.commit()
+        end = time.time()
+        print(f"Write successful in {end - start} seconds")
         return {"status": "data added successfully"}
     except Exception as error:
         db.rollback()
-        return {"status": f"failed to add data - {error}"}
+        print(f"Write failed: {error}")
+        return None
 
 def segmentsWithPredictions(segments, db):
     results = [{
@@ -101,47 +148,15 @@ def segmentsWithPredictions(segments, db):
     ]
     return results
 
-def apply_filters_body(parameters, db):
-    query = db.query(Predictions).join(Segment).join(Audio)
+def apply_filters(parameters, db):
+    # Start query from Segments instead of Predictions
+    query = db.query(Segment)\
+        .join(Audio)\
+        .join(Device)\
+        .options(selectinload(Segment.predictions))  # Optimized relationship loading
 
     filters = []
-    if parameters.country:
-        filters.append(Device.country == parameters.country)
-    if parameters.device_id:
-        filters.append(Device.device_id == parameters.device_id)
-    if parameters.start_date:
-        filters.append(Audio.date_recorded >= parameters.start_date)
-    if parameters.end_date:
-        filters.append(Audio.date_recorded <= parameters.end_date)
-    if parameters.energy is not None and parameters.indice is not None:
-        indice = parameters.indice
-        filters.append(cast(Segment.energy[indice], JSON) >= parameters.energy)
-    if parameters.uncertainty is not None:
-        filters.append(Segment.uncertainty >= parameters.uncertainty)
-    if parameters.confidence is not None:
-        filters.append(Predictions.confidence >= parameters.confidence)
-    if parameters.annotated:
-        filters.append(Segment.label != None)
-    if parameters.predicted_species:
-        filters.append(Predictions.predicted_species in parameters.predicted_species)
-
-    # Apply filters if any
-    if filters:
-        query = query.filter(and_(*filters))
-
-    segment_ids = [prediction.segment_id for prediction in query]
-    segment_ids = list(dict.fromkeys(segment_ids)) # deduplicate
-    segments = [db.query(Segment).filter(Segment.id == segment_id).first()  for segment_id in segment_ids]
     
-    if parameters.query_limit is not None:
-        segments = segments[:parameters.query_limit]
-    return segmentsWithPredictions(segments, db), segments
-
-def apply_filters(filters):
-    parameters = SimpleNamespace(**filters)
-    query = parameters.db.query(Predictions).join(Segment).join(Audio)
-
-    filters = []
     if parameters.country:
         filters.append(Device.country == parameters.country)
     if parameters.device_id:
@@ -151,25 +166,32 @@ def apply_filters(filters):
     if parameters.end_date:
         filters.append(Audio.date_recorded <= parameters.end_date)
     if parameters.energy is not None and parameters.indice is not None:
-        indice = parameters.indice
-        filters.append(cast(Segment.energy[indice], JSON) >= parameters.energy)
+        filters.append(cast(Segment.energy[parameters.indice], JSON) >= parameters.energy)
     if parameters.uncertainty is not None:
         filters.append(Segment.uncertainty >= parameters.uncertainty)
-    if parameters.confidence is not None:
-        filters.append(Predictions.confidence >= parameters.confidence)
     if parameters.annotated:
         filters.append(Segment.label != None)
-    if parameters.predicted_species:
-        filters.append(Predictions.predicted_species == parameters.predicted_species)
 
-    # Apply filters if any
+    # Filtering Predictions within the same query
+    if parameters.predicted_species or parameters.confidence is not None:
+        query = query.join(Predictions)  # Join Predictions table
+        if parameters.predicted_species:
+            filters.append(Predictions.predicted_species == parameters.predicted_species)
+        if parameters.confidence is not None:
+            filters.append(Predictions.confidence >= parameters.confidence)
+
+    # Apply filters
     if filters:
         query = query.filter(and_(*filters))
 
-    segment_ids = [prediction.segment_id for prediction in query]
-    segment_ids = list(dict.fromkeys(segment_ids)) # deduplicate
-    segments = [parameters.db.query(Segment).filter(Segment.id == segment_id).limit(parameters.limit).first()  for segment_id in segment_ids]
-    return segmentsWithPredictions(segments, parameters.db), segments
+    # Apply ordering if needed (e.g., newest segments first)
+    query = query.order_by(Segment.id.desc())
+
+    # Apply limit for performance
+    query = query.limit(parameters.query_limit)
+
+    segments = query.all()  # Single optimized DB query
+    return segmentsWithPredictions(segments, db), segments
 
 def flatten(data, BASE_DIR, timestamp):
         # Flatten data
@@ -198,26 +220,3 @@ def flatten(data, BASE_DIR, timestamp):
         filename = os.path.join(BASE_DIR, f"prediction_{timestamp}.csv")
         df.to_csv(filename, index=False)
         return filename
-
-embeddings_path = "./embeddings.bin"
-
-def add_embedding(embedding:torch.Tensor, dimension:int=2):
-    if os.path.exists(embeddings_path):
-        index = faiss.read_index(embeddings_path)
-    else:
-        index = faiss.IndexFlatL2(dimension) 
-
-    index.add(embedding)
-    embedding_id = index.ntotal - 1
-    return index, embedding_id
-
-def delete_embedding():
-    index = faiss.read_index(embeddings_path)
-    faiss.write_index(index, embeddings_path)
-    return index
-
-def get_embedding(index, embedding_id:int):
-    index = faiss.read_index(embeddings_path)
-    embedding = index.reconstruct(embedding_id)
-    return embedding
-

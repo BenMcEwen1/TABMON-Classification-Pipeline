@@ -123,7 +123,17 @@ class BirdNet(EmbeddingModel):
       self.model = tf.lite.Interpreter(
           self.model_path, num_threads=self.num_tflite_threads
       )
-      self.model.allocate_tensors()
+
+      # Suppress stderr while calling allocate_tensors()
+      stderr_fileno = sys.stderr.fileno()
+      devnull = os.open(os.devnull, os.O_WRONLY)
+      os.dup2(devnull, stderr_fileno)
+
+      try:
+          self.model.allocate_tensors()
+      finally:
+          os.dup2(stderr_fileno, devnull)  # Restore stderr
+          os.close(devnull)
     else:
       self.tflite = False
       
@@ -217,7 +227,7 @@ def ROIfilter(audio, sr, threshold:float=0.01):
     return False
 
 @display_time
-def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
+def split_signals(filepath, output_dir, signal_length=15, n_processes=None, args=None):
     """
     Function to split an audio signal into chunks and save them using multiprocessing.
     Args:
@@ -248,7 +258,7 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None):
     with ThreadPoolExecutor(max_workers=None) as executor:
         args_list = []
         for s_cnt, chunk in enumerate(sig_splits):
-            save_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(filepath))[0].lower()}_{s_cnt}.wav")
+            save_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(filepath))[0].lower()}_{args.device_id}_{s_cnt}.wav")
             args_list.append((chunk, save_path, SAMPLE_RATE))
         executor.map(save_chunk, args_list)
     return True

@@ -6,10 +6,13 @@ delete/
 app/*.csv
 app/templates/
 app/*.md
-pipeline/outputs/
+pipeline/outputs/*.csv
+pipeline/outputs/*.json
+pipeline/outputs/temp
 *.pt
+*.log
 *.wav
-*.wav
+*.WAV
 *.mp3
 *.tif
 *.whl
@@ -18,4 +21,8 @@ pipeline/outputs/
 *.err
 *.out
 *.db
+*.db-shm
+*.db-wal
 *.bin
+*.csv
+*.sql

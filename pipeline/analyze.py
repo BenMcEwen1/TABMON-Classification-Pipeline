@@ -1,4 +1,8 @@
-from pipeline.config import *
+import time
+import os
+import argparse
+from sqlalchemy.exc import OperationalError
+
 from pipeline.models import run_algorithm
 from app.schema import PipelineSchema
 from app.services import normalise
@@ -19,19 +23,46 @@ parser.add_argument('--lng', type=float, default=None, help='Longitude for geogr
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
 parser.add_argument('--model_checkpoint', type=str, default=None, help='Model checkpoint - base if not specified.')
 
-def run(args, db=None, id=None):
+
+def run(args, db=None, id="wabad"):
     args = PipelineSchema(**vars(args)) # Additional validation
-    _,predictions = run_algorithm(args, id)
+    _, predictions = run_algorithm(args, id)
+
     if predictions is None:
         print(f"Skipping audio file {args.i}")
         return None
-
+    
     if db:
         status = normalise(predictions, db)
     else:
-        db = SessionLocal()
-        status = normalise(predictions, db)
+        status = None
+        attempts = 1
+        while status is None and attempts <= 20:
+            try:
+                session = SessionLocal()
+                db = session()
+                status = normalise(predictions, db)
+            except OperationalError as e:  # Specifically catch SQLite lock errors
+                print(e)
+                print(f"[Database locked] attempt {attempts}, retrying...")
+                time.sleep(5)  # Short delay before retrying
+            except Exception as e:
+                print(f"[Unexpected error]: {e}")  # Catch other unexpected errors
+                break  # Exit loop on unknown errors
+            finally:
+                if "db" in locals():
+                    db.close()  # Always close the session properly
+            attempts += 1
         db.close()
+
+    filename = os.path.splitext(os.path.basename(args.i))[0]
+    if status is None:
+        print(f"Failed to process {args.i} after 20 attempts.")
+        os.makedirs(f"{current_dir}/outputs/failed", exist_ok=True)
+        predictions.to_csv(f"{current_dir}/outputs/failed/{filename}.csv", index=False)
+    else:
+        os.makedirs(f"{current_dir}/outputs/success", exist_ok=True)
+        predictions.to_csv(f"{current_dir}/outputs/success/{filename}.csv", index=False)
     return status
 
 if __name__ == "__main__":

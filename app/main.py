@@ -8,9 +8,9 @@ import torch
 import faiss
 
 # Absolute imports
-from app.database import SessionLocal, Device, Audio, Segment, Predictions
+from app.database import SessionLocal, initialize_database, Device, Audio, Segment, Predictions
 from app.schema import DeviceSchema, AudioSchema, SegmentSchema, PredictionSchema, RetrievalSchema, PipelineSchema
-from app.services import add_embedding, apply_filters, apply_filters_body, segmentsWithPredictions, flatten, normalise
+from app.services import add_embedding, apply_filters, segmentsWithPredictions, flatten, normalise
 from pipeline.analyze import run
 from pipeline.util import load_species_list
 
@@ -22,6 +22,7 @@ import tempfile
 from pathlib import Path
 import zipfile
 import os
+from types import SimpleNamespace
 
 
 app = FastAPI()
@@ -41,9 +42,12 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers (e.g., Content-Type, Authorization)
 )
 
+initialize_database()
+
 # Dependency: Get a database session
 def get_db():
-    db = SessionLocal()
+    session = SessionLocal()
+    db = session()
     try:
         yield db
     finally:
@@ -72,18 +76,25 @@ async def analyse(parameters:PipelineSchema, db:Session=Depends(get_db)):
     # status = normalise(predictions, db)
     return predictions
 
+import time
 @app.post("/retrieve/")
 def retrieve(filters: RetrievalSchema, db:Session=Depends(get_db)):
-    segments,_ = apply_filters_body(filters, db)
+    start = time.time()
+    segments,_ = apply_filters(filters, db)
+    end = time.time()
+    print(f"Time taken to retrieve: {end - start} seconds")
     return segments
 
+@app.get("/count")
+def count(db:Session=Depends(get_db)):
+    return len(db.query(Audio).all())
 
 
 @app.get("/export/", tags=["Sampling"])
 def export(start_date: datetime | None = None, 
            end_date: datetime | None = None, 
            country: str | None = None, 
-           device_id: int | None = None,
+           device_id: str | None = None,
            confidence: float | None = None,
            predicted_species: str | None = None,
            uncertainty: float | None = None,
@@ -91,7 +102,7 @@ def export(start_date: datetime | None = None,
            energy: float | None = None,
            annotated: bool | None = None,
            embeddings: bool = False,
-           limit: int | None = 100,
+           query_limit: int | None = 100,
            db:Session=Depends(get_db)):
     
     EMBEDDING_DIR = "./audio/embeddings/"
@@ -100,7 +111,8 @@ def export(start_date: datetime | None = None,
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     filters = locals()
-    results, segments = apply_filters(filters)
+    parameters = SimpleNamespace(**filters)
+    results, segments = apply_filters(parameters, db)
 
     if embeddings:
         filenames = [os.path.join(EMBEDDING_DIR, f'{segment.filename[:-4].lower()}.pt') for segment in segments]
@@ -182,8 +194,6 @@ def delete_device(device_id:str, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Device deleted successfully"}
 
-
-
 @app.get("/segments/", response_model=list[SegmentSchema], tags=["Segments"])
 def read_segment(db: Session = Depends(get_db)):
     return db.query(Segment).all()
@@ -213,6 +223,12 @@ def add_label(id:int, label:dict, db:Session=Depends(get_db)):
 @app.get("/segments/audio/{filename}", response_class=FileResponse, tags=["Segments"], )
 def get_audio_segment(filename:str):
     path = f"./audio/segments/{filename}"
+    filename = f"{filename}"
+    return FileResponse(path=path, filename=filename, media_type="audio/mpeg")
+
+@app.get("/audio_file/{filename}", response_class=FileResponse, tags=["Segments"], )
+def get_audio_segment(filename:str):
+    path = f"./audio/{filename}"
     filename = f"{filename}"
     return FileResponse(path=path, filename=filename, media_type="audio/mpeg")
 
@@ -248,3 +264,23 @@ def delete_prediction(prediction_id: int, db: Session = Depends(get_db)):
     db.delete(db_prediction)
     db.commit()
     return {"detail": "Prediction deleted successfully"}
+
+
+@app.put("/dates", tags=["Patches"])
+def update_dates(db: Session = Depends(get_db)):
+    audio_obj = db.query(Audio).all()
+    for audio in audio_obj:
+        if not audio.date_recorded:
+            filename = audio.filename
+            try:
+                audio.date_recorded = datetime.strptime(filename.split(".")[0], "%Y-%m-%dT%H_%M_%S")
+                flag_modified(audio, "date_recorded")
+                db.commit()
+            except:
+                print(f"Failed to parse date for {filename}")
+                pass
+    return audio
+
+@app.get("/audio", response_model=list[AudioSchema], tags=["Audio"])
+def read_audio(db: Session = Depends(get_db)):
+    return db.query(Audio).all()
