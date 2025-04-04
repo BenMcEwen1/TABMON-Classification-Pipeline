@@ -69,7 +69,6 @@ class Predictions(Base):
 # Initialize database
 def initialize_database():
     try:
-        print("Creating tables...")
         Base.metadata.create_all(bind=engine)  # Create tables
         print("Tables created.")
     except:

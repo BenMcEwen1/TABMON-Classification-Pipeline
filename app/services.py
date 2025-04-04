@@ -1,5 +1,3 @@
-import torch
-import faiss
 import os
 from app.database import Device, Audio, Segment, Predictions
 from sqlalchemy import and_, cast, JSON
@@ -10,7 +8,7 @@ import time
 
 def normalise(predictions, db):
     """
-    Optimized function to normalize the database by splitting it into smaller linked tables.
+    Normalize the database by splitting it into smaller linked tables.
     """
     start = time.time()
     # Fetch existing devices, audio, and segments in bulk
@@ -105,7 +103,7 @@ def normalise(predictions, db):
 
     # Bulk insert segments and update segment_id_map
     db.add_all(new_segments)
-    db.flush()  # Assign IDs to new segments
+    db.flush()
     for segment in new_segments:
         segment_id_map[(segment.audio_id, segment.start_time)] = segment.id
 
@@ -222,26 +220,3 @@ def flatten(data, BASE_DIR, timestamp):
         filename = os.path.join(BASE_DIR, f"prediction_{timestamp}.csv")
         df.to_csv(filename, index=False)
         return filename
-
-embeddings_path = "./embeddings.bin"
-
-def add_embedding(embedding:torch.Tensor, dimension:int=2):
-    if os.path.exists(embeddings_path):
-        index = faiss.read_index(embeddings_path)
-    else:
-        index = faiss.IndexFlatL2(dimension) 
-
-    index.add(embedding)
-    embedding_id = index.ntotal - 1
-    return index, embedding_id
-
-def delete_embedding():
-    index = faiss.read_index(embeddings_path)
-    faiss.write_index(index, embeddings_path)
-    return index
-
-def get_embedding(index, embedding_id:int):
-    index = faiss.read_index(embeddings_path)
-    embedding = index.reconstruct(embedding_id)
-    return embedding
-
