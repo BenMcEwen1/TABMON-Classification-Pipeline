@@ -162,7 +162,7 @@ def convert_ranked_to_tabular(predictions):
                 rows.append(row)
     
     df = pd.DataFrame(rows)
-    df.to_csv(f"{current_dir}/outputs/top_k_predictions.csv", index=False)
+    df.to_parquet(f"{current_dir}/outputs/top_k_predictions.parquet", index=False)
     return df
 
 @display_time

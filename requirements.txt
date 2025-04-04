@@ -22,3 +22,5 @@ pydantic==2.10.6
 sqlalchemy==2.0.37
 fastapi[standard]
 scikit-maad==1.4.3
+pyarrow==19.0.1
+fastparquet==2024.11.0
