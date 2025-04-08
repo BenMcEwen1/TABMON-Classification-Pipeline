@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,11 +8,10 @@ from app.file_utils import find_audio_file, create_zip_archive, find_embedding_f
 from pipeline.analyze import run
 from pipeline.util import load_species_list
 
-import pandas as pd
 from datetime import datetime
 import time
 import os
-from typing import Optional, List
+from typing import Optional
 
 app = FastAPI(title="TABMON API", description="Bird sound classification API")
 

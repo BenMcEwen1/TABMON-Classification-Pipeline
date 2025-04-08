@@ -100,7 +100,7 @@ class ParquetDatabase:
         for table in tables:
             try:
                 count_df = self.con.execute(f"SELECT COUNT(*) as count FROM {table}").fetchdf()
-                stats[table] = count_df['count'].iloc[0]
+                stats[table] = int(count_df['count'].iloc[0])
             except:
                 stats[table] = 0
                 

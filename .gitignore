@@ -26,3 +26,4 @@ pipeline/outputs/temp
 *.bin
 *.csv
 *.sql
+*.parquet

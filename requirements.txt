@@ -24,3 +24,4 @@ fastapi[standard]
 scikit-maad==1.4.3
 pyarrow==19.0.1
 fastparquet==2024.11.0
+duckdb==1.2.2
