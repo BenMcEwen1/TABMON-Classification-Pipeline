@@ -106,6 +106,8 @@ def export(
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")
     
+    results_df = results_df
+
     EMBEDDING_DIR = "./audio/embeddings/"
     SEGMENT_DIR = "./audio/segments/"
     timestamp = time.strftime("%Y%m%d-%H%M%S")

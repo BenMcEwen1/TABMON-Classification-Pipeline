@@ -123,21 +123,16 @@ class ParquetDatabase:
             return self.execute_query(f"SELECT * FROM predictions WHERE segment_id = {segment_id}")
         return self.execute_query("SELECT * FROM predictions") 
         
-    def get_segments_with_predictions(self, filters=None):
-        """Get segments with their predictions using a single query."""
-        query = """
-            SELECT 
-                s.*, 
-                a.filename as audio_filename, 
-                a.date_recorded,
-                d.device_id, 
-                d.country,
-                p.predicted_species,
-                p.confidence
-            FROM segments s
-            JOIN audio a ON s.filename = a.filename
-            JOIN devices d ON a.device_id = d.device_id
-            LEFT JOIN predictions p ON p.segment_id = s.id
+    def get_segments_with_predictions(self, filters=None, limit=100):
+        """Get unique segments with all their predictions as lists in a single row."""
+        
+        segment_id_query = """
+            WITH matching_segments AS (
+                SELECT DISTINCT s.id
+                FROM segments s
+                JOIN audio a ON s.filename = a.filename
+                JOIN devices d ON a.device_id = d.device_id
+                LEFT JOIN predictions p ON p.segment_id = s.id
         """
         
         where_clauses = []
@@ -145,13 +140,32 @@ class ParquetDatabase:
             if hasattr(filters, 'predicted_species') and filters.predicted_species:
                 where_clauses.append(f"p.predicted_species = '{filters.predicted_species}'")
                 
-            if hasattr(filters, 'device_id') and filters.device_id:
-                where_clauses.append(f"d.device_id = '{filters.device_id}'")
-                
         if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
+            segment_id_query += " WHERE " + " AND ".join(where_clauses)
             
-        if hasattr(filters, 'query_limit') and filters.query_limit:
-            query += f" LIMIT {filters.query_limit}"
-            
-        return self.execute_query(query)
+        segment_id_query += f"""
+            )
+            SELECT id FROM matching_segments LIMIT {limit}
+        """
+        
+        # join to get full segment details with predictions as arrays
+        main_query = f"""
+            SELECT 
+                s.*, 
+                a.filename as audio_filename, 
+                a.date_recorded,
+                d.device_id, 
+                d.country,
+                ARRAY_AGG(p.predicted_species) FILTER (WHERE p.predicted_species IS NOT NULL) as predicted_species_list,
+                ARRAY_AGG(p.confidence) FILTER (WHERE p.confidence IS NOT NULL) as confidence_list
+            FROM segments s
+            JOIN audio a ON s.filename = a.filename
+            JOIN devices d ON a.device_id = d.device_id
+            LEFT JOIN predictions p ON p.segment_id = s.id
+            WHERE s.id IN ({segment_id_query})
+            GROUP BY s.id, s.filename, s.start_time, s.duration, s.uncertainty, 
+                    s.energy, s.date_processed, s.label, s.notes,
+                    a.filename, a.date_recorded, d.device_id, d.country
+        """
+        
+        return self.execute_query(main_query)
