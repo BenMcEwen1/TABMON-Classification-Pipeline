@@ -2,6 +2,17 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
+class Filter(BaseModel):
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    country: Optional[str] = None
+    device_id: Optional[str] = None
+    predicted_species: Optional[str] = None
+    confidence: Optional[float] = None
+    uncertainty: Optional[float] = None
+    energy: Optional[float] = None
+    annotated: Optional[bool] = None
+    query_limit: Optional[int] = 100
 
 class DeviceSchema(BaseModel):
     device_id: str
