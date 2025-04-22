@@ -1,76 +1,186 @@
 import os
-from sqlalchemy import Column, Integer, String, Float, JSON, DateTime, ForeignKey, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+import duckdb
+import pandas as pd
+from datetime import datetime
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
+class ParquetDatabase:
+    
+    def __init__(self, parquet_dir="./pipeline/outputs/"):
+        self.parquet_dir = parquet_dir
+        self.con = duckdb.connect(database=":memory:")
+        os.makedirs(parquet_dir, exist_ok=True)
+        self._register_views()
+        
+    def _register_views(self):
+        try:
+            self.con.execute(f"""
+                CREATE OR REPLACE VIEW all_data AS 
+                SELECT * FROM parquet_scan('{self.parquet_dir}/*.parquet')
+            """)
+            
+            self.con.execute("""
+                CREATE OR REPLACE VIEW devices AS
+                SELECT DISTINCT
+                    device_id,
+                    'Unknown' as country,
+                    MAX(lat) as lat,
+                    MAX(lng) as lng,
+                    MAX(model) as model_name,
+                    MAX(model_checkpoint) as model_checkpoint,
+                    MAX(datetime) as date_updated
+                FROM all_data
+                GROUP BY device_id
+            """)
+            
+            # audio view
+            self.con.execute("""
+                CREATE OR REPLACE VIEW audio AS
+                SELECT DISTINCT
+                    row_number() OVER() as id,
+                    filename,
+                    device_id,
+                    MAX(datetime) as date_recorded
+                FROM all_data
+                GROUP BY filename, device_id
+            """)
+            
+            # segments view
+            self.con.execute("""
+                CREATE OR REPLACE VIEW segments AS
+                SELECT DISTINCT
+                    row_number() OVER() as id,
+                    filename,
+                    "start time" as start_time,
+                    3 as duration,
+                    MAX(uncertainty) as uncertainty,
+                    MAX(energy) as energy,
+                    MAX(datetime) as date_processed,
+                    NULL as label,
+                    NULL as notes
+                FROM all_data
+                GROUP BY filename, "start time"
+            """)
+            
+            # predictions view
+            self.con.execute("""
+                CREATE OR REPLACE VIEW predictions AS
+                SELECT
+                    row_number() OVER() as id,
+                    s.id as segment_id,
+                    "scientific name" as predicted_species,
+                    MAX(confidence) as confidence  -- Take highest confidence if duplicates
+                FROM all_data a
+                JOIN segments s ON 
+                    a.filename = s.filename AND 
+                    a."start time" = s.start_time
+                WHERE "scientific name" IS NOT NULL
+                GROUP BY s.id, "scientific name"  -- Group by segment and species
+            """)
+            
+        except Exception as e:
+            print(f"Error registering views: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def execute_query(self, query):
+        """Execute a SQL query."""
+        try:
+            result = self.con.execute(query).fetchdf()
+            return result
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            print(f"Query was: {query}")
+            return pd.DataFrame()
+    
+    def get_status(self):
+        """Get database status."""
+        tables = ["all_data", "devices", "audio", "segments", "predictions"]
+        stats = {}
+        
+        for table in tables:
+            try:
+                count_df = self.con.execute(f"SELECT COUNT(*) as count FROM {table}").fetchdf()
+                stats[table] = int(count_df['count'].iloc[0])
+            except:
+                stats[table] = 0
+                
+        return stats
+        
+    # Queries
+    def get_devices(self):
+        return self.execute_query("SELECT * FROM devices")
+        
+    def get_audio_files(self):
+        return self.execute_query("SELECT * FROM audio")
+        
+    def get_segments(self, segment_id=None):
+        if segment_id:
+            return self.execute_query(f"SELECT * FROM segments WHERE id = {segment_id}")
+        return self.execute_query("SELECT * FROM segments")
+        
+    def get_predictions(self, segment_id=None):
+        if segment_id:
+            return self.execute_query(f"SELECT * FROM predictions WHERE segment_id = {segment_id}")
+        return self.execute_query("SELECT * FROM predictions") 
+        
+    def get_segments_with_predictions(self, filters=None, limit=100):
+        """Get unique segments with all their predictions as lists in a single row."""
+        
+        segment_id_query = """
+            WITH matching_segments AS (
+                SELECT DISTINCT s.id
+                FROM segments s
+                JOIN audio a ON s.filename = a.filename
+                JOIN devices d ON a.device_id = d.device_id
+                LEFT JOIN predictions p ON p.segment_id = s.id
+        """
+        
+        where_clauses = []
+        if filters:
+            if hasattr(filters, 'predicted_species') and filters.predicted_species:
+                where_clauses.append(f"p.predicted_species = '{filters.predicted_species}'")
+                
+            if hasattr(filters, 'device_id') and filters.device_id:
+                where_clauses.append(f"d.device_id = '{filters.device_id}'")
 
-# Database URL
-DATABASE_URL = f"sqlite:///{current_dir}/database.db"
+            if hasattr(filters, 'confidence') and filters.confidence:
+                where_clauses.append(f"p.confidence > {filters.confidence}")
 
-# SQLAlchemy Setup
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 30})
+            if hasattr(filters, 'uncertainty') and filters.uncertainty:
+                where_clauses.append(f"s.uncertainty > {filters.uncertainty}")
 
-def SessionLocal():
-    """Returns a new session instance instead of creating one globally."""
-    session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    return session
+            if hasattr(filters, 'start_date') and filters.start_date:
+                where_clauses.append(f"a.date_recorded >= '{filters.start_date}'")
 
-Base = declarative_base()
-
-# Define models (unchanged)
-class Device(Base):
-    __tablename__ = "devices"
-    id = Column(Integer, primary_key=True, index=True)
-    device_id = Column(String, index=True)
-    country = Column(String)
-    lat = Column(Float)
-    lng = Column(Float)
-    date_deployed = Column(DateTime)
-    model_name = Column(String)
-    model_checkpoint = Column(String)
-    date_updated = Column(DateTime)
-    audio_files = relationship("Audio", back_populates="device")
-
-class Audio(Base):
-    __tablename__ = "audio"
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, index=True)
-    sample_rate = Column(Integer)
-    date_recorded = Column(DateTime)
-    device_id = Column(Integer, ForeignKey("devices.id"))
-    device = relationship("Device", back_populates="audio_files")
-    segments = relationship("Segment", back_populates="audio_file")
-
-class Segment(Base):
-    __tablename__ = "segments"
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, nullable=True)
-    start_time = Column(Float)
-    duration = Column(Float)
-    uncertainty = Column(Float)
-    energy = Column(JSON)
-    date_processed = Column(DateTime)
-    embedding_id = Column(Integer)
-    label = Column(String)
-    notes = Column(String)
-    audio_id = Column(Integer, ForeignKey("audio.id"))
-    audio_file = relationship("Audio", back_populates="segments")
-    predictions = relationship("Predictions", back_populates="segment")
-
-class Predictions(Base):
-    __tablename__ = "predictions"
-    id = Column(Integer, primary_key=True, index=True)
-    predicted_species = Column(String)
-    confidence = Column(Float)
-    segment_id = Column(Integer, ForeignKey("segments.id"))
-    segment = relationship("Segment", back_populates="predictions")
-
-# Initialize database
-def initialize_database():
-    try:
-        Base.metadata.create_all(bind=engine)  # Create tables
-        print("Tables created.")
-    except:
-        print("Tables being created...")
-        pass
+            if hasattr(filters, 'end_date') and filters.end_date:
+                where_clauses.append(f"a.date_recorded <= '{filters.end_date}'")
+                
+        if where_clauses:
+            segment_id_query += " WHERE " + " AND ".join(where_clauses)
+            
+        segment_id_query += f"""
+            )
+            SELECT id FROM matching_segments LIMIT {limit}
+        """
+        
+        # join to get full segment details with predictions as arrays
+        main_query = f"""
+            SELECT 
+                s.*, 
+                a.filename as audio_filename, 
+                a.date_recorded,
+                d.device_id, 
+                d.country,
+                ARRAY_AGG(p.predicted_species) FILTER (WHERE p.predicted_species IS NOT NULL) as predicted_species_list,
+                ARRAY_AGG(p.confidence) FILTER (WHERE p.confidence IS NOT NULL) as confidence_list
+            FROM segments s
+            JOIN audio a ON s.filename = a.filename
+            JOIN devices d ON a.device_id = d.device_id
+            LEFT JOIN predictions p ON p.segment_id = s.id
+            WHERE s.id IN ({segment_id_query})
+            GROUP BY s.id, s.filename, s.start_time, s.duration, s.uncertainty, 
+                    s.energy, s.date_processed, s.label, s.notes,
+                    a.filename, a.date_recorded, d.device_id, d.country
+        """
+        
+        return self.execute_query(main_query)

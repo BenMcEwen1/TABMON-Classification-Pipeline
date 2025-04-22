@@ -38,8 +38,6 @@ if __name__ == "__main__":
     time_start = time.time()
     i = 0
 
-    initialize_database() # Each process initializes the database
-
     chunk_file = sys.argv[1] 
     job_id = chunk_file.split('_')[-1].split('.')[0] #job identifier based on the chunk name
 

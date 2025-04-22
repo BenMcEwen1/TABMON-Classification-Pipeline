@@ -179,16 +179,17 @@ class AvesEcho:
         params_inf = {'batch_size': 124, 'shuffle': False} # , 'num_workers': 5
         inference_generator = torch.utils.data.DataLoader(inference_set, **params_inf)
 
-        audio_path = "./audio/"
         embeddings, pred = inference(self.model, inference_generator, device, predictions, filter_list=filtering_list)
         
         # Make embeddings directory
-        embedding_dir = os.path.join(os.path.dirname(audio_path), "embeddings/")
+        output_dir = f"{current_dir}/outputs/"
+        embedding_dir = os.path.join(os.path.dirname(output_dir), "embeddings/")
+        print(f"Saving embeddings to {embedding_dir}")
         if not os.path.exists(embedding_dir):
             os.makedirs(embedding_dir)
 
         # Make segments directory
-        segment_dir = os.path.join(os.path.dirname(audio_path), "segments/")
+        segment_dir = os.path.join(os.path.dirname(output_dir), "segments/")
         if not os.path.exists(segment_dir):
             os.makedirs(segment_dir)
 
