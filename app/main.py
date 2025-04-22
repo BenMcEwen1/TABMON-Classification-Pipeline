@@ -102,6 +102,9 @@ def export(
     )
     
     results_df = db.get_segments_with_predictions(filters)
+
+    if "energy" in results_df.columns:
+        results_df = results_df.drop(columns=["energy"])
     
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")

@@ -3,6 +3,7 @@ testing/
 wandb/
 audio/
 delete/
+outputs_old/
 app/*.csv
 app/templates/
 app/*.md

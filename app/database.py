@@ -147,6 +147,18 @@ class ParquetDatabase:
                 
             if hasattr(filters, 'device_id') and filters.device_id:
                 where_clauses.append(f"d.device_id = '{filters.device_id}'")
+
+            if hasattr(filters, 'confidence') and filters.confidence:
+                where_clauses.append(f"p.confidence > {filters.confidence}")
+
+            if hasattr(filters, 'uncertainty') and filters.uncertainty:
+                where_clauses.append(f"s.uncertainty > {filters.uncertainty}")
+
+            if hasattr(filters, 'start_date') and filters.start_date:
+                where_clauses.append(f"a.date_recorded >= '{filters.start_date}'")
+
+            if hasattr(filters, 'end_date') and filters.end_date:
+                where_clauses.append(f"a.date_recorded <= '{filters.end_date}'")
                 
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
