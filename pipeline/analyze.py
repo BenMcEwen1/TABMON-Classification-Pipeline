@@ -38,7 +38,7 @@ def run(args, id="wabad"):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     filename = os.path.splitext(os.path.basename(args.i))[0]
-    output_path = f"{OUTPUT_DIR}/predictions_{filename}_{timestamp}.parquet"
+    output_path = f"{OUTPUT_DIR}/predictions_{filename}_{timestamp}_{args.device_id}.parquet"
     
     try:
         predictions.to_parquet(output_path, index=False)

@@ -161,7 +161,7 @@ def convert_ranked_to_tabular(predictions):
                 rows.append(row)
     
     df = pd.DataFrame(rows)
-    df.to_parquet(f"{current_dir}/outputs/{filename[0].split('.')[0]}_top_k.parquet", index=False)
+    # df.to_parquet(f"{current_dir}/outputs/{filename[0].split('.')[0]}_top_k.parquet", index=False)
     return df
 
 @display_time
