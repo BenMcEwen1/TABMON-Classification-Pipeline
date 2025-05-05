@@ -5,7 +5,7 @@ from datetime import datetime
 
 class ParquetDatabase:
     
-    def __init__(self, parquet_dir="./pipeline/outputs/"):
+    def __init__(self, parquet_dir="./pipeline/outputs/predictions/"):
         self.parquet_dir = parquet_dir
         self.con = duckdb.connect(database=":memory:")
         os.makedirs(parquet_dir, exist_ok=True)
@@ -15,22 +15,37 @@ class ParquetDatabase:
         try:
             self.con.execute(f"""
                 CREATE OR REPLACE VIEW all_data AS 
-                SELECT * FROM parquet_scan('{self.parquet_dir}/*.parquet')
-            """)
-            
-            self.con.execute("""
-                CREATE OR REPLACE VIEW devices AS
-                SELECT DISTINCT
-                    device_id,
-                    'Unknown' as country,
-                    MAX(lat) as lat,
-                    MAX(lng) as lng,
-                    MAX(model) as model_name,
-                    MAX(model_checkpoint) as model_checkpoint,
-                    MAX(datetime) as date_updated
-                FROM all_data
-                GROUP BY device_id
-            """)
+                SELECT * FROM parquet_scan('{self.parquet_dir}/*.parquet', union_by_name=True)
+            """)  
+
+            try:
+                self.con.execute("""
+                    CREATE OR REPLACE VIEW devices AS
+                    SELECT DISTINCT
+                        device_id,
+                        COALESCE(MAX(country), 'unknown') as country,
+                        MAX(lat) as lat,
+                        MAX(lng) as lng, 
+                        MAX(model) as model_name,
+                        MAX(model_checkpoint) as model_checkpoint,
+                        MAX(datetime) as date_updated
+                    FROM all_data
+                    GROUP BY device_id
+                """)
+            except Exception as e:
+                self.con.execute("""
+                    CREATE OR REPLACE VIEW devices AS
+                    SELECT DISTINCT
+                        device_id,
+                        'unknown' as country,
+                        MAX(lat) as lat,
+                        MAX(lng) as lng, 
+                        MAX(model) as model_name,
+                        MAX(model_checkpoint) as model_checkpoint,
+                        MAX(datetime) as date_updated
+                    FROM all_data
+                    GROUP BY device_id
+                """)
             
             # audio view
             self.con.execute("""
@@ -154,7 +169,10 @@ class ParquetDatabase:
 
             if hasattr(filters, 'end_date') and filters.end_date:
                 where_clauses.append(f"a.date_recorded <= '{filters.end_date}'")
-                
+
+            if hasattr(filters, 'country') and filters.country:
+                where_clauses.append(f"d.country = '{filters.country}'")
+
         if where_clauses:
             segment_id_query += " WHERE " + " AND ".join(where_clauses)
             

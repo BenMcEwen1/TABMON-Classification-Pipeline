@@ -141,6 +141,7 @@ class AvesEcho:
                 "datetime": str(datetime.now()),
                 "model": self.model_name,
                 "model_checkpoint": self.args.model_checkpoint,
+                "country": self.args.country,
             },
             "files": []
         }

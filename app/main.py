@@ -102,6 +102,7 @@ def export(
     )
     
     results_df = db.get_segments_with_predictions(filters)
+    print(results_df)
 
     if "energy" in results_df.columns:
         results_df = results_df.drop(columns=["energy"])

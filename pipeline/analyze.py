@@ -15,7 +15,7 @@ parser.add_argument('--slist', type=str, default=f'{current_dir}/inputs/list_sp_
 parser.add_argument('--i', type=str, default=f'{current_dir}/audio/test_bugg', required=True, help='Input audio sample.')
 parser.add_argument('--flist', type=str, default=None, help='Path to the filter list of species.')
 parser.add_argument('--device_id', type=str, default=None, required=True, help='Device id.')
-parser.add_argument('--country', type=float, default=None, help='Country')
+parser.add_argument('--country', type=str, default="unknown", help='Country')
 parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
 parser.add_argument('--lng', type=float, default=None, help='Longitude for geographic filtering.')
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
@@ -25,7 +25,7 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 def run(args, id="wabad"):
     if not isinstance(args, PipelineSchema):
         args = PipelineSchema(**vars(args))
-    
+
     # Run the algorithm
     _, predictions = run_algorithm(args, id)
 
