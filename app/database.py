@@ -123,7 +123,7 @@ class ParquetDatabase:
             return self.execute_query(f"SELECT * FROM predictions WHERE segment_id = {segment_id}")
         return self.execute_query("SELECT * FROM predictions") 
         
-    def get_segments_with_predictions(self, filters=None, limit=100):
+    def get_segments_with_predictions(self, filters=None):
         """Get unique segments with all their predictions as lists in a single row."""
         
         segment_id_query = """
@@ -160,7 +160,7 @@ class ParquetDatabase:
             
         segment_id_query += f"""
             )
-            SELECT id FROM matching_segments LIMIT {limit}
+            SELECT id FROM matching_segments LIMIT {filters.query_limit}
         """
         
         # join to get full segment details with predictions as arrays
