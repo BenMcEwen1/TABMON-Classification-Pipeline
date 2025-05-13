@@ -133,7 +133,7 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
     if len(results) > 0:
         predictions = convert_ranked_to_tabular(predictions)
     else: 
-        predictions = pd.DataFrame(columns=["filename","start time","uncertainty","energy","rank","confidence","scientific name","common name","device_id","lat","lng","datetime","model","model_checkpoint"])
+        predictions = pd.DataFrame(columns=["filename","start time","uncertainty","energy","rank","confidence","scientific name","common name","device_id","country","lat","lng","datetime","model","model_checkpoint"])
     return predictions
 
 def convert_ranked_to_tabular(predictions):

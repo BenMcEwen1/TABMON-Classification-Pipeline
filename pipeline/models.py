@@ -136,6 +136,7 @@ class AvesEcho:
         predictions = {
             "metadata":  {
                 "device_id": self.args.device_id,
+                "country": self.args.country,
                 "lat": self.args.lat,
                 "lng": self.args.lng,
                 "datetime": str(datetime.now()),

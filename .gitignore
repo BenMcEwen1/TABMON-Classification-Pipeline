@@ -28,3 +28,4 @@ pipeline/outputs/temp
 *.csv
 *.sql
 *.parquet
+outputs/
