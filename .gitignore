@@ -31,3 +31,5 @@ pipeline/outputs/temp
 *.tar
 outputs/
 chunk_files_2025-05-14/
+chunk_files/
+chunk_files.zip

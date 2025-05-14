@@ -9,7 +9,7 @@ from datetime import datetime
 today_date = datetime.today().strftime('%Y-%m-%d')
 
 # === CONFIGURATION ===
-N_JOBS = 1  # Number of parallel jobs
+N_JOBS = 10  # Number of parallel jobs
 
 #Already processed : "2024-03","2024-04"
 MONTH_SELECTION = ["2024-11", "2024-10", "2024-09", "2024-08", "2024-07", "2024-06", "2024-05", "2025-05", "2025-04", "2025-03", "2025-02", "2025-01"]
@@ -28,7 +28,7 @@ COUNTRY_FOLDERS_LIST = ["proj_tabmon_NINA", "proj_tabmon_NINA_ES", "proj_tabmon_
 PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
-CHUNK_FILES_FOLDER = f"chunk_files_{today_date}"
+CHUNK_FILES_FOLDER = f"chunk_files"
 RESULT_FILES_FOLDER = "result_files"
 
 META_DATA_PATH = "Bugg deployment form.csv"
