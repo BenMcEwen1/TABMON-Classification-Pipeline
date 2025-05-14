@@ -42,8 +42,12 @@ def run(args, id="wabad"):
     output_path = f"{OUTPUT_DIR}/predictions/predictions_{filename}_{timestamp}_{args.device_id}.parquet"
     
     try:
-        predictions.to_parquet(output_path, index=False, partition_cols=["country", "device_id"])
-        print(f"Successfully saved {len(predictions)} predictions to {output_path}")
+        # predictions.to_parquet(output_path, index=False,  partition_cols=["country", "device_id"])
+        # print(f"Successfully saved {len(predictions)} predictions to {output_path}")
+        
+        output_dir = f"{OUTPUT_DIR}/predictions"
+        predictions.to_parquet(output_dir, index=False, partition_cols=["country", "device_id"])
+        
         status = {
             "status": "success",
             "file": output_path,

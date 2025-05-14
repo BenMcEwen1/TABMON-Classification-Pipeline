@@ -132,6 +132,8 @@ class ParquetDatabase:
         # HAVE TO START WITH PARTITION FILTERS
         partition_filters = []
         regular_filters = []
+
+        print(filters)
         
         if filters:
             # Partition filters so that queries go faster
@@ -163,6 +165,8 @@ class ParquetDatabase:
                 JOIN devices d ON a.device_id = d.device_id
                 LEFT JOIN predictions p ON p.segment_id = s.id
         """
+
+        print(partition_filters)
         
         # add the filters (partition e.g. country and device + the other filters)
         if partition_filters:
@@ -177,6 +181,7 @@ class ParquetDatabase:
             )
             SELECT id FROM matching_segments
         """
+
         
         if filters and hasattr(filters, 'query_limit') and filters.query_limit:
             segment_id_query += f" LIMIT {filters.query_limit}"

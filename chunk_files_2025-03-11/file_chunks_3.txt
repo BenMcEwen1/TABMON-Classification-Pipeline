@@ -1,5 +1,0 @@
-['/DYNI/tabmon', 'proj_tabmon_NINA', 'bugg_RPiID-10000000d642707c', 'conf_20240314_TABMON', '2024-10-21T13_18_11.183Z.mp3', 'Norway', 'site_name', 59.302646, 4.900137]
-['/DYNI/tabmon', 'proj_tabmon_NINA', 'bugg_RPiID-10000000d642707c', 'conf_20240314_TABMON', '2024-06-05T06_34_57.203Z.mp3', 'Norway', 'site_name', 59.302646, 4.900137]
-['/DYNI/tabmon', 'proj_tabmon_NINA', 'bugg_RPiID-10000000d642707c', 'conf_20240314_TABMON', '2024-10-10T19_57_22.905Z.mp3', 'Norway', 'site_name', 59.302646, 4.900137]
-['/DYNI/tabmon', 'proj_tabmon_NINA', 'bugg_RPiID-10000000d642707c', 'conf_20240314_TABMON', '2024-08-25T22_02_26.826Z.mp3', 'Norway', 'site_name', 59.302646, 4.900137]
-['/DYNI/tabmon', 'proj_tabmon_NINA', 'bugg_RPiID-10000000dc98ad82', 'conf_20250116_TABMON', '2025-02-22T04_27_28.015Z.mp3', 'Norway', 'site_name', 63.711335, 9.539777]

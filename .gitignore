@@ -28,4 +28,6 @@ pipeline/outputs/temp
 *.csv
 *.sql
 *.parquet
+*.tar
 outputs/
+chunk_files_2025-05-14/

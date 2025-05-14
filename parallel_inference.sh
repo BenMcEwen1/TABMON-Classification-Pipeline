@@ -2,7 +2,7 @@
 #SBATCH --job-name=tabmon_pipeline
 #SBATCH --partition=gpu         
 #SBATCH --output=slurm_output_files/slurm_output_%A_%a.out
-#SBATCH --array=0-9
+#SBATCH --array=0-0
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
 #SBATCH --cpus-per-task=2  
 #SBATCH --nodes=1                
@@ -17,4 +17,4 @@ echo "Number of CPUs per task: $SLURM_CPUS_PER_TASK"
 echo "Processing chunk $SLURM_ARRAY_TASK_ID"
 
 # Pass additional parameters
-python inference_parallel.py chunk_files_2025-03-14/file_chunks_$SLURM_ARRAY_TASK_ID.txt 
+python inference_parallel.py chunk_files_2025-05-14/file_chunks_$SLURM_ARRAY_TASK_ID.txt 
