@@ -46,7 +46,11 @@ def run(args, id="wabad"):
         # print(f"Successfully saved {len(predictions)} predictions to {output_path}")
         
         output_dir = f"{OUTPUT_DIR}/predictions"
-        predictions.to_parquet(output_dir, index=False, partition_cols=["country", "device_id"])
+        predictions.to_parquet(output_dir, 
+                               index=False, 
+                               partition_cols=["country", "device_id"],
+                               basename_template=f"{filename}_{args.device_id}"+ "-{i}.parquet"
+                               )
         
         status = {
             "status": "success",
