@@ -5,7 +5,7 @@ from datetime import datetime
 
 class ParquetDatabase:
     
-    def __init__(self, parquet_dir="./pipeline/outputs/"):
+    def __init__(self, parquet_dir="./pipeline/outputs/predictions"):
         self.parquet_dir = parquet_dir
         self.con = duckdb.connect(database=":memory:")
         os.makedirs(parquet_dir, exist_ok=True)
@@ -15,14 +15,14 @@ class ParquetDatabase:
         try:
             self.con.execute(f"""
                 CREATE OR REPLACE VIEW all_data AS 
-                SELECT * FROM parquet_scan('{self.parquet_dir}/*.parquet')
+                SELECT * FROM read_parquet('{self.parquet_dir}/**/*.parquet', hive_partitioning=True)
             """)
             
             self.con.execute("""
                 CREATE OR REPLACE VIEW devices AS
                 SELECT DISTINCT
                     device_id,
-                    'Unknown' as country,
+                    COALESCE(MAX(country), 'unknown') as country,
                     MAX(lat) as lat,
                     MAX(lng) as lng,
                     MAX(model) as model_name,
@@ -107,8 +107,12 @@ class ParquetDatabase:
         return stats
         
     # Queries
+
+    def get_countries(self):
+        return self.execute_query("SELECT DISTINCT country FROM all_data")
+
     def get_devices(self):
-        return self.execute_query("SELECT * FROM devices")
+        return self.execute_query("SELECT DISTINCT device_id FROM all_data")
         
     def get_audio_files(self):
         return self.execute_query("SELECT * FROM audio")
@@ -122,65 +126,59 @@ class ParquetDatabase:
         if segment_id:
             return self.execute_query(f"SELECT * FROM predictions WHERE segment_id = {segment_id}")
         return self.execute_query("SELECT * FROM predictions") 
-        
+
     def get_segments_with_predictions(self, filters=None):
-        """Get unique segments with all their predictions as lists in a single row."""
-        
-        segment_id_query = """
-            WITH matching_segments AS (
-                SELECT DISTINCT s.id
-                FROM segments s
-                JOIN audio a ON s.filename = a.filename
-                JOIN devices d ON a.device_id = d.device_id
-                LEFT JOIN predictions p ON p.segment_id = s.id
-        """
-        
-        where_clauses = []
+        partition_filters = []
+        regular_filters = []
+
         if filters:
-            if hasattr(filters, 'predicted_species') and filters.predicted_species:
-                where_clauses.append(f"p.predicted_species = '{filters.predicted_species}'")
-                
-            if hasattr(filters, 'device_id') and filters.device_id:
-                where_clauses.append(f"d.device_id = '{filters.device_id}'")
+            if getattr(filters, 'device_id', None):
+                partition_filters.append(f"d.device_id = '{filters.device_id}'")
+            if getattr(filters, 'country', None):
+                partition_filters.append(f"d.country = '{filters.country}'")
+            if getattr(filters, 'predicted_species', None):
+                regular_filters.append(f"p.predicted_species = '{filters.predicted_species}'")
+            if getattr(filters, 'confidence', None):
+                regular_filters.append(f"p.confidence > {filters.confidence}")
+            if getattr(filters, 'uncertainty', None):
+                regular_filters.append(f"s.uncertainty > {filters.uncertainty}")
+            if getattr(filters, 'start_date', None):
+                regular_filters.append(f"a.date_recorded >= '{filters.start_date}'")
+            if getattr(filters, 'end_date', None):
+                regular_filters.append(f"a.date_recorded <= '{filters.end_date}'")
 
-            if hasattr(filters, 'confidence') and filters.confidence:
-                where_clauses.append(f"p.confidence > {filters.confidence}")
+        # Build WHERE clause
+        all_filters = partition_filters + regular_filters
+        where_clause = ""
+        if all_filters:
+            where_clause = "WHERE " + " AND ".join(all_filters)
 
-            if hasattr(filters, 'uncertainty') and filters.uncertainty:
-                where_clauses.append(f"s.uncertainty > {filters.uncertainty}")
+        # Apply LIMIT separately (if given)
+        limit_clause = ""
+        if getattr(filters, 'query_limit', None):
+            limit_clause = f"LIMIT {filters.query_limit}"
 
-            if hasattr(filters, 'start_date') and filters.start_date:
-                where_clauses.append(f"a.date_recorded >= '{filters.start_date}'")
-
-            if hasattr(filters, 'end_date') and filters.end_date:
-                where_clauses.append(f"a.date_recorded <= '{filters.end_date}'")
-                
-        if where_clauses:
-            segment_id_query += " WHERE " + " AND ".join(where_clauses)
-            
-        segment_id_query += f"""
-            )
-            SELECT id FROM matching_segments LIMIT {filters.query_limit}
-        """
-        
-        # join to get full segment details with predictions as arrays
         main_query = f"""
             SELECT 
                 s.*, 
-                a.filename as audio_filename, 
+                a.filename AS audio_filename, 
                 a.date_recorded,
                 d.device_id, 
                 d.country,
-                ARRAY_AGG(p.predicted_species) FILTER (WHERE p.predicted_species IS NOT NULL) as predicted_species_list,
-                ARRAY_AGG(p.confidence) FILTER (WHERE p.confidence IS NOT NULL) as confidence_list
+                ARRAY_AGG(p.predicted_species) FILTER (WHERE p.predicted_species IS NOT NULL) AS predicted_species_list,
+                ARRAY_AGG(p.confidence) FILTER (WHERE p.confidence IS NOT NULL) AS confidence_list
             FROM segments s
             JOIN audio a ON s.filename = a.filename
             JOIN devices d ON a.device_id = d.device_id
             LEFT JOIN predictions p ON p.segment_id = s.id
-            WHERE s.id IN ({segment_id_query})
-            GROUP BY s.id, s.filename, s.start_time, s.duration, s.uncertainty, 
-                    s.energy, s.date_processed, s.label, s.notes,
-                    a.filename, a.date_recorded, d.device_id, d.country
+            {where_clause}
+            GROUP BY 
+                s.id, s.filename, s.start_time, s.duration, s.uncertainty, 
+                s.energy, s.date_processed, s.label, s.notes,
+                a.filename, a.date_recorded,
+                d.device_id, d.country
+            {limit_clause}
         """
-        
+
         return self.execute_query(main_query)
+

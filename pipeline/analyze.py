@@ -15,7 +15,7 @@ parser.add_argument('--slist', type=str, default=f'{current_dir}/inputs/list_sp_
 parser.add_argument('--i', type=str, default=f'{current_dir}/audio/test_bugg', required=True, help='Input audio sample.')
 parser.add_argument('--flist', type=str, default=None, help='Path to the filter list of species.')
 parser.add_argument('--device_id', type=str, default=None, required=True, help='Device id.')
-parser.add_argument('--country', type=float, default=None, help='Country')
+parser.add_argument('--country', type=str, default=None, help='Country')
 parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
 parser.add_argument('--lng', type=float, default=None, help='Longitude for geographic filtering.')
 parser.add_argument('--model_name', type=str, default='birdnet', help='Name of the model to use.')
@@ -42,8 +42,16 @@ def run(args, id="wabad"):
     output_path = f"{OUTPUT_DIR}/predictions/predictions_{filename}_{timestamp}_{args.device_id}.parquet"
     
     try:
-        predictions.to_parquet(output_path, index=False)
-        print(f"Successfully saved {len(predictions)} predictions to {output_path}")
+        # predictions.to_parquet(output_path, index=False,  partition_cols=["country", "device_id"])
+        # print(f"Successfully saved {len(predictions)} predictions to {output_path}")
+        
+        output_dir = f"{OUTPUT_DIR}/predictions"
+        predictions.to_parquet(output_dir, 
+                               index=False, 
+                               partition_cols=["country", "device_id"],
+                               basename_template=f"{filename}_{args.device_id}"+ "-{i}.parquet"
+                               )
+        
         status = {
             "status": "success",
             "file": output_path,
@@ -54,7 +62,7 @@ def run(args, id="wabad"):
         # Save to failed directory as backup
         os.makedirs(f"{OUTPUT_DIR}/failed", exist_ok=True)
         fallback_path = f"{OUTPUT_DIR}/failed/{filename}_{timestamp}.parquet"
-        predictions.to_parquet(fallback_path, index=False)
+        predictions.to_parquet(fallback_path, index=False, partition_cols=["country", "device_id"])
         status = {
             "status": "error",
             "file": fallback_path,

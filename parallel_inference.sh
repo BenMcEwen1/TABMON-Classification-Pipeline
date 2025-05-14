@@ -17,4 +17,4 @@ echo "Number of CPUs per task: $SLURM_CPUS_PER_TASK"
 echo "Processing chunk $SLURM_ARRAY_TASK_ID"
 
 # Pass additional parameters
-python inference_parallel.py chunk_files_2025-03-14/file_chunks_$SLURM_ARRAY_TASK_ID.txt 
+python inference_parallel.py chunk_files/file_chunks_$SLURM_ARRAY_TASK_ID.txt 

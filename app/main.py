@@ -105,6 +105,7 @@ def export(
 
     if "energy" in results_df.columns:
         results_df = results_df.drop(columns=["energy"])
+    print(results_df['device_id'])
     
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")
@@ -148,6 +149,10 @@ async def analyse(parameters: PipelineSchema, db: ParquetDatabase = Depends(get_
     return predictions
 
 # --- Database access endpoints ---
+@app.get("/countries", tags=["Database"])
+async def get_countries(db: ParquetDatabase = Depends(get_db)):
+    devices_df = db.get_countries()
+    return devices_df.to_dict(orient='records')
 
 @app.get("/devices", tags=["Database"])
 async def get_devices(db: ParquetDatabase = Depends(get_db)):

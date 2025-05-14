@@ -12,7 +12,7 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 N_JOBS = 10  # Number of parallel jobs
 
 #Already processed : "2024-03","2024-04"
-MONTH_SELECTION = ["2024-05"]
+MONTH_SELECTION = ["2024-11", "2024-10", "2024-09", "2024-08", "2024-07", "2024-06", "2024-05", "2025-05", "2025-04", "2025-03", "2025-02", "2025-01"]
 
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
@@ -23,12 +23,12 @@ SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for 
 random.seed(11)
 
 #DATASET_PATH = "audio/test_bugg/" 
-DATASET_PATH = "/DYNI/tabmon" 
+DATASET_PATH = "./audio/tabmon_subset/" 
 COUNTRY_FOLDERS_LIST = ["proj_tabmon_NINA", "proj_tabmon_NINA_ES", "proj_tabmon_NINA_FR", "proj_tabmon_NINA_NL"]
-PIPE_LINE_PATH = "/DYNI/tabmon/TABMON-Classification-Pipeline"
+PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
-CHUNK_FILES_FOLDER = f"chunk_files_{today_date}"
+CHUNK_FILES_FOLDER = f"chunk_files"
 RESULT_FILES_FOLDER = "result_files"
 
 META_DATA_PATH = "Bugg deployment form.csv"
@@ -51,10 +51,11 @@ def get_file_date(bugg_file_name):
     return year_month
 
 
-
+missing_dates = []
 files_data = []
 ## loop over country folders (ex: proj_tabmon_NINA_ES")
 for country_folder in COUNTRY_FOLDERS_LIST:
+    print(country_folder)
 
     ## get the list of bugg_folders
     bugg_folder_list = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder)) if os.path.isdir(os.path.join(DATASET_PATH, country_folder, f))]
@@ -95,10 +96,16 @@ for country_folder in COUNTRY_FOLDERS_LIST:
 
                             data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long) ]
                             files_data.append(data)
+                        else:
+                            missing_dates.append(file_year_month)
+                            print([bugg_ID, conf_folder], " not in the month selection")
                 else :
                     print([bugg_ID, conf_folder], " in list of not usable buggs")
         else:
             print("No metadata for ", country_folder, bugg_folder)
+
+print(f"Total number of files: {len(files_data)}")
+print(f"Missing dates: {missing_dates}")
 
 
 
