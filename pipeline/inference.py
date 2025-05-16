@@ -50,38 +50,11 @@ def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
         uncertainty = [1-(x/max_entropy.item()) for x in uncertainty]
     return uncertainty
 
-
-def uncertaintyEntropy(outputs:torch.tensor, threshold:float=0.0, normalise:bool=True, top_k:int=5):
-    """
-    Calculate aggregated uncertainty (entropy) for a batch of multi-label classes.
-    Binary Entropy - https://en.wikipedia.org/wiki/Binary_entropy_function
-
-    Parameters
-    ----------
-    outputs : tensor
-        Output of the model
-    threshold : float, optional
-        Threshold for filtering low uncertainty values, by default 0.1
-
-    Returns: List of uncertainties per batch
-    """
-    uncertainty = []
-
-    for p in outputs:
-        if isinstance(top_k, int):
-            p = torch.topk(p, k=top_k)
-            p = p[0]
-    
-        uncertainty_array = -(p*torch.log2(p))-(torch.subtract(1, p))*torch.log2(torch.subtract(1, p))
-        uncertainty_array = torch.nan_to_num(uncertainty_array)
-        if threshold:
-            uncertainty_array = [x for x in uncertainty_array if x > threshold]
-        av_uncertainty = sum(uncertainty_array)/len(uncertainty_array)
-        uncertainty.append(av_uncertainty.item())
-
-    if normalise:
-        uncertainty = [x/max(uncertainty) for x in uncertainty]
-    return uncertainty
+def binaryEntropy(outputs: torch.Tensor, eps=1e-8):
+    entropy = -(outputs * torch.log2(outputs + eps) + (1 - outputs) * torch.log2(1 - outputs + eps))
+    entropy = torch.nan_to_num(entropy) 
+    per_sample_entropy = entropy.mean(dim=1)
+    return per_sample_entropy.tolist()
 
 
 @display_time
@@ -95,15 +68,18 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
         confidence_batch = confidence_batch[:, torch.tensor(filtered_indices, dtype=torch.long)]
         species_name = [species_name[index] for index in filtered_indices]
 
-    uncertainty = renormalizedEntropy(confidence_batch)
+    uncertainty = binaryEntropy(confidence_batch)
     
     # Return top k predictions
     results = []
     for i, confidence in enumerate(confidence_batch):
-        # Append top k predictions per segment
-        top_scores, top_indices = torch.topk(confidence, k=k)
+        top_indices = (confidence > confidence_threshold).nonzero(as_tuple=True)[0]
+
+        if len(top_indices) > 5:
+            top_indices = top_indices[:4]
+
         energy_score = energy_scores[i]
-        if max(top_scores) > confidence_threshold:
+        if len(top_indices) > 0:
             pred = []
             for rank, index in enumerate(top_indices):
                 scientific_name, common_name = species_name[index].split(',')

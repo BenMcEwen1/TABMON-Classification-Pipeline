@@ -2,6 +2,32 @@ import os
 import pandas as pd
 from datetime import datetime
 import time
+from typing import Optional
+from fastapi import Depends
+
+from app.schema import Filter
+from app.database import ParquetDatabase
+
+
+db_instance = ParquetDatabase()
+
+def get_db():
+    return db_instance
+
+def stats(db: ParquetDatabase = Depends(get_db)):
+    filters = Filter(start_date=None,
+                    end_date=None,
+                    country=None,
+                    device_id=None,
+                    confidence=None,
+                    predicted_species=None,
+                    uncertainty=None,
+                    energy=None,
+                    annotated=None,
+                    query_limit=100)
+    
+    results = db.get_segments_with_predictions(filters)
+    return results
 
 def normalise(predictions_df, db):
     """Simplified: Just save predictions as a parquet file for DuckDB to read"""
@@ -29,3 +55,7 @@ def normalise(predictions_df, db):
         "file": output_path,
         "records": len(predictions_df)
     }
+
+if __name__ == "__main__":
+    confidence = stats(db_instance)['confidence_list']
+    print(confidence)

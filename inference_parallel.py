@@ -5,7 +5,6 @@ import time
 import ast
 import psutil
 from pipeline.analyze import run
-# from app.database import initialize_database
 from types import SimpleNamespace
 import numpy as np
 
