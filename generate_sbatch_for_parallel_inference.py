@@ -15,6 +15,7 @@ N_JOBS = 20  # Number of parallel jobs
 MONTH_SELECTION = ["2025-02"]
 
 
+
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
 USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
 
@@ -28,7 +29,8 @@ COUNTRY_FOLDERS_LIST = ["proj_tabmon_NINA", "proj_tabmon_NINA_ES", "proj_tabmon_
 PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
-CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_SELECTION}"
+MONTH_PRINT = ";".join(str(x) for x in MONTH_SELECTION)
+CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_PRINT}"
 
 
 META_DATA_PATH = "site_info.csv"
