@@ -7,7 +7,7 @@ def find_audio_file(segment_row, audio_dir="./audio/segments/"):
     if not os.path.exists(audio_dir):
         return None
         
-    files_map = {f.lower(): f for f in os.listdir(audio_dir)}
+    #files_map = {f.lower(): f for f in os.listdir(audio_dir)}
     
     possible_names = [
         segment_row['filename'],
@@ -26,10 +26,10 @@ def find_audio_file(segment_row, audio_dir="./audio/segments/"):
         path = os.path.join(audio_dir, name)
         if os.path.exists(path):
             return path
-            
+
         # Case-insensitive match
-        if name.lower() in files_map:
-            return os.path.join(audio_dir, files_map[name.lower()])
+        #if name.lower() in files_map:
+        #return os.path.join(audio_dir, files_map[name.lower()])
             
     return None
 
@@ -38,7 +38,7 @@ def find_embedding_file(segment_row, embedding_dir="./audio/embeddings/"):
         return None
         
     # Get all files in directory with case-insensitive lookup
-    files_map = {f.lower(): f for f in os.listdir(embedding_dir)}
+    #files_map = {f.lower(): f for f in os.listdir(embedding_dir)}
     
     # Try different filename formats
     possible_names = []
@@ -63,8 +63,8 @@ def find_embedding_file(segment_row, embedding_dir="./audio/embeddings/"):
             return path
             
         # Case-insensitive match
-        if name.lower() in files_map:
-            return os.path.join(embedding_dir, files_map[name.lower()])
+        #if name.lower() in files_map:
+        #    return os.path.join(embedding_dir, files_map[name.lower()])
             
     return None
 

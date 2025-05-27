@@ -100,7 +100,7 @@ def export(
         annotated=annotated,
         query_limit=query_limit
     )
-    
+
     results_df = db.get_segments_with_predictions(filters)
 
     if "energy" in results_df.columns:
@@ -129,6 +129,7 @@ def export(
                 files_to_export.append(audio_file)
         prefix = "audio"
     
+
     # EXPORT AS A CSV
     csv_path = f"{SEGMENT_DIR}/export_{timestamp}.csv"
     results_df.to_csv(csv_path, index=False)
@@ -140,6 +141,7 @@ def export(
         return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")
     else:
         return HTTPException(status_code=204, detail="No files available")
+    
 
 # --- Analysis endpoint ---
 
