@@ -9,10 +9,11 @@ from datetime import datetime
 today_date = datetime.today().strftime('%Y-%m-%d')
 
 # === CONFIGURATION ===
-N_JOBS = 10  # Number of parallel jobs
+N_JOBS = 20  # Number of parallel jobs
 
-#Already processed : "2024-03","2024-04"
-MONTH_SELECTION = ["2024-11", "2024-10", "2024-09", "2024-08", "2024-07", "2024-06", "2024-05", "2025-05", "2025-04", "2025-03", "2025-02", "2025-01"]
+#Already processed : "2025-01"
+MONTH_SELECTION = ["2025-02"]
+
 
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
@@ -22,16 +23,18 @@ USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_202403
 SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 random.seed(11)
 
-#DATASET_PATH = "audio/test_bugg/" 
-DATASET_PATH = "./audio/tabmon_subset/" 
+DATASET_PATH = "/DYNI/tabmon/tabmon_data" 
+
 COUNTRY_FOLDERS_LIST = ["proj_tabmon_NINA", "proj_tabmon_NINA_ES", "proj_tabmon_NINA_FR", "proj_tabmon_NINA_NL"]
 PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
-CHUNK_FILES_FOLDER = f"chunk_files"
-RESULT_FILES_FOLDER = "result_files"
+MONTH_PRINT = ";".join(str(x) for x in MONTH_SELECTION)
+CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_PRINT}"
 
-META_DATA_PATH = "Bugg deployment form.csv"
+
+META_DATA_PATH = "site_info.csv"
+
 META_DATA_DF = pd.read_csv(os.path.join(DATASET_PATH, META_DATA_PATH) , encoding='utf-8')
 
 
@@ -42,7 +45,6 @@ def get_device_ID(bugg_folder_name):
     change_indices = np.append(np.diff(indices)-1, 1)
     last_zero_index = np.where(change_indices != 0)[0][0]
     return bugg_folder_name[indices[last_zero_index]+1:]
-
 
 def get_file_date(bugg_file_name):
     """Get file year-month"""
@@ -73,7 +75,6 @@ for country_folder in COUNTRY_FOLDERS_LIST:
             site_name = "site_name" # site names are going to be added to the metadata 
             lat = meta_data_row["4. Latitude: decimal degree, WGS84 (ex: 64.65746)"].iloc[0]
             long = meta_data_row["5. Longitude: decimal degree, WGS84 (ex: 5.37463)"].iloc[0]
-
             ## get the list of conf folders
             conf_folder_list =  [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder)) if os.path.isdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, f))]
             
@@ -98,16 +99,14 @@ for country_folder in COUNTRY_FOLDERS_LIST:
                             files_data.append(data)
                         else:
                             missing_dates.append(file_year_month)
-                            print([bugg_ID, conf_folder], " not in the month selection")
+                            #print([bugg_ID, conf_folder], " not in the month selection")
                 else :
                     print([bugg_ID, conf_folder], " in list of not usable buggs")
         else:
             print("No metadata for ", country_folder, bugg_folder)
 
 print(f"Total number of files: {len(files_data)}")
-print(f"Missing dates: {missing_dates}")
-
-
+print(f"Missing dates: {list(set(missing_dates))}")
 
 
 
@@ -118,9 +117,6 @@ if os.path.exists(CHUNK_FILES_FOLDER):
     shutil.rmtree(CHUNK_FILES_FOLDER)
 os.makedirs(CHUNK_FILES_FOLDER, exist_ok=False) 
 
-# Write the aggregated results for this job to a file
-if os.path.exists(RESULT_FILES_FOLDER):
-    shutil.rmtree(RESULT_FILES_FOLDER)
 
 
 for i in range(N_JOBS):
@@ -134,12 +130,12 @@ for i in range(N_JOBS):
 
 
 print(f"Split {MONTH_SELECTION} : {len(files_data)} files into {N_JOBS} chunks.")
-
+print(f" Inference will take approximately {chunk_size*30/60/60:.1f} hours per job" )
 
 # === CREATE SBATCH FILE ===
 SBATCH_TEMPLATE = f"""#!/bin/bash
 #SBATCH --job-name=tabmon_pipeline
-#SBATCH --partition=gpu         
+#SBATCH --partition=all         
 #SBATCH --output=slurm_output_files/slurm_output_%A_%a.out
 #SBATCH --array=0-{N_JOBS-1}
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
