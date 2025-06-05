@@ -27,7 +27,7 @@ class ParquetDatabase:
                     MAX(lng) as lng,
                     MAX(model) as model_name,
                     MAX(model_checkpoint) as model_checkpoint,
-                    MAX(datetime) as date_updated
+                    MAX(datetime) AS date_updated
                 FROM all_data
                 GROUP BY device_id
             """)
@@ -39,11 +39,11 @@ class ParquetDatabase:
                     row_number() OVER() as id,
                     filename,
                     device_id,
-                    MAX(datetime) as date_recorded
+                    MAX(REPLACE(SUBSTRING(filename, 1, 24), '_', ':')) as date_recorded
                 FROM all_data
                 GROUP BY filename, device_id
             """)
-            
+
             # segments view
             self.con.execute("""
                 CREATE OR REPLACE VIEW segments AS
@@ -135,7 +135,7 @@ class ParquetDatabase:
             if getattr(filters, 'device_id', None):
                 partition_filters.append(f"d.device_id = '{filters.device_id}'")
             if getattr(filters, 'country', None):
-                partition_filters.append(f"d.country = '{filters.country}'")
+                partition_filters.append(f"d.country = '{filters.country}'") 
             if getattr(filters, 'predicted_species', None):
                 regular_filters.append(f"p.predicted_species = '{filters.predicted_species}'")
             if getattr(filters, 'confidence', None):

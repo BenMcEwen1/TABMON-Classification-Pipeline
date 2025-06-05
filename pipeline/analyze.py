@@ -25,7 +25,7 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 def run(args, id="wabad"):
     if not isinstance(args, PipelineSchema):
         args = PipelineSchema(**vars(args))
-    
+
     # Run the algorithm
     _, predictions = run_algorithm(args, id)
 

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import ParquetDatabase
@@ -12,6 +12,8 @@ from datetime import datetime
 import time
 import os
 from typing import Optional
+import json
+import pandas as pd
 
 app = FastAPI(title="TABMON API", description="Bird sound classification API")
 
@@ -66,10 +68,14 @@ async def species_list(db: ParquetDatabase = Depends(get_db)):
 # --- Query endpoints ---
 
 @app.post("/retrieve/", tags=["Query"])
-def retrieve(filters: RetrievalSchema, db: ParquetDatabase = Depends(get_db)):
+async def retrieve(filters: RetrievalSchema, db: ParquetDatabase = Depends(get_db)):
     """Retrieve segments based on filters."""
     result = db.get_segments_with_predictions(filters)
-    return result.to_dict(orient='records')
+
+    if "energy" in result.columns:
+        result = result.drop(columns=["energy"])
+
+    return json.loads(result.to_json(orient='records'))
 
 @app.get("/export/", tags=["Query"])
 def export(
@@ -103,15 +109,23 @@ def export(
     
     results_df = db.get_segments_with_predictions(filters)
 
-    if "energy" in results_df.columns:
-        results_df = results_df.drop(columns=["energy"])
-    print(results_df['device_id'])
-    
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")
-    
+
+    # Construct annotator csv - filename, predictions list, confidence list, Correct (Yes, No), labels, comments, Addition Information Required
+    filenames = [f"{data['filename'][:-4]}_{data['device_id']}_{data['start_time']//3}.wav" for index, data in results_df.iterrows()]
+
+    annotator = pd.DataFrame({"Filename": filenames, 
+                              "Predictions": results_df["predicted_species_list"], 
+                              "Confidence": results_df["confidence_list"],
+                              "Correct (Yes/No)": ["" for _ in filenames],
+                              "Labels": results_df["label"],
+                              "Comments": results_df["notes"]
+                              })
+
     EMBEDDING_DIR = "./pipeline/outputs/embeddings/"
     SEGMENT_DIR = "./pipeline/outputs/segments/"
+    EXPORT_DIR = "./pipeline/outputs/"
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     
     files_to_export = []
@@ -130,8 +144,8 @@ def export(
         prefix = "audio"
     
     # EXPORT AS A CSV
-    csv_path = f"{SEGMENT_DIR}/export_{timestamp}.csv"
-    results_df.to_csv(csv_path, index=False)
+    csv_path = f"{EXPORT_DIR}/export_{timestamp}.csv"
+    annotator.to_csv(csv_path, index=False)
     files_to_export.append(csv_path)
     
     zip_path = create_zip_archive(files_to_export, prefix)
@@ -180,7 +194,7 @@ def get_segment_predictions(segment_id: int, db: ParquetDatabase = Depends(get_d
 
 @app.get("/segments/audio/{filename}", response_class=FileResponse, tags=["Files"])
 def get_audio_segment(filename: str):
-    path = f"./audio/segments/{filename}"
+    path = f"./pipeline/outputs/segments/{filename}"
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Audio file not found")
     return FileResponse(path=path, filename=filename, media_type="audio/mpeg")

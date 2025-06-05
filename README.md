@@ -1,7 +1,7 @@
 # TABMON Classification Pipeline
 This is a data and classification pipeline repository for the [TABMON](https://www.biodiversa.eu/2024/04/15/tabmon/) (Transnational Acoustic Biodiversity Monitoring Network). The purpose of this repository is to provide an end-to-end framework from raw field data to inference of essential biodiversity variables (EBVs).
 
-Authors: Ben McEwen, Corentin Bernard \
+Authors: Ben McEwen, Corentin Bernard, Benjamin Cretois \
 **Adapted from the AvesEcho pipeline (Ghani et al. 2024) - [paper](https://arxiv.org/abs/2409.15383)*
 
 ### Getting Started 🌱
@@ -15,14 +15,14 @@ Install dependencies `pip install -r requirements.txt`
 Place audio into `audio/` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `audio/<data>/`.
 After installing dependencies run:
 ```
-python -m pipeline.analyze --i 'audio/<data>' --model_name 'birdnet' --device_id '<id>'
+python -m pipeline.analyze --i audio/<data> --model_name birdnet --device_id <id>
 ```
 Both 'birdnet', 'fc' and 'passt' models are setup.
 
 For efficient testing it is recommended to pre-generate sample embeddings before inference.
 *To generate embeddings* run:
 ```
-python -m pipeline.embeddings --i 'audio/<data>' --model_name 'birdnet' --device_id '<id>'
+python -m pipeline.embeddings --i audio/<data> --model_name birdnet --device_id <id>
 ```
 
 *Model fine-tuning:*\
