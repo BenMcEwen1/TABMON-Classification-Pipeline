@@ -69,6 +69,8 @@ if __name__ == "__main__":
                     site = parts[6]
                     lat = parts[7]
                     long = parts[8]
+                    deployementID = deployementID[9]
+
 
                     args = {
                             "slist": 'pipeline/inputs/list_sp_ml.csv',

@@ -5,27 +5,32 @@ import numpy as np
 import shutil
 import random
 from datetime import datetime
-
+random.seed(11)
 today_date = datetime.today().strftime('%Y-%m-%d')
+
 
 # === CONFIGURATION ===
 N_JOBS = 20  # Number of parallel jobs
 
-#Already processed : "2025-01"
-MONTH_SELECTION = ["2025-02"]
+SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 
-
+#Already processed : "2025-01", "2025-02", "2025-03"
+MONTH_SELECTION = ["2025-04"]
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
 USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
 
 
-SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
-random.seed(11)
-
 DATASET_PATH = "/DYNI/tabmon/tabmon_data" 
 
-COUNTRY_FOLDERS_LIST = ["proj_tabmon_NINA", "proj_tabmon_NINA_ES", "proj_tabmon_NINA_FR", "proj_tabmon_NINA_NL"]
+COUNTRY_TO_FOLDER = {
+    "Norway": "proj_tabmon_NINA",
+    "Spain": "proj_tabmon_NINA_ES",
+    "France": "proj_tabmon_NINA_FR",
+    "Netherlands": "proj_tabmon_NINA_NL"
+}
+
+
 PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
@@ -38,75 +43,83 @@ META_DATA_PATH = "site_info.csv"
 META_DATA_DF = pd.read_csv(os.path.join(DATASET_PATH, META_DATA_PATH) , encoding='utf-8')
 
 
-def get_device_ID(bugg_folder_name):
-    """Get device ID (last digits afters 0000000) from the bugg folder name."""
-    indices = [i for i, char in enumerate(bugg_folder_name) if char == '0']
-    indices = np.array(indices)
-    change_indices = np.append(np.diff(indices)-1, 1)
-    last_zero_index = np.where(change_indices != 0)[0][0]
-    return bugg_folder_name[indices[last_zero_index]+1:]
 
-def get_file_date(bugg_file_name):
+def get_file_year_month(bugg_file_name):
     """Get file year-month"""
     fulldate = bugg_file_name.split("-")
     year_month = fulldate[0] + '-' + fulldate[1]
     return year_month
 
+def get_file_date(bugg_file_name):
+    date = bugg_file_name.replace('.mp3', '')
+    date = date.replace('_', ':')
+    date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
+    return date
 
-missing_dates = []
+
 files_data = []
-## loop over country folders (ex: proj_tabmon_NINA_ES")
-for country_folder in COUNTRY_FOLDERS_LIST:
-    print(country_folder)
+for index, meta_data_row in META_DATA_DF.iterrows():
 
-    ## get the list of bugg_folders
+
+    deployementID = meta_data_row["9. DeploymentID: countryCode_deploymentNumber_DeviceID (e.g. NO_1_ 7ft35sm)"]
+
+    print(deployementID)
+
+    bugg_ID = meta_data_row["8. DeviceID: last digits of the serial number (ex: RPiID-100000007ft35sm --> 7ft35sm)"]
+    country = meta_data_row["1. Country"]
+    site_name = meta_data_row["Site"]
+    lat = meta_data_row["4. Latitude: decimal degree, WGS84 (ex: 64.65746)"]
+    long = meta_data_row["5. Longitude: decimal degree, WGS84 (ex: 5.37463)"]
+    
+    d_start_date = meta_data_row["2. Date"]
+    d_start_hour = meta_data_row["3. Time (UTC!!! Check here  https://www.utctime.net/)"]
+
+    deployement_start = datetime.strptime(f"{d_start_date} {d_start_hour}", "%d/%m/%Y %H:%M:%S")
+    deployement_end  = datetime(2030, 1, 1)
+
+    #print(deployementID, bugg_ID, country, site_name, lat, long   , deployement_start, deployement_end)
+
+    country_folder = COUNTRY_TO_FOLDER[country]
+
     bugg_folder_list = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder)) if os.path.isdir(os.path.join(DATASET_PATH, country_folder, f))]
 
-    ## loop over bugg folders
-    for bugg_folder in bugg_folder_list:
+    bugg_folder = [s for s in bugg_folder_list if s.endswith(bugg_ID)]
 
-        print(country_folder,bugg_folder)
-        #Get metadata 
-        bugg_ID = get_device_ID(bugg_folder)
+    if len(bugg_folder) == 1 :
 
-        if bugg_ID in META_DATA_DF["8. DeviceID: last digits of the serial number (ex: RPiID-100000007ft35sm --> 7ft35sm)"].tolist() :
-            meta_data_row = META_DATA_DF[META_DATA_DF["8. DeviceID: last digits of the serial number (ex: RPiID-100000007ft35sm --> 7ft35sm)"] == bugg_ID]
-            country = meta_data_row["1. Country"].iloc[0]
-            site_name = "site_name" # site names are going to be added to the metadata 
-            lat = meta_data_row["4. Latitude: decimal degree, WGS84 (ex: 64.65746)"].iloc[0]
-            long = meta_data_row["5. Longitude: decimal degree, WGS84 (ex: 5.37463)"].iloc[0]
-            ## get the list of conf folders
-            conf_folder_list =  [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder)) if os.path.isdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, f))]
+        bugg_folder = bugg_folder[0]
+        conf_folder_list =  [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder)) if os.path.isdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, f))]
+
+        for conf_folder in conf_folder_list:
+
             
-            ## loop over conf folders (if in the future there is more than one conf file per bugg)
-            for conf_folder in conf_folder_list:
+            recording_files = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, conf_folder)) if f.endswith(".mp3")]
 
-                if [bugg_ID, conf_folder] not in USELESS_BUGGS:
+            #Subsample the list, for testing
+            sample_size = int(len(recording_files)/SUBSAMPLE_FACTOR)
+            recording_files = random.sample(recording_files, sample_size)
 
-                    recording_files = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder, bugg_folder, conf_folder)) if f.endswith(".mp3")]
+            for file in recording_files:
+                    
+                file_year_month = get_file_year_month(file)
 
-                    #Subsample the list, for testing
-                    sample_size = int(len(recording_files)/SUBSAMPLE_FACTOR)
-                    recording_files = random.sample(recording_files, sample_size)
+                if file_year_month in MONTH_SELECTION:
+                    
+                    file_date = get_file_date(file)
+                    
+                    print(deployementID, deployement_start, file_date,deployement_end )
 
-                    for file in recording_files:
+                    if file_date > deployement_start and file_date < deployement_end :
+                        data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long), deployementID ]
+                        files_data.append(data)
                         
-                        file_year_month = get_file_date(file)
+                        print(data)
+    
+    else :
+        print("No bugg folder for", deployementID)
 
-                        if file_year_month in MONTH_SELECTION:
-
-                            data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long) ]
-                            files_data.append(data)
-                        else:
-                            missing_dates.append(file_year_month)
-                            #print([bugg_ID, conf_folder], " not in the month selection")
-                else :
-                    print([bugg_ID, conf_folder], " in list of not usable buggs")
-        else:
-            print("No metadata for ", country_folder, bugg_folder)
 
 print(f"Total number of files: {len(files_data)}")
-print(f"Missing dates: {list(set(missing_dates))}")
 
 
 
