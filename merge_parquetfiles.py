@@ -8,6 +8,9 @@ import os
 data_path = "pipeline/outputs/predictions"
 output_path = "pipeline/outputs/merged_predictions"
 
+MONTH_SELECTION = ["2025-03"]
+
+
 
 def merge_parquet_files(bugg_path, file_list, bugg_output_path, output_file):
     try:
@@ -31,9 +34,11 @@ def get_month(fname):
 
 country_folder_list = [f for f in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, f))]
 
+print(country_folder_list)
 
 for country_folder in country_folder_list:
-
+    
+    print(country_folder)
     bugg_folder_list = [f for f in os.listdir(os.path.join(data_path, country_folder)) if os.path.isdir(os.path.join(data_path, country_folder, f))]
 
     for bugg_folder in bugg_folder_list:
@@ -46,11 +51,14 @@ for country_folder in country_folder_list:
 
         for month in month_list:
 
-            file_list_month = [ fname for fname in file_list if fname.startswith(month)]
-            bugg_path = os.path.join(data_path, country_folder,bugg_folder )
-            bugg_output_path = os.path.join(output_path, country_folder, bugg_folder)
-            os.makedirs(bugg_output_path, exist_ok=True)
-            output_file = f"{month}_{bugg_id}.parquet"
-            merge_parquet_files(bugg_path, file_list_month, bugg_output_path, output_file)
+            if month in MONTH_SELECTION:
+
+                file_list_month = [ fname for fname in file_list if fname.startswith(month)]
+                bugg_path = os.path.join(data_path, country_folder,bugg_folder )
+                bugg_output_path = os.path.join(output_path, country_folder, bugg_folder)
+                os.makedirs(bugg_output_path, exist_ok=True)
+                output_file = f"{month}_{bugg_id}.parquet"
+                merge_parquet_files(bugg_path, file_list_month, bugg_output_path, output_file)
+
 
 
