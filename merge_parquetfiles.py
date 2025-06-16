@@ -11,7 +11,6 @@ output_path = "pipeline/outputs/merged_predictions"
 MONTH_SELECTION = ["2025-03"]
 
 
-
 def merge_parquet_files(bugg_path, file_list, bugg_output_path, output_file):
     try:
         # Read and concatenate all Parquet files

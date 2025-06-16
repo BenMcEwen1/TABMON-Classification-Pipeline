@@ -69,7 +69,7 @@ if __name__ == "__main__":
                     site = parts[6]
                     lat = parts[7]
                     long = parts[8]
-                    deployementID = deployementID[9]
+                    deploymentID = parts[9]
 
 
                     args = {

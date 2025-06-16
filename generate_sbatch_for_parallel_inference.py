@@ -10,7 +10,7 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 
 
 # === CONFIGURATION ===
-N_JOBS = 20  # Number of parallel jobs
+N_JOBS = 25  # Number of parallel jobs
 
 SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 
@@ -18,7 +18,7 @@ SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for 
 MONTH_SELECTION = ["2025-04"]
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
-USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
+#USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
 
 
 DATASET_PATH = "/DYNI/tabmon/tabmon_data" 
@@ -41,7 +41,7 @@ CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_PRINT}"
 META_DATA_PATH = "site_info.csv"
 
 META_DATA_DF = pd.read_csv(os.path.join(DATASET_PATH, META_DATA_PATH) , encoding='utf-8')
-
+META_DATA_DF = META_DATA_DF.fillna("")
 
 
 def get_file_year_month(bugg_file_name):
@@ -60,10 +60,7 @@ def get_file_date(bugg_file_name):
 files_data = []
 for index, meta_data_row in META_DATA_DF.iterrows():
 
-
-    deployementID = meta_data_row["9. DeploymentID: countryCode_deploymentNumber_DeviceID (e.g. NO_1_ 7ft35sm)"]
-
-    print(deployementID)
+    deploymentID = meta_data_row["9. DeploymentID: countryCode_deploymentNumber_DeviceID (e.g. NO_1_7ft35sm)"]
 
     bugg_ID = meta_data_row["8. DeviceID: last digits of the serial number (ex: RPiID-100000007ft35sm --> 7ft35sm)"]
     country = meta_data_row["1. Country"]
@@ -71,13 +68,20 @@ for index, meta_data_row in META_DATA_DF.iterrows():
     lat = meta_data_row["4. Latitude: decimal degree, WGS84 (ex: 64.65746)"]
     long = meta_data_row["5. Longitude: decimal degree, WGS84 (ex: 5.37463)"]
     
-    d_start_date = meta_data_row["2. Date"]
-    d_start_hour = meta_data_row["3. Time (UTC!!! Check here  https://www.utctime.net/)"]
+    start_date = meta_data_row["2. Date"]
+    start_hour = meta_data_row["3. Time (UTC!!! Check here  https://www.utctime.net/)"]
+    end_date = meta_data_row["End date"]
+    end_hour = meta_data_row["End time"]
 
-    deployement_start = datetime.strptime(f"{d_start_date} {d_start_hour}", "%d/%m/%Y %H:%M:%S")
-    deployement_end  = datetime(2030, 1, 1)
+    deployment_start = datetime.strptime(f"{start_date} {start_hour}", "%d/%m/%Y %H:%M:%S")
 
-    #print(deployementID, bugg_ID, country, site_name, lat, long   , deployement_start, deployement_end)
+    if end_date == "" and end_hour == "" :
+        deployment_end = datetime(3000, 1, 1)
+    else :
+        deployment_end = datetime.strptime(f"{end_date} {end_hour}", "%d/%m/%Y %H:%M:%S")
+
+    
+    print(deploymentID, bugg_ID, country, site_name, lat, long  , deployment_start, deployment_end)
 
     country_folder = COUNTRY_TO_FOLDER[country]
 
@@ -105,18 +109,19 @@ for index, meta_data_row in META_DATA_DF.iterrows():
 
                 if file_year_month in MONTH_SELECTION:
                     
-                    file_date = get_file_date(file)
-                    
-                    print(deployementID, deployement_start, file_date,deployement_end )
-
-                    if file_date > deployement_start and file_date < deployement_end :
-                        data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long), deployementID ]
-                        files_data.append(data)
+                    try : 
+                        file_date = get_file_date(file)
                         
-                        print(data)
-    
+                        if file_date > deployment_start and file_date < deployment_end :
+                            data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long), deploymentID ]
+                            files_data.append(data)
+                            
+                    except Exception as e: 
+                        print("Unable to get date from ", file)
+                        print(e)
+                        
     else :
-        print("No bugg folder for", deployementID)
+        print("No bugg folder for", deploymentID)
 
 
 print(f"Total number of files: {len(files_data)}")
