@@ -18,6 +18,7 @@ class ParquetDatabase:
                 SELECT * FROM read_parquet('{self.parquet_dir}/**/*.parquet', hive_partitioning=True)
             """)
             
+            # device view
             self.con.execute("""
                 CREATE OR REPLACE VIEW devices AS
                 SELECT DISTINCT
@@ -44,11 +45,11 @@ class ParquetDatabase:
                 GROUP BY filename, device_id
             """)
 
-            # segments view
+            # segments view            
             self.con.execute("""
                 CREATE OR REPLACE VIEW segments AS
                 SELECT DISTINCT
-                    row_number() OVER() as id,
+                    CONCAT(filename, '_', CAST("start time" AS VARCHAR)) as segment_id,
                     filename,
                     "start time" as start_time,
                     3 as duration,
@@ -60,13 +61,12 @@ class ParquetDatabase:
                 FROM all_data
                 GROUP BY filename, "start time"
             """)
-            
+
             # predictions view
             self.con.execute("""
                 CREATE OR REPLACE VIEW predictions AS
                 SELECT
-                    row_number() OVER() as id,
-                    s.id as segment_id,
+                    CONCAT(a.filename, '_', CAST(a."start time" AS VARCHAR)) AS segment_id,
                     "scientific name" as predicted_species,
                     MAX(confidence) as confidence  -- Take highest confidence if duplicates
                 FROM all_data a
@@ -74,8 +74,9 @@ class ParquetDatabase:
                     a.filename = s.filename AND 
                     a."start time" = s.start_time
                 WHERE "scientific name" IS NOT NULL
-                GROUP BY s.id, "scientific name"  -- Group by segment and species
+                GROUP BY a.filename, a."start time", "scientific name"  -- Group by segment and species
             """)
+            
             
         except Exception as e:
             print(f"Error registering views: {e}")
@@ -154,8 +155,10 @@ class ParquetDatabase:
             where_clause = "WHERE " + " AND ".join(all_filters)
 
         # Apply LIMIT separately (if given)
+        order_clause = ""
         limit_clause = ""
         if getattr(filters, 'query_limit', None):
+            order_clause = "ORDER BY RANDOM()"
             limit_clause = f"LIMIT {filters.query_limit}"
 
         main_query = f"""
@@ -170,13 +173,14 @@ class ParquetDatabase:
             FROM segments s
             JOIN audio a ON s.filename = a.filename
             JOIN devices d ON a.device_id = d.device_id
-            LEFT JOIN predictions p ON p.segment_id = s.id
+            LEFT JOIN predictions p ON p.segment_id = s.segment_id
             {where_clause}
             GROUP BY 
-                s.id, s.filename, s.start_time, s.duration, s.uncertainty, 
+                s.segment_id, s.filename, s.start_time, s.duration, s.uncertainty, 
                 s.energy, s.date_processed, s.label, s.notes,
                 a.filename, a.date_recorded,
                 d.device_id, d.country
+            {order_clause}
             {limit_clause}
         """
 
