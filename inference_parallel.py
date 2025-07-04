@@ -65,11 +65,13 @@ if __name__ == "__main__":
                     bugg = parts[2]
                     conf = parts[3]
                     file = parts[4]
-                    country = parts[5]
-                    site = parts[6]
-                    lat = parts[7]
-                    long = parts[8]
-                    deploymentID = parts[9]
+                    deploymentID = parts[5]
+                    country = parts[6]
+                    cluster = parts[7]
+                    site = parts[8]
+                    lat = parts[9]
+                    long = parts[10]
+                    
 
 
                     args = {

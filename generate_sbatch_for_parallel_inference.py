@@ -10,16 +10,16 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 
 
 # === CONFIGURATION ===
-N_JOBS = 25  # Number of parallel jobs
+#N_JOBS = Number of parallel jobs, now number of deployements
 
-SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 
-#Already processed : "2025-01", "2025-02", "2025-03"
-MONTH_SELECTION = ["2025-04"]
+#Already processed : "2025-01", "2025-02", "2025-03", "2025-04"
+MONTH_SELECTION = ["2025-05"]
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
 #USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
 
+SUBSAMPLE_FACTOR = 1 # select randomly only 1/SUBSAMPLE_FACTOR of the file (for testing)
 
 DATASET_PATH = "/DYNI/tabmon/tabmon_data" 
 
@@ -36,6 +36,11 @@ SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
 MONTH_PRINT = ";".join(str(x) for x in MONTH_SELECTION)
 CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_PRINT}"
+
+if os.path.exists(CHUNK_FILES_FOLDER):
+    shutil.rmtree(CHUNK_FILES_FOLDER)
+os.makedirs(CHUNK_FILES_FOLDER, exist_ok=False) 
+
 
 
 META_DATA_PATH = "site_info.csv"
@@ -56,33 +61,33 @@ def get_file_date(bugg_file_name):
     date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
     return date
 
+chunk_sizes = []
+N_JOBS = 0
 
-files_data = []
 for index, meta_data_row in META_DATA_DF.iterrows():
 
-    deploymentID = meta_data_row["9. DeploymentID: countryCode_deploymentNumber_DeviceID (e.g. NO_1_7ft35sm)"]
+    chunk_files = []
 
-    bugg_ID = meta_data_row["8. DeviceID: last digits of the serial number (ex: RPiID-100000007ft35sm --> 7ft35sm)"]
-    country = meta_data_row["1. Country"]
+    deploymentID = meta_data_row["DeploymentID"]
+    bugg_ID = meta_data_row["DeviceID"]
+    country = meta_data_row["Country"]
+    cluster_name = meta_data_row["Cluster"]
     site_name = meta_data_row["Site"]
-    lat = meta_data_row["4. Latitude: decimal degree, WGS84 (ex: 64.65746)"]
-    long = meta_data_row["5. Longitude: decimal degree, WGS84 (ex: 5.37463)"]
-    
-    start_date = meta_data_row["2. Date"]
-    start_hour = meta_data_row["3. Time (UTC!!! Check here  https://www.utctime.net/)"]
-    end_date = meta_data_row["End date"]
-    end_hour = meta_data_row["End time"]
+    lat = meta_data_row["Latitude"]
+    long = meta_data_row["Longitude"]
+    start_date = meta_data_row["deploymentBeginDate"]
+    start_time = meta_data_row["deploymentBeginTime"]
+    end_date = meta_data_row["deploymentEndDate"]
+    end_time = meta_data_row["deploymentEndTime"]
 
-    deployment_start = datetime.strptime(f"{start_date} {start_hour}", "%d/%m/%Y %H:%M:%S")
+    deployment_start = datetime.strptime(f"{start_date} {start_time}", "%d/%m/%Y %H:%M:%S")
 
-    if end_date == "" and end_hour == "" :
+    if end_date == "" and end_time == "" :
         deployment_end = datetime(3000, 1, 1)
     else :
-        deployment_end = datetime.strptime(f"{end_date} {end_hour}", "%d/%m/%Y %H:%M:%S")
+        deployment_end = datetime.strptime(f"{end_date} {end_time}", "%d/%m/%Y %H:%M:%S")
 
     
-    print(deploymentID, bugg_ID, country, site_name, lat, long  , deployment_start, deployment_end)
-
     country_folder = COUNTRY_TO_FOLDER[country]
 
     bugg_folder_list = [f for f in os.listdir(os.path.join(DATASET_PATH, country_folder)) if os.path.isdir(os.path.join(DATASET_PATH, country_folder, f))]
@@ -113,42 +118,40 @@ for index, meta_data_row in META_DATA_DF.iterrows():
                         file_date = get_file_date(file)
                         
                         if file_date > deployment_start and file_date < deployment_end :
-                            data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, country, site_name, float(lat), float(long), deploymentID ]
-                            files_data.append(data)
+                            data = [DATASET_PATH, country_folder, bugg_folder, conf_folder, file, deploymentID, country, cluster_name, site_name, float(lat), float(long)]
+                            chunk_files.append(data)
                             
                     except Exception as e: 
                         print("Unable to get date from ", file)
                         print(e)
-                        
+
+
+        if len(chunk_files) > 0: 
+
+            chunk_sizes.append(len(chunk_files))
+            print(len(chunk_files), "files for", deploymentID, bugg_ID, country, cluster_name, site_name, deployment_start, deployment_end)
+
+            with open(os.path.join(PIPE_LINE_PATH, CHUNK_FILES_FOLDER, f"file_chunks_{N_JOBS}.txt"), "w") as f:
+                for file in chunk_files:
+                    # Write file path along with the additional arguments
+                    f.write(f"{file}\n")
+                    
+            N_JOBS = N_JOBS +1 
+
+        else:
+             print(f"No files in {MONTH_SELECTION} for", deploymentID, bugg_ID, country, cluster_name, site_name, deployment_start, deployment_end)
+
+
+
     else :
         print("No bugg folder for", deploymentID)
 
 
-print(f"Total number of files: {len(files_data)}")
+   
 
+print(f"Split {MONTH_SELECTION} : {sum(chunk_sizes)} files into {N_JOBS} chunks (one per deploymentID).")
+print(f" Inference will take on average {sum(chunk_sizes)/N_JOBS*23/60/60:.1f} hours per job" )
 
-
-# === SPLIT FILES INTO CHUNKS ===
-chunk_size = math.ceil(len(files_data) / N_JOBS)
-
-if os.path.exists(CHUNK_FILES_FOLDER):
-    shutil.rmtree(CHUNK_FILES_FOLDER)
-os.makedirs(CHUNK_FILES_FOLDER, exist_ok=False) 
-
-
-
-for i in range(N_JOBS):
-    chunk_files = files_data[i * chunk_size: (i + 1) * chunk_size]
-    # Write the chunk file, including the additional arguments for each file
-    
-    with open(os.path.join(PIPE_LINE_PATH, CHUNK_FILES_FOLDER, f"file_chunks_{i}.txt"), "w") as f:
-        for file in chunk_files:
-            # Write file path along with the additional arguments
-            f.write(f"{file}\n")
-
-
-print(f"Split {MONTH_SELECTION} : {len(files_data)} files into {N_JOBS} chunks.")
-print(f" Inference will take approximately {chunk_size*30/60/60:.1f} hours per job" )
 
 # === CREATE SBATCH FILE ===
 SBATCH_TEMPLATE = f"""#!/bin/bash
