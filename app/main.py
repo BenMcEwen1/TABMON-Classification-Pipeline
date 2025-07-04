@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import ParquetDatabase
 from app.schema import RetrievalSchema, PipelineSchema, Filter
-from app.file_utils import find_audio_file, create_zip_archive, find_embedding_file
+from app.file_utils import find_audio_file, create_zip_archive, find_embedding_file, select_samples_from_recordings
 from pipeline.analyze import run
 from pipeline.util import load_species_list
 
@@ -14,6 +14,7 @@ import os
 from typing import Optional
 import json
 import pandas as pd
+
 
 app = FastAPI(title="TABMON API", description="Bird sound classification API")
 
@@ -109,27 +110,42 @@ def export(
 
     results_df = db.get_segments_with_predictions(filters)
 
+
+
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")
 
     # Construct annotator csv - filename, predictions list, confidence list, Correct (Yes, No), labels, comments, Addition Information Required
-    filenames = [f"{data['filename'][:-4]}_{data['device_id']}_{data['start_time']//3}.wav" for index, data in results_df.iterrows()]
+    #filenames = [f"{data['filename'][:-4]}_{data['device_id']}_{data['start_time']//3}.wav" for index, data in results_df.iterrows()]
+    filenames = [f"{data['filename'][:-4]}_{data['device_id']}_{data['start_time']//3}.mp3" for index, data in results_df.iterrows()]
 
-    annotator = pd.DataFrame({"Filename": filenames, 
+    """annotator = pd.DataFrame({"Filename": filenames, 
                               "Predictions": results_df["predicted_species_list"], 
                               "Confidence": results_df["confidence_list"],
                               "Correct (Yes/No)": ["" for _ in filenames],
                               "Labels": results_df["label"],
                               "Comments": results_df["notes"]
+                              })"""
+
+    annotator = pd.DataFrame({"Country": results_df["country"],
+                              "Device_id": results_df["device_id"], 
+                              "Filename": results_df["filename"], 
+                              "Start_time": results_df["start_time"],                                               
+                              "Sample_filename": filenames,
+                              "Predictions": results_df["predicted_species_list"], 
+                              "Confidence": results_df["confidence_list"],
                               })
+
 
     EMBEDDING_DIR = "./pipeline/outputs/embeddings/"
     SEGMENT_DIR = "./pipeline/outputs/segments/"
-    EXPORT_DIR = "./pipeline/outputs/"
+    EXPORT_DIR = "./pipeline/outputs/exports/"
+    DATASET_PATH =  "/DYNI/tabmon/tabmon_data"
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     
+    """
     files_to_export = []
-    
+    #
     if embeddings:
         for _, row in results_df.iterrows():
             embedding_file = find_embedding_file(row.to_dict(), EMBEDDING_DIR)
@@ -142,20 +158,29 @@ def export(
             if audio_file:
                 files_to_export.append(audio_file)
         prefix = "audio"
-    
+    #
+    """
+
+    """csv_path = f"{EXPORT_DIR}/export_{timestamp}.csv"
+    #annotator.to_csv(csv_path, index=False)
+    ## export 3sec samples in zip file
+    files_to_export.append(csv_path)
+    zip_path = create_zip_archive(files_to_export, prefix)"""
 
     # EXPORT AS A CSV
-    csv_path = f"{EXPORT_DIR}/export_{timestamp}.csv"
-    annotator.to_csv(csv_path, index=False)
-    files_to_export.append(csv_path)
+    csv_file = f"export_{timestamp}.csv"
+    annotator.to_csv(os.path.join(EXPORT_DIR, csv_file), index=False)
+    prefix = "audio"
     
-    zip_path = create_zip_archive(files_to_export, prefix)
+    PADDING = 6 # seconds (before and after samples)
+    zip_path = select_samples_from_recordings(csv_file, PADDING, EXPORT_DIR, DATASET_PATH)
     
+
     if zip_path:
         return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")
     else:
         return HTTPException(status_code=204, detail="No files available")
-    
+    #
 
 # --- Analysis endpoint ---
 
