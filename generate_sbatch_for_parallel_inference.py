@@ -148,7 +148,6 @@ for index, meta_data_row in META_DATA_DF.iterrows():
 
 
    
-
 print(f"Split {MONTH_SELECTION} : {sum(chunk_sizes)} files into {N_JOBS} chunks (one per deploymentID).")
 print(f" Inference will take on average {sum(chunk_sizes)/N_JOBS*23/60/60:.1f} hours per job" )
 
@@ -157,7 +156,7 @@ print(f" Inference will take on average {sum(chunk_sizes)/N_JOBS*23/60/60:.1f} h
 SBATCH_TEMPLATE = f"""#!/bin/bash
 #SBATCH --job-name=tabmon_pipeline
 #SBATCH --partition=all         
-#SBATCH --output=slurm_output_files/slurm_output_%A_%a.out
+#SBATCH --output=slurm_output_files_{MONTH_PRINT}/slurm_output_%A_%a.out
 #SBATCH --array=0-{N_JOBS-1}
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
 #SBATCH --cpus-per-task=2  

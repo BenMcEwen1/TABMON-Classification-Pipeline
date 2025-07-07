@@ -7,6 +7,7 @@ import psutil
 from pipeline.analyze import run
 from types import SimpleNamespace
 import numpy as np
+import traceback
 
 RESULT_FILES_FOLDER = "result_files"
 
@@ -57,6 +58,9 @@ if __name__ == "__main__":
             if line:  # Check if the line is not empty
                 try:
                     # Safely parse the list (it will turn the string into an actual Python list)
+                    
+                    print(i)
+                    
                     parts = ast.literal_eval(line)
                     
                     # Extract the parts as required
@@ -94,6 +98,7 @@ if __name__ == "__main__":
                 except Exception as e:
                     print(f"Error parsing line: {line}")
                     print(f"Error: {e}")
+                    traceback.print_exc()
 
             if (number_of_files != 0) and (i % 10 == 0):
                 print_time_information(time_start, i, number_of_files)
