@@ -11,6 +11,7 @@ import librosa
 import shutil
 import soundfile as sf
 from pydub import AudioSegment
+import json
 
 
 def find_audio_file(segment_row, audio_dir="./audio/segments/"):
@@ -118,12 +119,10 @@ def audio_split(sig, start_time, rate, padding):
     ## Put the boundaries of the sample to 0 to vizualize it on the sepctrogram 
     sample[ padding*rate - 1024 : padding*rate ] = 0
     sample[ padding*rate + sample_length*rate : padding*rate + sample_length*rate + 1024 ] = 0
-
-
     return sample
 
 
-def select_samples_from_recordings(csv_file, padding, export_path, dataset_path ) :
+def select_samples_from_recordings(filters, csv_file, padding, export_path, dataset_path ) :
 
     export_df = pd.read_csv(os.path.join(export_path, csv_file))
     export_folder = csv_file.split(".")[0]
@@ -148,7 +147,6 @@ def select_samples_from_recordings(csv_file, padding, export_path, dataset_path 
                 start_time = row["Start_time"]
 
                 sample = audio_split(sig, start_time, rate, padding)
-
                 
                 # Save to temporary WAV
                 temp_wav = os.path.join(export_path, export_folder , "temp.wav")
@@ -166,6 +164,13 @@ def select_samples_from_recordings(csv_file, padding, export_path, dataset_path 
             else:
                 print(recording_path, "does not exist.")
 
+
+    # export metadata test
+    metadata_path = os.path.join(export_path, export_folder, "export_metadata.json")
+    with open(metadata_path, "w") as outfile:
+        json.dump(filters.model_dump(), outfile, indent=2)
+
+    output_mp3 = os.path.join(export_path, export_folder  , row["Sample_filename"] )
 
     shutil.make_archive(os.path.join(export_path, export_folder  ), 'zip', os.path.join(export_path, export_folder ))
     shutil.rmtree(os.path.join(export_path, export_folder  ))

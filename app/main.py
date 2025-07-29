@@ -14,6 +14,7 @@ import os
 from typing import Optional
 import json
 import pandas as pd
+import csv
 
 
 app = FastAPI(title="TABMON API", description="Bird sound classification API")
@@ -110,7 +111,7 @@ def export(
 
     results_df = db.get_segments_with_predictions(filters)
 
-
+    print(filters)
 
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")
@@ -142,6 +143,8 @@ def export(
     EXPORT_DIR = "./pipeline/outputs/exports/"
     DATASET_PATH =  "/DYNI/tabmon/tabmon_data"
     timestamp = time.strftime("%Y%m%d-%H%M%S")
+
+    os.makedirs(EXPORT_DIR, exist_ok=True)
     
     """
     files_to_export = []
@@ -173,9 +176,8 @@ def export(
     prefix = "audio"
     
     PADDING = 6 # seconds (before and after samples)
-    zip_path = select_samples_from_recordings(csv_file, PADDING, EXPORT_DIR, DATASET_PATH)
+    zip_path = select_samples_from_recordings(filters, csv_file, PADDING, EXPORT_DIR, DATASET_PATH)
     
-
     if zip_path:
         return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")
     else:
