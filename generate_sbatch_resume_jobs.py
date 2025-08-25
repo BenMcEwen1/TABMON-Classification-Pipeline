@@ -17,9 +17,9 @@ SBATCH_OUTPUT_FILE = "resume_jobs.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
 
 INPUT_CHUNK_FOLDER = f"chunk_files_{MONTH_PRINT}"
-INPUT_SLURM_FOLDER = "slurm_output_files"
+INPUT_SLURM_FOLDER = "slurm_output_files_{MONTH_PRINT}"
 
-OUTPUT_CHUNK_FOLDER = f"chunk_files_resume_{MONTH_PRINT}_{today_date}"
+OUTPUT_CHUNK_FOLDER = f"chunk_files_{MONTH_PRINT}_resume_{today_date}"
 
 os.makedirs(OUTPUT_CHUNK_FOLDER, exist_ok=False) 
 

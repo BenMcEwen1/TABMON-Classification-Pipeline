@@ -17,7 +17,6 @@ META_DATA_DF = META_DATA_DF.fillna("")
 
 
 
-
 def get_month(fname):
     date = fname.split("T")[0].split("-")
     return f"{date[0]}-{date[1]}"
@@ -68,7 +67,7 @@ def get_deploymentID(bugg_id, file_name):
     if len(deploymentIDs) == 1:
         deploymentID = deploymentIDs[0]
     elif len(deploymentIDs) > 1:
-        deploymentID = "2"
+        deploymentID = "Error"
         ERROR_LIST.append(f"Found multiples deploymentID for {bugg_id} , {file_date.month}-{file_date.day} ")
     else:
         deploymentID = "0"
