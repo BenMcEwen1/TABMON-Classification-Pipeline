@@ -189,10 +189,7 @@ class AvesEcho:
         if not os.path.exists(embedding_dir):
             os.makedirs(embedding_dir)
 
-        # Make segments directory
-        segment_dir = os.path.join(os.path.dirname(output_dir), "segments/")
-        if not os.path.exists(segment_dir):
-            os.makedirs(segment_dir)
+
 
         # Save segments and embeddings
         filtered = pred[["filename", "start time"]].drop_duplicates()
@@ -205,12 +202,6 @@ class AvesEcho:
             embedding_filename = os.path.splitext(obj_dict["filename"])[0].lower() + f"_{self.args.device_id}_{index}.pt"
             torch.save(embeddings[index], os.path.join(embedding_dir, embedding_filename))
             
-            path = os.path.join(self.outputd, segment_filename)
-            try:
-                if os.path.exists(path):
-                    shutil.copy2(path, segment_dir)
-            except Exception as e:
-                print(f"Error copying {path} to {segment_dir}: {e}")
         try:
             shutil.rmtree(self.outputd)
         except:
