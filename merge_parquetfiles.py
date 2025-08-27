@@ -8,7 +8,7 @@ from datetime import datetime
 data_path = "pipeline/outputs/predictions"
 output_path = "pipeline/outputs/merged_predictions"
 
-MONTH_SELECTION = ["2025-01"]
+MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06"]
 
 
 META_DATA_PATH = "/DYNI/tabmon/tabmon_data/site_info.csv"
@@ -22,12 +22,25 @@ def get_month(fname):
     return f"{date[0]}-{date[1]}"
 
 
+def parse_date(date_str):
+    formats = [
+        "%Y-%m-%dT%H:%M:%S.%fZ",
+        "%Y-%m-%dT%H:%M:%SZ",
+        "%Y-%m-%dT%H:%MZ"
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Date format not supported: {date_str}")
+
+
 def get_file_date(bugg_file_name):
 
     date = bugg_file_name.replace('.mp3', '')
     date = date.replace('_', ':')
-    date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
-
+    date = parse_date(date)
     return date
 
 
@@ -67,11 +80,11 @@ def get_deploymentID(bugg_id, file_name):
     if len(deploymentIDs) == 1:
         deploymentID = deploymentIDs[0]
     elif len(deploymentIDs) > 1:
-        deploymentID = "Error"
-        ERROR_LIST.append(f"Found multiples deploymentID for {bugg_id} , {file_date.month}-{file_date.day} ")
+        deploymentID = "error"
+        print(f"Found multiples deploymentID for {bugg_id} , {file_date.month}-{file_date.day} ")
     else:
         deploymentID = "0"
-        ERROR_LIST.append(f"Found 0 deploymentID for {bugg_id} , {file_date.month}-{file_date.day} ")
+        print(f"Found 0 deploymentID for {bugg_id} , {file_date.month}-{file_date.day} ")
 
     return deploymentID
 
@@ -90,7 +103,7 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         # Save to a new Parquet file
         merged_df.to_parquet(os.path.join(bugg_output_path, output_file), index=False)
         
-        print(f"Merged {len(file_list)} files into: {output_file}")
+        print(f"Merged {len(file_list)} files into: {output_file}", flush=True)
     #except Exception as e:
     #    print(f"Error: {e}")
 
@@ -100,6 +113,8 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
 if __name__ == "__main__":
 
     country_folder_list = [f for f in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, f))]
+
+    country_folder_list = country_folder_list[1:]
 
     print(country_folder_list)
 
@@ -128,6 +143,8 @@ if __name__ == "__main__":
 
                     merge_parquet_files(bugg_id, bugg_path, file_list_month, bugg_output_path, output_file)
 
-    print(set(ERROR_LIST))
+    #print(set(ERROR_LIST))
+
+print("Done")
 
 
