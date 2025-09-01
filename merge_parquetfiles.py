@@ -6,7 +6,7 @@ from datetime import datetime
 ##merge parqet files per bugg per month
 
 data_path = "pipeline/outputs/predictions"
-output_path = "pipeline/outputs/merged_predictions"
+output_path = "pipeline/outputs/merged_predictions_light"
 
 MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06"]
 
@@ -94,11 +94,20 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         # Read and concatenate all Parquet files
         dataframes = [pd.read_parquet(os.path.join(bugg_path, file_name), engine='pyarrow') for file_name in file_list]
         merged_df = pd.concat(dataframes, ignore_index=True)
-        merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
+        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
 
         deploymentID_list = [ get_deploymentID(bugg_id, file_name) for file_name in merged_df['filename'] ]
 
         merged_df.insert(1, "deployementID", deploymentID_list)
+
+        ## lighten the database
+        merged_df = merged_df.drop('energy', axis=1)
+        merged_df = merged_df.drop('model', axis=1)
+        merged_df = merged_df.drop('model_checkpoint', axis=1)
+        merged_df = merged_df.drop('datetime', axis=1)
+        merged_df = merged_df.drop('lat', axis=1)
+        merged_df = merged_df.drop('lng', axis=1)
+        merged_df = merged_df[merged_df["confidence"] > 0.1]
 
         # Save to a new Parquet file
         merged_df.to_parquet(os.path.join(bugg_output_path, output_file), index=False)
@@ -113,8 +122,6 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
 if __name__ == "__main__":
 
     country_folder_list = [f for f in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, f))]
-
-    country_folder_list = country_folder_list[1:]
 
     print(country_folder_list)
 
