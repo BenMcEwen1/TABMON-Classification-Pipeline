@@ -109,7 +109,11 @@ def export(
         query_limit=query_limit
     )
 
+    print("Querry start")
+
     results_df = db.get_segments_with_predictions(filters)
+    
+    print("Querry end")
 
     print(filters)
 

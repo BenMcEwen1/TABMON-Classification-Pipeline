@@ -5,7 +5,7 @@ from datetime import datetime
 
 class ParquetDatabase:
     
-    def __init__(self, parquet_dir="./pipeline/outputs/merged_predictions"):
+    def __init__(self, parquet_dir="./pipeline/outputs/merged_predictions_light"):
         self.parquet_dir = parquet_dir
         self.con = duckdb.connect(database=":memory:")
         os.makedirs(parquet_dir, exist_ok=True)
@@ -19,16 +19,27 @@ class ParquetDatabase:
             """)
             
             # device view
+            #self.con.execute("""
+            #    CREATE OR REPLACE VIEW devices AS
+            #    SELECT DISTINCT
+            #        device_id,
+            #        COALESCE(MAX(country), 'unknown') as country,
+            #        MAX(lat) as lat,
+            #        MAX(lng) as lng,
+            #        MAX(model) as model_name,
+            #        MAX(model_checkpoint) as model_checkpoint,
+            #        MAX(datetime) AS date_updated
+            #    FROM all_data
+            #    GROUP BY device_id
+            #""")
+            
+
+            # device view
             self.con.execute("""
                 CREATE OR REPLACE VIEW devices AS
                 SELECT DISTINCT
                     device_id,
                     COALESCE(MAX(country), 'unknown') as country,
-                    MAX(lat) as lat,
-                    MAX(lng) as lng,
-                    MAX(model) as model_name,
-                    MAX(model_checkpoint) as model_checkpoint,
-                    MAX(datetime) AS date_updated
                 FROM all_data
                 GROUP BY device_id
             """)
@@ -46,6 +57,23 @@ class ParquetDatabase:
             """)
 
             # segments view            
+            #self.con.execute("""
+            #    CREATE OR REPLACE VIEW segments AS
+            #    SELECT DISTINCT
+            #        CONCAT(filename, '_', CAST("start time" AS VARCHAR)) as segment_id,
+            #        filename,
+            #        "start time" as start_time,
+            #        3 as duration,
+            #        MAX(uncertainty) as uncertainty,
+            #        MAX(energy) as energy,
+            #        MAX(datetime) as date_processed,
+            #        NULL as label,
+            #        NULL as notes
+            #    FROM all_data
+            #    GROUP BY filename, "start time"
+            #""")
+
+            # segments view            
             self.con.execute("""
                 CREATE OR REPLACE VIEW segments AS
                 SELECT DISTINCT
@@ -54,10 +82,6 @@ class ParquetDatabase:
                     "start time" as start_time,
                     3 as duration,
                     MAX(uncertainty) as uncertainty,
-                    MAX(energy) as energy,
-                    MAX(datetime) as date_processed,
-                    NULL as label,
-                    NULL as notes
                 FROM all_data
                 GROUP BY filename, "start time"
             """)
@@ -177,7 +201,6 @@ class ParquetDatabase:
             {where_clause}
             GROUP BY 
                 s.segment_id, s.filename, s.start_time, s.duration, s.uncertainty, 
-                s.energy, s.date_processed, s.label, s.notes,
                 a.filename, a.date_recorded,
                 d.device_id, d.country
             {order_clause}
