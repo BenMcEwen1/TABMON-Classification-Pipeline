@@ -14,7 +14,7 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 
 
 #Already processed : "2025-01", "2025-02", "2025-03", "2025-04"
-MONTH_SELECTION = ["2025-05"]
+MONTH_SELECTION = ["2025-08"]
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
 #USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
@@ -35,7 +35,7 @@ PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "parallel_inference.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
 MONTH_PRINT = ";".join(str(x) for x in MONTH_SELECTION)
-CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_PRINT}"
+CHUNK_FILES_FOLDER = f"chunk_files_{MONTH_PRINT}"  
 
 if os.path.exists(CHUNK_FILES_FOLDER):
     shutil.rmtree(CHUNK_FILES_FOLDER)

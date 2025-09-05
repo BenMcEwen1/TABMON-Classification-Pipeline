@@ -6,9 +6,11 @@ from datetime import datetime
 ##merge parqet files per bugg per month
 
 data_path = "pipeline/outputs/predictions"
-output_path = "pipeline/outputs/merged_predictions_light"
+output_path = "pipeline/outputs/merged_predictions"
+output_path_light = "pipeline/outputs/merged_predictions_light"
 
-MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06"]
+
+MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"]
 
 
 META_DATA_PATH = "/DYNI/tabmon/tabmon_data/site_info.csv"
@@ -94,11 +96,13 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         # Read and concatenate all Parquet files
         dataframes = [pd.read_parquet(os.path.join(bugg_path, file_name), engine='pyarrow') for file_name in file_list]
         merged_df = pd.concat(dataframes, ignore_index=True)
-        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
+        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence", "uncertainty"] )
 
         deploymentID_list = [ get_deploymentID(bugg_id, file_name) for file_name in merged_df['filename'] ]
 
         merged_df.insert(1, "deployementID", deploymentID_list)
+
+        merged_df.to_parquet(os.path.join(output_path, bugg_output_path, output_file), index=False)
 
         ## lighten the database
         merged_df = merged_df.drop('energy', axis=1)
@@ -107,14 +111,15 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         merged_df = merged_df.drop('datetime', axis=1)
         merged_df = merged_df.drop('lat', axis=1)
         merged_df = merged_df.drop('lng', axis=1)
+        merged_df = merged_df.drop('common name', axis=1)
         merged_df = merged_df[merged_df["confidence"] > 0.1]
-
+        
         # Save to a new Parquet file
-        merged_df.to_parquet(os.path.join(bugg_output_path, output_file), index=False)
+        merged_df.to_parquet(os.path.join(output_path_light, bugg_output_path, output_file), index=False)
         
         print(f"Merged {len(file_list)} files into: {output_file}", flush=True)
-    #except Exception as e:
-    #    print(f"Error: {e}")
+    #   except Exception as e:
+    #   print(f"Error: {e}")
 
 
 
@@ -144,8 +149,10 @@ if __name__ == "__main__":
 
                     file_list_month = [ fname for fname in file_list if fname.startswith(month)]
                     bugg_path = os.path.join(data_path, country_folder,bugg_folder )
-                    bugg_output_path = os.path.join(output_path, country_folder, bugg_folder)
-                    os.makedirs(bugg_output_path, exist_ok=True)
+                    bugg_output_path = os.path.join(country_folder, bugg_folder)
+                    os.makedirs(os.path.join(output_path, bugg_output_path), exist_ok=True)
+                    os.makedirs(os.path.join(output_path_light, bugg_output_path), exist_ok=True)
+
                     output_file = f"{month}_{bugg_id}.parquet"
 
                     merge_parquet_files(bugg_id, bugg_path, file_list_month, bugg_output_path, output_file)

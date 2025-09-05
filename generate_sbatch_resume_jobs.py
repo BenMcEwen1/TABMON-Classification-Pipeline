@@ -11,7 +11,7 @@ random.seed(11)
 today_date = datetime.today().strftime('%Y-%m-%d')
 
 
-MONTH_PRINT = "2025-05"
+MONTH_PRINT = "2025-07"
 PIPE_LINE_PATH = "./"
 SBATCH_OUTPUT_FILE = "resume_jobs.sh"
 PYTHON_SCRIPT = "inference_parallel.py" 
