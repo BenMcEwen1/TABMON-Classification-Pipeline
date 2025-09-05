@@ -92,6 +92,7 @@ def export(
     annotated: Optional[bool] = None,
     embeddings: bool = False,
     query_limit: Optional[int] = 100,
+    stratified: Optional[bool] = False,
     db: ParquetDatabase = Depends(get_db)
 ):
     """Export segments and predictions as CSV and audio files."""
@@ -106,27 +107,19 @@ def export(
         uncertainty=uncertainty,
         energy=energy,
         annotated=annotated,
+        stratified=stratified,
         query_limit=query_limit
     )
 
+    print("[Step 1] Retrieving results...", end="")
+    start = time.time()
     results_df = db.get_segments_with_predictions(filters)
-
-    print(filters)
+    print(f" Complete [{(time.time() - start):.2f} s]")
 
     if results_df.empty:
         return HTTPException(status_code=204, detail="No files available")
 
-    # Construct annotator csv - filename, predictions list, confidence list, Correct (Yes, No), labels, comments, Addition Information Required
-    #filenames = [f"{data['filename'][:-4]}_{data['device_id']}_{data['start_time']//3}.wav" for index, data in results_df.iterrows()]
     filenames = [f"{data['filename'][:-4]}_{data['device_id']}_{data['start_time']//3}.mp3" for index, data in results_df.iterrows()]
-
-    """annotator = pd.DataFrame({"Filename": filenames, 
-                              "Predictions": results_df["predicted_species_list"], 
-                              "Confidence": results_df["confidence_list"],
-                              "Correct (Yes/No)": ["" for _ in filenames],
-                              "Labels": results_df["label"],
-                              "Comments": results_df["notes"]
-                              })"""
 
     annotator = pd.DataFrame({"Country": results_df["country"],
                               "Device_id": results_df["device_id"], 
@@ -136,7 +129,14 @@ def export(
                               "Predictions": results_df["predicted_species_list"], 
                               "Confidence": results_df["confidence_list"],
                               })
+    
+    import numpy as np
+    def flatten_array(x):
+        if isinstance(x, (list, np.ndarray)):
+            return ", ".join(x)  # comma-separated string
+        return str(x)
 
+    annotator["Predictions"] = annotator["Predictions"].apply(flatten_array)
 
     EMBEDDING_DIR = "./pipeline/outputs/embeddings/"
     SEGMENT_DIR = "./pipeline/outputs/segments/"
@@ -145,44 +145,19 @@ def export(
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     os.makedirs(EXPORT_DIR, exist_ok=True)
-    
-    """
-    files_to_export = []
-    #
-    if embeddings:
-        for _, row in results_df.iterrows():
-            embedding_file = find_embedding_file(row.to_dict(), EMBEDDING_DIR)
-            if embedding_file:
-                files_to_export.append(embedding_file)
-        prefix = "embeddings"
-    else:
-        for _, row in results_df.iterrows():
-            audio_file = find_audio_file(row.to_dict(), SEGMENT_DIR)
-            if audio_file:
-                files_to_export.append(audio_file)
-        prefix = "audio"
-    #
-    """
-
-    """csv_path = f"{EXPORT_DIR}/export_{timestamp}.csv"
-    #annotator.to_csv(csv_path, index=False)
-    ## export 3sec samples in zip file
-    files_to_export.append(csv_path)
-    zip_path = create_zip_archive(files_to_export, prefix)"""
 
     # EXPORT AS A CSV
     csv_file = f"export_{timestamp}.csv"
     annotator.to_csv(os.path.join(EXPORT_DIR, csv_file), index=False)
     prefix = "audio"
     
-    PADDING = 6 # seconds (before and after samples)
+    PADDING = 3 # seconds (before and after samples)
     zip_path = select_samples_from_recordings(filters, csv_file, PADDING, EXPORT_DIR, DATASET_PATH)
     
     if zip_path:
         return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")
     else:
         return HTTPException(status_code=204, detail="No files available")
-    #
 
 # --- Analysis endpoint ---
 
