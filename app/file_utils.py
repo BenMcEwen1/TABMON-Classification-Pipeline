@@ -16,6 +16,9 @@ from tqdm import tqdm
 import time
 from collections import Counter
 import matplotlib.pyplot as plt
+from math import log
+import math
+import random
 
 
 def find_audio_file(segment_row, audio_dir="./audio/segments/"):
@@ -127,76 +130,99 @@ def audio_split(sig, start_time, rate, padding):
 def clean(x):
     return [species.strip() for species in x.split(",")]
 
-def plot(data):
+def stratify_balanced_with_min(data, min_samples=10, max_samples=100, metric="kl"):    
+    # Count total available species
     species_list = []
-    for idx, row in data.iterrows():
-        predictions = clean(row["Predictions"])
-        for pred in predictions:
-            species_list.append(pred)
+    for _, row in data.iterrows():
+        species_list.extend(clean(row["Predictions"]))
+    species_counts = Counter(species_list)
+    species_collected = {s: 0 for s in species_counts}
+    k = len(species_collected)
 
-    # Convert to unique list
-    species_list = dict(Counter(species_list))
-    species_plot = sorted(species_list.items(), key=lambda x: x[1], reverse=False) # Order by number of samples (-> long-tail)
-    species, counts = zip(*species_plot)
+    def imbalance_variance(counts, target):
+        return sum((counts[s] - target)**2 for s in counts)
 
-    # Plot
-    plt.figure(figsize=(12, 6))
-    plt.bar(range(len(species)), counts, color="steelblue")
-    plt.yscale("log")  # Log scale for counts
-    plt.xticks(range(len(species)), species, rotation=90)
-    plt.xlabel("Species")
-    plt.ylabel("Count (log scale)")
-    plt.title("Species Long-Tail Distribution (Log Scale)")
-    plt.tight_layout()
-    plt.show()
+    def imbalance_kl(counts):
+        total = sum(counts.values())
+        if total == 0:
+            return float("inf")
+        q = 1.0 / k
+        kl = 0.0
+        for s, c in counts.items():
+            p = c / total
+            if p > 0:
+                kl += p * math.log(p / q)
+        return kl
 
-def stratify(data, query_limit, min_samples=2):
-    total = 0
-    species_list = []
-    for idx, row in data.iterrows():
-        predictions = clean(row["Predictions"])
-        for pred in predictions:
-            species_list.append(pred)
+    selected_indices = set()
 
-    # Convert to unique list
-    species_list = dict(Counter(species_list))
-    species_list = dict(sorted(species_list.items(), key=lambda x: x[1], reverse=False)) # Order by number of samples (-> long-tail)
-    filtered_counts = {k: v for k, v in species_list.items() if v >= min_samples} # Remove species with too few samples
+    while len(selected_indices) < max_samples:
+        best_row, best_score = None, float("inf")
 
-    # Extract samples from original dataframe
-    species_collected = {species: 0 for species in filtered_counts.keys()}
-    selected_indices = []
-
-    # Back fill
-    for target_species in filtered_counts.keys():
         for idx, row in data.iterrows():
-            predictions = clean(row["Predictions"])
-            if target_species in predictions:
-                species_collected[target_species] += 1
-                total += 1
-                selected_indices.append(idx)
+            if idx in selected_indices:
+                continue
+            preds = clean(row["Predictions"])
 
-            if total >= query_limit/2:
-                stratified_df = data.loc[selected_indices].drop_duplicates()
-                return stratified_df
+            # Simulate adding this row
+            temp_counts = species_collected.copy()
+            for p in preds:
+                if p in temp_counts:
+                    temp_counts[p] += 1
 
-    stratified_df = data.loc[selected_indices].drop_duplicates()
+            # Are there species still under min_samples?
+            under_min = [s for s, c in species_collected.items() if c < min_samples]
 
-    # Plot distribution
-    plot(stratified_df)
+            if under_min:
+                # Require that row covers at least one underrepresented species
+                if not any(p in under_min for p in preds):
+                    continue  # row not useful for meeting min constraint
 
-    return stratified_df
+            # Evaluate imbalance
+            if metric == "variance":
+                target = (len(selected_indices)+1)/k
+                score = imbalance_variance(temp_counts, target)
+            elif metric == "kl":
+                score = imbalance_kl(temp_counts)
+            else:
+                raise ValueError("Unknown metric")
 
-def select_samples_from_recordings(filters, csv_file, padding, export_path, dataset_path) :
+            if score < best_score + 1e-5:
+                best_score = score
+                best_row = idx
+
+        if best_row is None:
+            # pick any remaining candidate randomly
+            remaining = [idx for idx in data.index if idx not in selected_indices]
+            if not remaining:
+                break  # Nothing left
+            best_row = random.choice(remaining)
+
+        # Commit best row
+        selected_indices.add(best_row)
+        for p in clean(data.loc[best_row, "Predictions"]):
+            if p in species_collected:
+                species_collected[p] += 1
+
+        # Early exit: if all species >= min_samples and budget hit, done
+        if all(c >= min_samples for c in species_collected.values()) and len(selected_indices) >= max_samples:
+            break
+
+    return data.loc[list(selected_indices)]
+
+def select_samples_from_recordings(filters, export_df, padding, export_path, dataset_path) :
     step = 2
-    export_df = pd.read_csv(os.path.join(export_path, csv_file))
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    csv_file = f"export_{timestamp}.csv"
 
     if filters.stratified:
         print(f"[Step {step}] Stratifying results...", end="")
         start = time.time()
-        export_df = stratify(export_df, filters.query_limit, min_samples=2)
+        export_df = stratify_balanced_with_min(export_df, min_samples=2, max_samples=filters.query_limit)
         print(f" Complete [{(time.time() - start):.2f} s]")
         step += 1
+
+    export_df.to_csv(os.path.join(export_path, csv_file), index=False)
 
     print(f"[Step {step}] Collecting audio segments...")
     export_folder = csv_file.split(".")[0]

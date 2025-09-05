@@ -146,13 +146,10 @@ def export(
 
     os.makedirs(EXPORT_DIR, exist_ok=True)
 
-    # EXPORT AS A CSV
-    csv_file = f"export_{timestamp}.csv"
-    annotator.to_csv(os.path.join(EXPORT_DIR, csv_file), index=False)
     prefix = "audio"
     
     PADDING = 3 # seconds (before and after samples)
-    zip_path = select_samples_from_recordings(filters, csv_file, PADDING, EXPORT_DIR, DATASET_PATH)
+    zip_path = select_samples_from_recordings(filters, annotator, PADDING, EXPORT_DIR, DATASET_PATH)
     
     if zip_path:
         return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")
