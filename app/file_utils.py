@@ -12,6 +12,10 @@ import shutil
 import soundfile as sf
 from pydub import AudioSegment
 import json
+from tqdm import tqdm
+import time
+from collections import Counter
+import matplotlib.pyplot as plt
 
 
 def find_audio_file(segment_row, audio_dir="./audio/segments/"):
@@ -95,8 +99,6 @@ def create_zip_archive(files, prefix="export"):
     return zip_path
 
 
-
-
 country_to_folder = {
     "France": "proj_tabmon_NINA_FR",
     "Norway": "proj_tabmon_NINA",
@@ -122,15 +124,86 @@ def audio_split(sig, start_time, rate, padding):
     return sample
 
 
-def select_samples_from_recordings(filters, csv_file, padding, export_path, dataset_path ) :
+def clean(x):
+    return [species.strip() for species in x.split(",")]
 
+def plot(data):
+    species_list = []
+    for idx, row in data.iterrows():
+        predictions = clean(row["Predictions"])
+        for pred in predictions:
+            species_list.append(pred)
+
+    # Convert to unique list
+    species_list = dict(Counter(species_list))
+    species_plot = sorted(species_list.items(), key=lambda x: x[1], reverse=False) # Order by number of samples (-> long-tail)
+    species, counts = zip(*species_plot)
+
+    # Plot
+    plt.figure(figsize=(12, 6))
+    plt.bar(range(len(species)), counts, color="steelblue")
+    plt.yscale("log")  # Log scale for counts
+    plt.xticks(range(len(species)), species, rotation=90)
+    plt.xlabel("Species")
+    plt.ylabel("Count (log scale)")
+    plt.title("Species Long-Tail Distribution (Log Scale)")
+    plt.tight_layout()
+    plt.show()
+
+def stratify(data, query_limit, min_samples=2):
+    total = 0
+    species_list = []
+    for idx, row in data.iterrows():
+        predictions = clean(row["Predictions"])
+        for pred in predictions:
+            species_list.append(pred)
+
+    # Convert to unique list
+    species_list = dict(Counter(species_list))
+    species_list = dict(sorted(species_list.items(), key=lambda x: x[1], reverse=False)) # Order by number of samples (-> long-tail)
+    filtered_counts = {k: v for k, v in species_list.items() if v >= min_samples} # Remove species with too few samples
+
+    # Extract samples from original dataframe
+    species_collected = {species: 0 for species in filtered_counts.keys()}
+    selected_indices = []
+
+    # Back fill
+    for target_species in filtered_counts.keys():
+        for idx, row in data.iterrows():
+            predictions = clean(row["Predictions"])
+            if target_species in predictions:
+                species_collected[target_species] += 1
+                total += 1
+                selected_indices.append(idx)
+
+            if total >= query_limit/2:
+                stratified_df = data.loc[selected_indices].drop_duplicates()
+                return stratified_df
+
+    stratified_df = data.loc[selected_indices].drop_duplicates()
+
+    # Plot distribution
+    plot(stratified_df)
+
+    return stratified_df
+
+def select_samples_from_recordings(filters, csv_file, padding, export_path, dataset_path) :
+    step = 2
     export_df = pd.read_csv(os.path.join(export_path, csv_file))
+
+    if filters.stratified:
+        print(f"[Step {step}] Stratifying results...", end="")
+        start = time.time()
+        export_df = stratify(export_df, filters.query_limit, min_samples=2)
+        print(f" Complete [{(time.time() - start):.2f} s]")
+        step += 1
+
+    print(f"[Step {step}] Collecting audio segments...")
     export_folder = csv_file.split(".")[0]
     os.makedirs(os.path.join(export_path, export_folder  ))
     shutil.copyfile(os.path.join(export_path, csv_file), os.path.join(export_path, export_folder, csv_file))
 
-    for index, row in export_df.iterrows():
-
+    for index, row in tqdm(export_df.iterrows(), total=export_df.shape[0]):
         country_folder  = country_to_folder[row["Country"]]
         bugg_folder = bugg_id_to_folder(row["Device_id"])
 
@@ -153,18 +226,18 @@ def select_samples_from_recordings(filters, csv_file, padding, export_path, data
                 sf.write(temp_wav, sample, rate)
 
                 # Convert WAV to MP3 
-                output_mp3 = os.path.join(export_path, export_folder  , row["Sample_filename"] )
+                output_mp3 = os.path.join(export_path, export_folder, row["Sample_filename"] )
                 audio_segment = AudioSegment.from_wav(temp_wav)
                 audio_segment.export(output_mp3, format="mp3")
 
                 # Remove temp file
                 os.remove(temp_wav)
-                print(recording_path, "split and exported")
-
             else:
                 print(recording_path, "does not exist.")
+    step += 1
 
-
+    print(f"[Step {step}] Exporting metadata...", end="")
+    start = time.time()
     # export metadata test
     metadata_path = os.path.join(export_path, export_folder, "export_metadata.json")
     with open(metadata_path, "w") as outfile:
@@ -177,5 +250,6 @@ def select_samples_from_recordings(filters, csv_file, padding, export_path, data
     os.remove( os.path.join(export_path, csv_file) )
 
     zip_path = f"{os.path.join(export_path, export_folder)}.zip"
+    print(f" Complete [{(time.time() - start):.2f} s]")
 
     return zip_path

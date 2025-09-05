@@ -155,6 +155,7 @@ class ParquetDatabase:
     def get_segments_with_predictions(self, filters=None):
         partition_filters = []
         regular_filters = []
+        having_clause = ""
 
         if filters:
             if getattr(filters, 'device_id', None):
@@ -162,7 +163,8 @@ class ParquetDatabase:
             if getattr(filters, 'country', None):
                 partition_filters.append(f"d.country = '{filters.country}'") 
             if getattr(filters, 'predicted_species', None):
-                regular_filters.append(f"p.predicted_species = '{filters.predicted_species}'")
+                species_filter = filters.predicted_species
+                having_clause = f"HAVING LIST_HAS(ARRAY_AGG(p.predicted_species), '{species_filter}')"
             if getattr(filters, 'confidence', None):
                 regular_filters.append(f"p.confidence > {filters.confidence}")
             if getattr(filters, 'uncertainty', None):
@@ -203,6 +205,7 @@ class ParquetDatabase:
                 s.segment_id, s.filename, s.start_time, s.duration, s.uncertainty, 
                 a.filename, a.date_recorded,
                 d.device_id, d.country
+            {having_clause}
             {order_clause}
             {limit_clause}
         """

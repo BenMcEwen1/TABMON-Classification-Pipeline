@@ -13,6 +13,7 @@ class Filter(BaseModel):
     energy: Optional[float] = None
     annotated: Optional[bool] = None
     query_limit: Optional[int] = 100
+    stratified: Optional[bool] = None
 
 class DeviceSchema(BaseModel):
     device_id: str
