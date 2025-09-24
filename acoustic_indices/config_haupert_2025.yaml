@@ -1,0 +1,58 @@
+
+# signal processing: spectrogram
+channel: 'left'
+sampling_frequency: 44100
+n_fft: 1024
+hop_length: 512
+window: 'hann'
+
+# parameters to compute the alpha indices
+mode_env: 'fast'
+Nt: 512
+gain: 16
+sensibility: -35
+vadc: 2
+p_ref: 0.00002
+deltaT: 1
+dB_threshold: 3
+reject_duration: 0.01
+
+flim_low: [0, 2000]
+flim_mid: [2000, 10000]
+flim_hi:  [10000, 20000]
+
+# parameters to compute the nROI and aROI
+min_event_duration: 0.1
+max_event_duration: null
+min_freq_bw: 100
+max_freq_bw: null
+remove_rois_flim_min: 50
+remove_rois_flim_max: 18000
+fusion_rois: [0.05, 100] 
+remove_rain: true
+max_ratio_xy: 10
+seed_level: 16
+low_level: 6
+
+# correlation
+optimized: false
+remove_clipping_audio: true
+correlation_method: 'spearman' # spearman pearson
+n_bootstrap: 1000
+
+list_indices: ['ZCR', 'MEANt', 'VARt', 'SKEWt', 'KURTt', 'LEQt', 
+              'BGNt', 'SNRt', 'M', 'Ht', 'ACTtFraction', 'ACTtCount',
+              'ACTtMean', 'EVNtFraction', 'EVNtMean', 'EVNtCount', 
+              'MEANf', 'VARf', 'SKEWf', 'KURTf', 'NP', 'LEQf', 'BGNf', 'SNRf',
+              'Hf', 'H', 'EAS', 'ECU', 'ECV', 'EPS', 'EPS_KURT', 
+              'EPS_SKEW', 'ACI', 'NDSI', 'rBA', 'AnthroEnergy', 
+              'BioEnergy', 'BIO', 'ROU','ADI', 'AEI', 'LFC', 'MFC', 'HFC', 
+              'ACTspFract', 'ACTspCount', 'ACTspMean', 'EVNspFract', 'EVNspMean', 
+              'EVNspCount', 'TFSD','H_Havrda', 'H_Renyi', 'H_pairedShannon', 
+              'H_gamma', 'H_GiniSimpson', 'RAOQ', 'AGI', 'nROI', 'aROI']
+
+# regression
+percent_train: 0.75
+
+list_indices_multiple_regression: ['NDSI', 'H', 'ECU', 'SNRf', 'ACI', 'LFC', 
+                                  'TFSD', 'nROI', 'NP', 'BIO', 'ACTspMean', 'MEANf']
