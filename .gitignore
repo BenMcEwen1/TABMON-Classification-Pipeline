@@ -7,9 +7,8 @@ outputs_old/
 app/*.csv
 app/templates/
 app/*.md
-pipeline/outputs/*.csv
-pipeline/outputs/*.json
-pipeline/outputs/temp
+pipeline/outputs/
+pipeline/outputs*/
 *.pt
 *.log
 *.wav
@@ -30,8 +29,11 @@ pipeline/outputs/temp
 *.parquet
 *.tar
 outputs/
-chunk_files_2025-05-14/
-chunk_files/
-chunk_files_subset/
-chunk_files_test/
+chunk_files*/
 chunk_files.zip
+slurm_output*/
+slurm_output*
+acoustic_indices/outputs/
+acoustic_indices/chunk_files*/
+acoustic_indices/slurm_output*/
+acoustic_indices/computation_one_bugg/
