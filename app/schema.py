@@ -6,6 +6,7 @@ class Filter(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     country: Optional[str] = None
+    deployment_id: Optional[str] = None
     device_id: Optional[str] = None
     predicted_species: Optional[str] = None
     confidence: Optional[float] = None
@@ -16,6 +17,7 @@ class Filter(BaseModel):
     stratified: Optional[bool] = None
 
 class DeviceSchema(BaseModel):
+    deployment_id: str
     device_id: str
     country: Optional[str] = None
     lat: Optional[float] = None
@@ -47,6 +49,8 @@ class AudioSchema(BaseModel):
     sample_rate: Optional[int] = None
     date_recorded: Optional[datetime] = None
     device_id: Optional[int] = None
+    deployment_id: Optional[int] = None
+
 
 class SegmentSchema(BaseModel):
     start_time: float
@@ -71,6 +75,7 @@ class RetrievalSchema(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     country: Optional[str] = Field(None, example=None) 
+    deployment_id: Optional[str] = None
     device_id: Optional[str] = None
     confidence: Optional[float] = None
     predicted_species: Optional[list[str]] = None
@@ -88,6 +93,7 @@ class RetrievalSchema(BaseModel):
                     "start_date": None,
                     "end_date": None,
                     "country": None,
+                    "deployment_id": None,
                     "device_id": None,
                     "confidence": None,
                     "predicted_species": None,
@@ -110,7 +116,7 @@ class PipelineSchema(BaseModel):
     slist: str = 'pipeline/inputs/list_sp_ml.csv'
     flist: Optional[str] = None
     i: str = 'audio/brambling'
-
+    deployment_id: str
     device_id: str
     country: Optional[str] = None
     lat: Optional[float] = None
@@ -127,6 +133,7 @@ class PipelineSchema(BaseModel):
                     "slist": 'pipeline/inputs/list_sp_ml.csv',
                     "flist": None,
                     "i": 'audio/brambling',
+                    "deployment_id": "NO1",
                     "device_id": "123456",
                     "country": None,
                     "lat": None,

@@ -30,17 +30,21 @@ def print_time_information(time_start, i, number_of_files):
     elapsed_time = (time.time() - time_start)
     sec_per_file = elapsed_time/(i+1)
     number_of_remaining_files = number_of_files - i
-    remaining_time = (number_of_remaining_files * sec_per_file)/60
+    remaining_time = (number_of_remaining_files * sec_per_file)/60/60
+    print(f"Processed {i+1}/{number_of_files} files in {elapsed_time/60:.1f} min, {sec_per_file:.1f} sec per file, {remaining_time:.1f} hours remaining, Memory used: {get_memory_usage() / (1024 * 1024):.0f} MB", flush=True )
 
-    print(f"Processed {i+1}/{number_of_files} files in {elapsed_time/60:.1f} min, {sec_per_file:.1f} sec per file, {remaining_time:.1f} min remaining, Memory used: {get_memory_usage() / (1024 * 1024):.0f} MB", flush=True )
 
 if __name__ == "__main__":
     time_start = time.time()
     i = 0
 
     chunk_file = sys.argv[1] 
-    job_id = chunk_file.split('_')[-1].split('.')[0] #job identifier based on the chunk name
+    #job_id = chunk_file.split('_')[-1].split('.')[0] #job identifier based on the chunk name
 
+    job_id = os.getenv("SLURM_ARRAY_JOB_ID")
+    array_job_id = os.getenv("SLURM_ARRAY_TASK_ID") 
+    full_job_id = os.path.join(job_id,array_job_id)
+    
     print(f"Start processsing {chunk_file}")
 
     results_files = []
@@ -52,18 +56,15 @@ if __name__ == "__main__":
         print(f"Start processing {number_of_files} files", flush=True)
 
         for i, line in enumerate(f):
-            # Remove leading/trailing whitespace and brackets, then use ast.literal_eval() to safely parse the list
             line = line.strip()  # Remove leading/trailing whitespace
 
             if line:  # Check if the line is not empty
                 try:
-                    # Safely parse the list (it will turn the string into an actual Python list)
                     
                     print(i)
+                    parts = ast.literal_eval(line) #safely parse the list
                     
-                    parts = ast.literal_eval(line)
-                    
-                    # Extract the parts as required
+                    # Extract the parts 
                     dataset_path = parts[0]
                     country_folder = parts[1]
                     bugg = parts[2]
@@ -77,11 +78,11 @@ if __name__ == "__main__":
                     long = parts[10]
                     
 
-
                     args = {
                             "slist": 'pipeline/inputs/list_sp_ml.csv',
                             "flist": None,
                             "i": os.path.join(dataset_path, country_folder, bugg, conf, file),
+                            "deployment_id": deploymentID,
                             "device_id": get_device_ID(bugg),
                             "country": country,
                             "lat": lat,
@@ -93,12 +94,13 @@ if __name__ == "__main__":
                     }
 
                     args = SimpleNamespace(**args)
-                    run(args, id=job_id)
+                    run(args, id=full_job_id)
 
                 except Exception as e:
                     print(f"Error parsing line: {line}")
                     print(f"Error: {e}")
                     traceback.print_exc()
+                    print(traceback.format_exc())
 
             if (number_of_files != 0) and (i % 10 == 0):
                 print_time_information(time_start, i, number_of_files)

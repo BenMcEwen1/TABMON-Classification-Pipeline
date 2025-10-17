@@ -18,6 +18,7 @@ def stats(db: ParquetDatabase = Depends(get_db)):
     filters = Filter(start_date=None,
                     end_date=None,
                     country=None,
+                    deployment_id=None,
                     device_id=None,
                     confidence=None,
                     predicted_species=None,

@@ -58,7 +58,7 @@ def binaryEntropy(outputs: torch.Tensor, eps=1e-8):
 
 
 @display_time
-def k_predictions(confidence_batch, energy_scores, filename, species_list, predictions:dict={}, k:int=5, length:int=3, confidence_threshold:float=0.0, energy_metric:str="ROItotal", energy_threshold:float=0.0, filter_list:list=None):
+def k_predictions(confidence_batch, filename, species_list, predictions:dict={}, k:int=5, length:int=3, confidence_threshold:float=0.0, filter_list:list=None):
     species_name = load_species_list(species_list)
 
     if filter_list:
@@ -78,7 +78,6 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
         if len(top_indices) > 5:
             top_indices = top_indices[:4]
 
-        energy_score = energy_scores[i]
         if len(top_indices) > 0:
             pred = []
             for rank, index in enumerate(top_indices):
@@ -94,7 +93,6 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
             results.append({
                 "start time": length*i,
                 "uncertainty": uncertainty[i],
-                "energy": energy_score,
                 "predictions": pred
             })
 
@@ -109,7 +107,7 @@ def k_predictions(confidence_batch, energy_scores, filename, species_list, predi
     if len(results) > 0:
         predictions = convert_ranked_to_tabular(predictions)
     else: 
-        predictions = pd.DataFrame(columns=["filename","start time","uncertainty","energy","rank","confidence","scientific name","common name","device_id","country","lat","lng","datetime","model","model_checkpoint"])
+        predictions = pd.DataFrame(columns=["filename","start time","uncertainty","rank","confidence","scientific name","common name","device_id","country","lat","lng","datetime","model","model_checkpoint"])
     return predictions
 
 def convert_ranked_to_tabular(predictions):
@@ -126,7 +124,6 @@ def convert_ranked_to_tabular(predictions):
                 "filename": filename[0],
                 "start time": result["start time"],
                 "uncertainty": result["uncertainty"],
-                "energy": result["energy"]
             }
             for pred in result["predictions"]:
                 row = {
@@ -140,17 +137,10 @@ def convert_ranked_to_tabular(predictions):
     # df.to_parquet(f"{current_dir}/outputs/{filename[0].split('.')[0]}_top_k.parquet", index=False)
     return df
 
-@display_time
-def energy_metrics(audio_batch, sr):
-    energy_scores = []
-    for audio in audio_batch:
-        Sxx_power,tn,fn,ext = maad.sound.spectrogram(audio, sr.item())  
-        df_indices,_ = maad.features.all_spectral_alpha_indices(Sxx_power,tn,fn,extent=ext)
-        energy_scores.append(df_indices.to_dict(orient="index")[0])
-    return energy_scores
+
 
 @display_time
-def inference(model, data_loader, device, predictions:dict={}, save:bool=True, energy:bool=True, filter_list:list=None):
+def inference(model, data_loader, device, predictions:dict={}, save:bool=True, filter_list:list=None):
     '''
     Perform inference on data in directory, outputs prediction results in .json and .csv formats
     Model details:
@@ -182,17 +172,12 @@ def inference(model, data_loader, device, predictions:dict={}, save:bool=True, e
             emb = outputs["emb"]
             confidence_scores = F.sigmoid(outputs['logits'])
 
-    if energy:
-        energy_scores = energy_metrics(audio.cpu(), sr)
 
     if save:
         pred = k_predictions(confidence_scores, 
-                             energy_scores, 
                              filename, 
                              species_list, 
                              predictions, 
                              confidence_threshold=0.01, 
-                             energy_metric="ROItotal", 
-                             energy_threshold=0.0, 
                              filter_list=filter_list)
     return emb, pred

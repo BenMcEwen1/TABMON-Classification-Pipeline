@@ -36,8 +36,10 @@ class InferenceDataset(torch.utils.data.Dataset):
         # Open the file with librosa (limited to the first certain number of seconds)
         try:
             x, rate = librosa.load(ID, sr=SAMPLE_RATE, offset=0.0) #, res_type='kaiser_fast'
-        except:
+        except Exception as e:
             x, rate = [], SAMPLE_RATE
+            print(traceback.format_exc())
+
 
         birdnet_embedding = np.zeros(320)
         

@@ -212,19 +212,19 @@ def save_chunk(args):
     chunk, save_path, rate = args
     sf.write(save_path, chunk, rate, subtype='PCM_16')
 
-@display_time
-def ROIfilter(audio, sr, threshold:float=0.01):
-    EPS = np.finfo(float).eps
-    Sxx_power,tn,fn,_ = maad.sound.spectrogram(audio, sr)
-    Sxx_power[fn > 18000,:] = EPS # remove aliasing in high frequencies due to upsampling
-    Sxx_power[fn < 200,:] = EPS # remove low frequencies
-    if Sxx_power.max() > 0 :
-        Sxx_noNoise= maad.sound.median_equalizer(Sxx_power) 
-        Sxx_dB_noNoise = maad.util.power2dB(Sxx_noNoise)
-        _, ROIcover = maad.features.region_of_interest_index(Sxx_dB_noNoise, tn, fn)
-        if ROIcover < threshold:
-            return True # Skip
-    return False
+#@display_time
+#def ROIfilter(audio, sr, threshold:float=0.01):
+#    EPS = np.finfo(float).eps
+#    Sxx_power,tn,fn,_ = maad.sound.spectrogram(audio, sr)
+#    Sxx_power[fn > 18000,:] = EPS # remove aliasing in high frequencies due to upsampling
+#    Sxx_power[fn < 200,:] = EPS # remove low frequencies
+#    if Sxx_power.max() > 0 :
+#        Sxx_noNoise= maad.sound.median_equalizer(Sxx_power) 
+#        Sxx_dB_noNoise = maad.util.power2dB(Sxx_noNoise)
+#        _, ROIcover = maad.features.region_of_interest_index(Sxx_dB_noNoise, tn, fn)
+#        if ROIcover < threshold:
+#            return True # Skip
+#    return False
 
 @display_time
 def split_signals(filepath, output_dir, signal_length=15, n_processes=None, args=None):
@@ -248,9 +248,9 @@ def split_signals(filepath, output_dir, signal_length=15, n_processes=None, args
         logging.error(error)
         raise Exception(error)
 
-    roicover = ROIfilter(sig, SAMPLE_RATE)
-    if roicover:
-        return None # Skip
+    #roicover = ROIfilter(sig, SAMPLE_RATE)
+    #if roicover:
+    #    return None # Skip
 
     sig_splits = [sig[i:i + int(signal_length * SAMPLE_RATE)] for i in range(0, len(sig), int(signal_length * SAMPLE_RATE)) if len(sig[i:i + int(signal_length * SAMPLE_RATE)]) == int(signal_length * SAMPLE_RATE)]
 

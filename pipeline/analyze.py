@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--slist', type=str, default=f'{current_dir}/inputs/list_sp_ml.csv', help='Path to the species list.')
 parser.add_argument('--i', type=str, default=f'{current_dir}/audio/test_bugg', required=True, help='Input audio sample.')
 parser.add_argument('--flist', type=str, default=None, help='Path to the filter list of species.')
+parser.add_argument('--deployment_id', type=str, default=None, required=True, help='Deployment id.')
 parser.add_argument('--device_id', type=str, default=None, required=True, help='Device id.')
 parser.add_argument('--country', type=str, default=None, help='Country')
 parser.add_argument('--lat', type=float, default=None, help='Latitude for geographic filtering.')
@@ -23,6 +24,7 @@ parser.add_argument('--model_checkpoint', type=str, default=None, help='Model ch
 
 
 def run(args, id="wabad"):
+    
     if not isinstance(args, PipelineSchema):
         args = PipelineSchema(**vars(args))
 
