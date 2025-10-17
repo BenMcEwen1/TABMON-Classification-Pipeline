@@ -15,8 +15,8 @@ DATASET_PATH = "/DYNI/tabmon/tabmon_data/proj_tabmon_NINA_NL"
 #DURATION = 60 # sec
 
 STEP = timedelta(minutes=15)
-START_DATE = datetime(2025, 3, 21)
-END_DATE = datetime(2025, 9, 21)
+START_DATE = datetime(2025, 8, 31)
+END_DATE = datetime(2025, 9, 22)
 
 
 COUNTRY_TO_FOLDER = {

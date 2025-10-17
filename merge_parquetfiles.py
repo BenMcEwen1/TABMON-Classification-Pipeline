@@ -6,11 +6,14 @@ from datetime import datetime
 ##merge parqet files per bugg per month
 
 data_path = "pipeline/outputs/predictions"
+#data_path = "pipeline/outputs/raw_predictions_2025-01_to_2025_07"
+
 output_path = "pipeline/outputs/merged_predictions"
 output_path_light = "pipeline/outputs/merged_predictions_light"
 
 
-MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"]
+#MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"]
+MONTH_SELECTION = ["2025-08"]
 
 
 META_DATA_PATH = "/DYNI/tabmon/tabmon_data/site_info.csv"
@@ -100,7 +103,7 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
 
         deploymentID_list = [ get_deploymentID(bugg_id, file_name) for file_name in merged_df['filename'] ]
 
-        merged_df.insert(1, "deployementID", deploymentID_list)
+        merged_df.insert(1, "deployment_id", deploymentID_list)
 
         merged_df.to_parquet(os.path.join(output_path, bugg_output_path, output_file), index=False)
 
