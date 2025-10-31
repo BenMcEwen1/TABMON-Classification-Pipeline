@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import os
 from datetime import datetime
+import numpy as np
 
 ##merge parqet files per bugg per month
 
@@ -47,6 +48,11 @@ def get_file_date(bugg_file_name):
     date = date.replace('_', ':')
     date = parse_date(date)
     return date
+
+def binary_entropy(p):
+    p = np.clip(p, 1e-12, 1 - 1e-12)  # Avoid log(0)
+    h = -p * np.log2(p) - (1 - p) * np.log2(1 - p)
+    return  h
 
 
 ERROR_LIST = []
@@ -95,20 +101,32 @@ def get_deploymentID(bugg_id, file_name):
 
 
 def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_file):
+
+        full_ouput_path =  os.path.join(output_path_light, bugg_output_path, output_file)
+
     #try:
         # Read and concatenate all Parquet files
         dataframes = [pd.read_parquet(os.path.join(bugg_path, file_name), engine='pyarrow') for file_name in file_list]
-        merged_df = pd.concat(dataframes, ignore_index=True)
-        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence", "uncertainty"] )
+        merged_df0 = pd.concat(dataframes, ignore_index=True)
+
+        
+        if os.path.exists(full_ouput_path):
+            existing_df = pd.read_parquet(full_ouput_path, engine='pyarrow')            
+            merged_df = pd.concat([merged_df0, existing_df], ignore_index=True)
+
+
+        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
 
         deploymentID_list = [ get_deploymentID(bugg_id, file_name) for file_name in merged_df['filename'] ]
 
         merged_df.insert(1, "deployment_id", deploymentID_list)
 
-        merged_df.to_parquet(os.path.join(output_path, bugg_output_path, output_file), index=False)
+        #merged_df.to_parquet(os.path.join(output_path, bugg_output_path, output_file), index=False)
+
 
         ## lighten the database
         merged_df = merged_df.drop('energy', axis=1)
+        merged_df = merged_df.drop('uncertainty', axis=1)
         merged_df = merged_df.drop('model', axis=1)
         merged_df = merged_df.drop('model_checkpoint', axis=1)
         merged_df = merged_df.drop('datetime', axis=1)
@@ -117,8 +135,15 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         merged_df = merged_df.drop('common name', axis=1)
         merged_df = merged_df[merged_df["confidence"] > 0.1]
         
+        #compute binary entropy
+        merged_df["H"] = binary_entropy(merged_df["confidence"].values)
+        #keep maximum binary entropy per sample
+        merged_df["max uncertainty"] = (merged_df.groupby(["filename", "start time"])["H"].transform("max"))
+        merged_df = merged_df.drop('H', axis=1)
+
+
         # Save to a new Parquet file
-        merged_df.to_parquet(os.path.join(output_path_light, bugg_output_path, output_file), index=False)
+        merged_df.to_parquet(full_ouput_path, index=False)
         
         print(f"Merged {len(file_list)} files into: {output_file}", flush=True)
     #   except Exception as e:

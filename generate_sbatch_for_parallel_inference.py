@@ -155,7 +155,7 @@ print(f" Inference will take on average {sum(chunk_sizes)/N_JOBS*23/60/60:.1f} h
 # === CREATE SBATCH FILE ===
 SBATCH_TEMPLATE = f"""#!/bin/bash
 #SBATCH --job-name=tabmon_pipeline
-#SBATCH --partition=all         
+#SBATCH --partition=besteffort         
 #SBATCH --output=slurm_output_files_{MONTH_PRINT}/slurm_output_%A_%a.out
 #SBATCH --array=0-{N_JOBS-1}
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
