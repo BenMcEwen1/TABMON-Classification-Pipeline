@@ -6,8 +6,8 @@ import numpy as np
 
 ##merge parqet files per bugg per month
 
-data_path = "pipeline/outputs/predictions"
-#data_path = "pipeline/outputs/raw_predictions_2025-01_to_2025_07"
+#data_path = "pipeline/outputs/predictions"
+data_path = "pipeline/outputs/raw_predictions_2025-01_to_2025_07"
 
 output_path = "pipeline/outputs/merged_predictions"
 output_path_light = "pipeline/outputs/merged_predictions_light"
@@ -87,7 +87,6 @@ def get_deploymentID(bugg_id, file_name):
         if file_date > deployment_start and file_date < deployment_end :
             deploymentIDs.append(meta_data_row["DeploymentID"])
             
-
     if len(deploymentIDs) == 1:
         deploymentID = deploymentIDs[0]
     elif len(deploymentIDs) > 1:
@@ -100,6 +99,7 @@ def get_deploymentID(bugg_id, file_name):
     return deploymentID
 
 
+
 def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_file):
 
         full_ouput_path =  os.path.join(output_path_light, bugg_output_path, output_file)
@@ -107,12 +107,12 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
     #try:
         # Read and concatenate all Parquet files
         dataframes = [pd.read_parquet(os.path.join(bugg_path, file_name), engine='pyarrow') for file_name in file_list]
-        merged_df0 = pd.concat(dataframes, ignore_index=True)
+        merged_df = pd.concat(dataframes, ignore_index=True)
 
         
         if os.path.exists(full_ouput_path):
             existing_df = pd.read_parquet(full_ouput_path, engine='pyarrow')            
-            merged_df = pd.concat([merged_df0, existing_df], ignore_index=True)
+            merged_df = pd.concat([merged_df, existing_df], ignore_index=True)
 
 
         merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
@@ -133,8 +133,10 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         merged_df = merged_df.drop('lat', axis=1)
         merged_df = merged_df.drop('lng', axis=1)
         merged_df = merged_df.drop('common name', axis=1)
+        merged_df = merged_df.drop('rank', axis=1)
         merged_df = merged_df[merged_df["confidence"] > 0.1]
-        
+
+
         #compute binary entropy
         merged_df["H"] = binary_entropy(merged_df["confidence"].values)
         #keep maximum binary entropy per sample
