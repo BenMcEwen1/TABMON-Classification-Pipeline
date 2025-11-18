@@ -9,12 +9,12 @@ import numpy as np
 #data_path = "pipeline/outputs/predictions"
 data_path = "pipeline/outputs/raw_predictions_2025-01_to_2025_07"
 
-output_path = "pipeline/outputs/merged_predictions"
-output_path_light = "pipeline/outputs/merged_predictions_light"
+#output_path = "pipeline/outputs/merged_predictions"
+OUTPUT_PATH_LIGHT = "pipeline/outputs/merged_predictions_light"
 
 
-#MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"]
-MONTH_SELECTION = ["2025-08"]
+MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09"]
+#MONTH_SELECTION = 
 
 
 META_DATA_PATH = "/DYNI/tabmon/tabmon_data/site_info.csv"
@@ -102,27 +102,16 @@ def get_deploymentID(bugg_id, file_name):
 
 def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_file):
 
-        full_ouput_path =  os.path.join(output_path_light, bugg_output_path, output_file)
 
     #try:
         # Read and concatenate all Parquet files
         dataframes = [pd.read_parquet(os.path.join(bugg_path, file_name), engine='pyarrow') for file_name in file_list]
         merged_df = pd.concat(dataframes, ignore_index=True)
 
-        
-        if os.path.exists(full_ouput_path):
-            existing_df = pd.read_parquet(full_ouput_path, engine='pyarrow')            
-            merged_df = pd.concat([merged_df, existing_df], ignore_index=True)
-
-
-        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
-
         deploymentID_list = [ get_deploymentID(bugg_id, file_name) for file_name in merged_df['filename'] ]
-
         merged_df.insert(1, "deployment_id", deploymentID_list)
 
         #merged_df.to_parquet(os.path.join(output_path, bugg_output_path, output_file), index=False)
-
 
         ## lighten the database
         merged_df = merged_df.drop('energy', axis=1)
@@ -136,13 +125,20 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         merged_df = merged_df.drop('rank', axis=1)
         merged_df = merged_df[merged_df["confidence"] > 0.1]
 
-
         #compute binary entropy
         merged_df["H"] = binary_entropy(merged_df["confidence"].values)
         #keep maximum binary entropy per sample
         merged_df["max uncertainty"] = (merged_df.groupby(["filename", "start time"])["H"].transform("max"))
         merged_df = merged_df.drop('H', axis=1)
 
+        full_ouput_path =  os.path.join(OUTPUT_PATH_LIGHT, bugg_output_path, output_file)
+
+        if os.path.exists(full_ouput_path):
+            existing_df = pd.read_parquet(full_ouput_path, engine='pyarrow')            
+            merged_df = pd.concat([merged_df, existing_df], ignore_index=True)
+
+
+        merged_df = merged_df.drop_duplicates(subset = ["filename", "start time", "scientific name", "confidence"] )
 
         # Save to a new Parquet file
         merged_df.to_parquet(full_ouput_path, index=False)
@@ -150,7 +146,6 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         print(f"Merged {len(file_list)} files into: {output_file}", flush=True)
     #   except Exception as e:
     #   print(f"Error: {e}")
-
 
 
 
@@ -180,8 +175,8 @@ if __name__ == "__main__":
                     file_list_month = [ fname for fname in file_list if fname.startswith(month)]
                     bugg_path = os.path.join(data_path, country_folder,bugg_folder )
                     bugg_output_path = os.path.join(country_folder, bugg_folder)
-                    os.makedirs(os.path.join(output_path, bugg_output_path), exist_ok=True)
-                    os.makedirs(os.path.join(output_path_light, bugg_output_path), exist_ok=True)
+                    #os.makedirs(os.path.join(output_path, bugg_output_path), exist_ok=True)
+                    os.makedirs(os.path.join(OUTPUT_PATH_LIGHT, bugg_output_path), exist_ok=True)
 
                     output_file = f"{month}_{bugg_id}.parquet"
 

@@ -14,7 +14,7 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 
 
 #Already processed : "2025-01 to 09"
-MONTH_SELECTION = ["2025-09"]
+MONTH_SELECTION = ["2025-10"]
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
 #USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
@@ -149,7 +149,7 @@ for index, meta_data_row in META_DATA_DF.iterrows():
 
    
 print(f"Split {MONTH_SELECTION} : {sum(chunk_sizes)} files into {N_JOBS} chunks (one per deploymentID).")
-print(f" Inference will take on average {sum(chunk_sizes)/N_JOBS*23/60/60:.1f} hours per job" )
+print(f" Inference will take on average {sum(chunk_sizes)/N_JOBS*8/60/60:.1f} hours per job" )
 
 
 # === CREATE SBATCH FILE ===
