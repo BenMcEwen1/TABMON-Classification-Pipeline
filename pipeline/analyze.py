@@ -30,7 +30,6 @@ def run(args, id="wabad"):
 
     # Run the algorithm
     _, predictions = run_algorithm(args, id)
-    print(predictions)
 
     if predictions is None:
         print(f"Skipping audio file {args.i}")
