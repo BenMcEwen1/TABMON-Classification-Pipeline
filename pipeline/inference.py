@@ -2,58 +2,10 @@ from pipeline.util import *
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-@display_time
-def renormalizedEntropy(outputs:torch.tensor, top_k:int=5):
-    uncertainty = []
-
-    for confidences in outputs:
-        if isinstance(top_k, int):
-            confidences = torch.topk(confidences, k=top_k)
-            confidences = confidences[0]
-        
-        # Normalize the confidence scores to sum to 1 (if not already normalized)
-        confidences = confidences / torch.sum(confidences)
-        entropy = -torch.sum(confidences * torch.log(confidences + 1e-10))
-        num_classes = len(confidences)
-        max_entropy = torch.log(torch.tensor(num_classes))
-        
-        # Normalize the entropy
-        normalized_entropy = entropy / max_entropy
-        uncertainty.append(normalized_entropy.item())
-    return uncertainty
-
-def uncertaintySTD(outputs:torch.tensor, normalise:bool=True, top_k:int=5):
-    """
-    Calculate the standard deviation of the output probabilities as a measure of uncertainty.
-    Parameters
-    ----------
-    outputs : tensor
-        Output of the model
-    normalise : bool, optional
-        If set to True, normalise the uncertainty values between 0 and 1, by default True
-    top_k : int, optional
-        If set to an integer, only consider the top k values of the output probabilities, by default 5
-    Returns
-    -------
-    List of uncertainties per batch
-    """
-    uncertainty = []
-
-    for p in outputs:
-        if isinstance(top_k, int):
-            p = torch.topk(p, k=top_k)
-            p = p[0]
-        uncertainty.append(torch.std(p).item())
-
-    if normalise:
-        max_entropy = torch.log(torch.tensor(len(p)))
-        uncertainty = [1-(x/max_entropy.item()) for x in uncertainty]
-    return uncertainty
-
 def binaryEntropy(outputs: torch.Tensor, eps=1e-8):
     entropy = -(outputs * torch.log2(outputs + eps) + (1 - outputs) * torch.log2(1 - outputs + eps))
     entropy = torch.nan_to_num(entropy) 
-    per_sample_entropy = entropy.mean(dim=1)
+    per_sample_entropy = entropy.max(dim=1).values
     return per_sample_entropy.tolist()
 
 

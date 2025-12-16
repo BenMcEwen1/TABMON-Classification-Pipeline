@@ -15,7 +15,7 @@ Install dependencies `pip install -r requirements.txt`
 Place audio into `audio/` directory and specify directory to analyze `--i` relative to `analyze.py` i.e. `audio/<data>/`.
 After installing dependencies run:
 ```
-python -m pipeline.analyze --i audio/<data> --model_name birdnet --device_id <id>
+python -m pipeline.analyze --i audio/<data> --model_name birdnet --device_id <id> --deployment_id <id>
 ```
 Both 'birdnet', 'fc' and 'passt' models are setup.
 

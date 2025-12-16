@@ -4,18 +4,21 @@ ENABLE_PROFILING = False  # Toggle this to enable/disable timing
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-def get_species_list(recording_lat, recording_long):
-    "Concert WGS84 lat-lon to MGRS UTM coordinates"
+def get_species_list():
+    "Filter species based on fixed MGRS codes in rectangle 29W to 35S"
 
     # Load occurances data from csv file
     file_path = "./pipeline/inputs/ebba2_data_occurrence_50km.csv"
     df = pd.read_csv(file_path, delimiter=';')
-    
-    m = mgrs.MGRS()
-    c = m.toMGRS(recording_lat, recording_long)
 
-    input_code = c[0:3] 
-    filtered_df = df[df['cell50x50'].str.startswith(input_code)]
+    # Define all MGRS 3-digit codes in the rectangle 29W (top-left) to 35S (bottom-right)
+    zones = [29, 30, 31, 32, 33, 34, 35]
+    latitude_bands = ['W', 'V', 'U', 'T', 'S']
+
+    mgrs_codes = [f"{zone}{band}" for zone in zones for band in latitude_bands]
+
+    # Filter dataframe to include only rows with MGRS codes in our list
+    filtered_df = df[df['cell50x50'].str[:3].isin(mgrs_codes)]
     species_list = pd.DataFrame(filtered_df['birdlife_scientific_name'].drop_duplicates())
     return species_list
 
@@ -276,7 +279,7 @@ def load_species_list(path):
 def setup_filtering(lat, lon, add_filtering, flist, species_list):
     """Setup filtering based on geographic location."""
     if lat != None and lon != None:
-        filtering_list_series = get_species_list(lat, lon)
+        filtering_list_series = get_species_list() # No longer requires lat/lon, 6522 -> 480 
         filtering_list = filtering_list_series['birdlife_scientific_name'].tolist()
     elif not add_filtering:
         filtering_list = None
