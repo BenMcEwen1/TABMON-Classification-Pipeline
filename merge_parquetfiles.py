@@ -6,15 +6,14 @@ import numpy as np
 
 ##merge parqet files per bugg per month
 
-#data_path = "pipeline/outputs/predictions"
-data_path = "pipeline/outputs/raw_predictions_2025-01_to_2025_07"
+data_path = "pipeline/outputs/predictions"
+#data_path = "pipeline/outputs/raw_predictions_2025-01_to_2025_07"
 
 #output_path = "pipeline/outputs/merged_predictions"
 OUTPUT_PATH_LIGHT = "pipeline/outputs/merged_predictions_light"
 
 
-MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09"]
-#MONTH_SELECTION = 
+MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"]
 
 
 META_DATA_PATH = "/DYNI/tabmon/tabmon_data/site_info.csv"
@@ -109,20 +108,29 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
         merged_df = pd.concat(dataframes, ignore_index=True)
 
         deploymentID_list = [ get_deploymentID(bugg_id, file_name) for file_name in merged_df['filename'] ]
-        merged_df.insert(1, "deployment_id", deploymentID_list)
+
+        if "deployment_id" in merged_df:
+            if merged_df["deployment_id"].tolist() != deploymentID_list:
+                print("deployment_id do not match")
+                print(merged_df["deployment_id"].tolist())
+                print(deploymentID_list)
+                merged_df["deployment_id"] = deploymentID_list
+
+        else:
+            merged_df.insert(1, "deployment_id", deploymentID_list)
 
         #merged_df.to_parquet(os.path.join(output_path, bugg_output_path, output_file), index=False)
 
         ## lighten the database
-        merged_df = merged_df.drop('energy', axis=1)
-        merged_df = merged_df.drop('uncertainty', axis=1)
-        merged_df = merged_df.drop('model', axis=1)
-        merged_df = merged_df.drop('model_checkpoint', axis=1)
-        merged_df = merged_df.drop('datetime', axis=1)
-        merged_df = merged_df.drop('lat', axis=1)
-        merged_df = merged_df.drop('lng', axis=1)
-        merged_df = merged_df.drop('common name', axis=1)
-        merged_df = merged_df.drop('rank', axis=1)
+        merged_df = merged_df.drop('energy', axis=1, errors='ignore')
+        merged_df = merged_df.drop('uncertainty', axis=1, errors='ignore')
+        merged_df = merged_df.drop('model', axis=1, errors='ignore')
+        merged_df = merged_df.drop('model_checkpoint', axis=1, errors='ignore')
+        merged_df = merged_df.drop('datetime', axis=1, errors='ignore')
+        merged_df = merged_df.drop('lat', axis=1, errors='ignore')
+        merged_df = merged_df.drop('lng', axis=1,errors='ignore')
+        merged_df = merged_df.drop('common name', axis=1, errors='ignore')
+        merged_df = merged_df.drop('rank', axis=1, errors='ignore')
         merged_df = merged_df[merged_df["confidence"] > 0.1]
 
         #compute binary entropy
@@ -152,7 +160,6 @@ def merge_parquet_files(bugg_id, bugg_path, file_list, bugg_output_path, output_
 if __name__ == "__main__":
 
     country_folder_list = [f for f in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, f))]
-
     print(country_folder_list)
 
     for country_folder in country_folder_list:
