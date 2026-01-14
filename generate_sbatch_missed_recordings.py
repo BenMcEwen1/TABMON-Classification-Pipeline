@@ -15,7 +15,7 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 
 INDEX_PATH = "/DYNI/tabmon/tabmon_data/index.parquet"
 
-MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"]
+MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"]
 
 DATASET_PATH = "/DYNI/tabmon/tabmon_data" 
 PIPE_LINE_PATH = "./"

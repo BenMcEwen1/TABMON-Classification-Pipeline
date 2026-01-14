@@ -81,7 +81,7 @@ class ParquetDatabase:
                     filename,
                     "start time" as start_time,
                     3 as duration,
-                    MAX(uncertainty) as uncertainty,
+                    MAX("max uncertainty") as uncertainty,
                 FROM all_data
                 GROUP BY filename, "start time"
             """)
@@ -186,7 +186,7 @@ class ParquetDatabase:
         if getattr(filters, 'query_limit', None):
             order_clause = "ORDER BY RANDOM()"
             if filters.stratified:
-                limit_clause = f"LIMIT {2*filters.query_limit}"
+                limit_clause = f"LIMIT {5*filters.query_limit}"
             else:
                 limit_clause = f"LIMIT {filters.query_limit}"
 

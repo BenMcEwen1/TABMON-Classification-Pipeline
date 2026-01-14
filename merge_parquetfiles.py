@@ -13,7 +13,7 @@ data_path = "pipeline/outputs/predictions"
 OUTPUT_PATH_LIGHT = "pipeline/outputs/merged_predictions_light"
 
 
-MONTH_SELECTION = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"]
+MONTH_SELECTION = ["2025-12"] #["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"]
 
 
 META_DATA_PATH = "/DYNI/tabmon/tabmon_data/site_info.csv"

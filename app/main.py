@@ -139,7 +139,7 @@ def export(
     annotator["Predictions"] = annotator["Predictions"].apply(flatten_array)
 
     EMBEDDING_DIR = "./pipeline/outputs/embeddings/"
-    SEGMENT_DIR = "./pipeline/outputs/segments/"
+    #SEGMENT_DIR = "./pipeline/outputs/segments/"
     EXPORT_DIR = "./pipeline/outputs/exports/"
     DATASET_PATH =  "/DYNI/tabmon/tabmon_data"
     timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -148,7 +148,7 @@ def export(
 
     prefix = "audio"
     
-    PADDING = 3 # seconds (before and after samples)
+    PADDING = 4 # seconds (before and after samples)
     zip_path = select_samples_from_recordings(filters, annotator, PADDING, EXPORT_DIR, DATASET_PATH)
     
     if zip_path:
