@@ -156,6 +156,7 @@ class ParquetDatabase:
         partition_filters = []
         regular_filters = []
         having_clause = ""
+        not_having_clause = ""
 
         if filters:
             if getattr(filters, 'device_id', None):
@@ -165,6 +166,9 @@ class ParquetDatabase:
             if getattr(filters, 'predicted_species', None):
                 species_filter = filters.predicted_species
                 having_clause = f"HAVING LIST_HAS(ARRAY_AGG(p.predicted_species), '{species_filter}')"
+            if getattr(filters, 'filtered_species', None):
+                filtered_species_filter = filters.filtered_species
+                not_having_clause = f"HAVING NOT LIST_HAS(ARRAY_AGG(p.predicted_species), '{filtered_species_filter}')"   
             if getattr(filters, 'confidence', None):
                 regular_filters.append(f"p.confidence > {filters.confidence}")
             if getattr(filters, 'uncertainty', None):
@@ -190,6 +194,8 @@ class ParquetDatabase:
             else:
                 limit_clause = f"LIMIT {filters.query_limit}"
 
+        print(filters)
+
         main_query = f"""
             SELECT 
                 s.*, 
@@ -209,6 +215,7 @@ class ParquetDatabase:
                 a.filename, a.date_recorded,
                 d.device_id, d.country
             {having_clause}
+            {not_having_clause}
             {order_clause}
             {limit_clause}
         """

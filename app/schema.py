@@ -9,6 +9,7 @@ class Filter(BaseModel):
     deployment_id: Optional[str] = None
     device_id: Optional[str] = None
     predicted_species: Optional[str] = None
+    filtered_species: Optional[str] = None
     confidence: Optional[float] = None
     uncertainty: Optional[float] = None
     energy: Optional[float] = None
