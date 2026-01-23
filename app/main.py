@@ -130,6 +130,7 @@ def export(
                               "Sample_filename": filenames,
                               "Predictions": results_df["predicted_species_list"], 
                               "Confidence": results_df["confidence_list"],
+                              "Uncertainty": results_df["uncertainty"]
                               })
     
     import numpy as np

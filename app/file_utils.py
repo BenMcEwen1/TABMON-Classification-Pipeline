@@ -212,7 +212,6 @@ def stratify_balanced_with_min(data, min_samples=10, max_samples=100, metric="kl
 
 
 def select_samples_from_recordings(filters, export_df, padding, export_path, dataset_path) :
-
     step = 2
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     csv_file = f"export_{timestamp}.csv"
@@ -231,6 +230,9 @@ def select_samples_from_recordings(filters, export_df, padding, export_path, dat
     os.makedirs(os.path.join(export_path, export_folder  ))
     shutil.copyfile(os.path.join(export_path, csv_file), os.path.join(export_path, export_folder, csv_file))
 
+    path_list = []
+    user_id = []
+
     for index, row in tqdm(export_df.iterrows(), total=export_df.shape[0]):
         country_folder  = country_to_folder[row["Country"]]
         bugg_folder = bugg_id_to_folder(row["Device_id"])
@@ -241,6 +243,9 @@ def select_samples_from_recordings(filters, export_df, padding, export_path, dat
         for conf_folder in conf_folder_list:
             
             recording_path = os.path.join(bugg_path, conf_folder, row["Filename"])
+
+            base_path = os.path.join(country_folder, bugg_folder, conf_folder, row["Filename"])
+            path_list.append(base_path)
 
             if os.path.exists(recording_path):
 
@@ -262,6 +267,14 @@ def select_samples_from_recordings(filters, export_df, padding, export_path, dat
                 os.remove(temp_wav)
             else:
                 print(recording_path, "does not exist.")
+    step += 1
+
+    print(f"[Step {step}] Add parquet for Listening Lab...")
+    annotator_parquet = export_df
+    annotator_parquet["path"] = path_list
+    annotator_parquet["user_id"] = np.nan # Placeholder for now
+    annotator_parquet.to_parquet(f"./{export_folder}.parquet")
+    shutil.copyfile(os.path.join(f"./{export_folder}.parquet"), os.path.join(export_path, export_folder, f'{export_folder}.parquet'))
     step += 1
 
     print(f"[Step {step}] Exporting metadata...", end="")
