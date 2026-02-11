@@ -116,9 +116,9 @@ class SegmentWithPredictions(SegmentSchema):
 class PipelineSchema(BaseModel):
     slist: str = 'pipeline/inputs/list_sp_ml.csv'
     flist: Optional[str] = None
-    i: str = 'audio/brambling'
-    deployment_id: str
-    device_id: str
+    i: str = 'audio/demo'
+    deployment_id: Optional[str] = None
+    device_id: Optional[str] = None
     country: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None

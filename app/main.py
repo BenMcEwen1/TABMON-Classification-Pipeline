@@ -8,6 +8,7 @@ from app.file_utils import find_audio_file, create_zip_archive, find_embedding_f
 from pipeline.analyze import run
 from pipeline.util import load_species_list
 
+from dotenv import load_dotenv
 from datetime import datetime
 import time
 import os
@@ -15,7 +16,9 @@ from typing import Optional
 import json
 import pandas as pd
 import csv
+import numpy as np
 
+load_dotenv()
 
 app = FastAPI(title="TABMON API", description="Bird sound classification API")
 
@@ -28,7 +31,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-db_instance = ParquetDatabase()
+AUDIO_DIR = os.environ.get("AUDIO_DIR", "./audio/demo")
+DATABASE_DIR = os.environ.get("DATABASE_DIR", "./pipeline/outputs/demo")
+db_instance = ParquetDatabase(parquet_dir=DATABASE_DIR)
 
 def get_db():
     return db_instance
@@ -133,7 +138,7 @@ def export(
                               "Uncertainty": results_df["uncertainty"]
                               })
     
-    import numpy as np
+    
     def flatten_array(x):
         if isinstance(x, (list, np.ndarray)):
             return ", ".join(x)  # comma-separated string
@@ -141,10 +146,7 @@ def export(
 
     annotator["Predictions"] = annotator["Predictions"].apply(flatten_array)
 
-    EMBEDDING_DIR = "./pipeline/outputs/embeddings/"
-    #SEGMENT_DIR = "./pipeline/outputs/segments/"
     EXPORT_DIR = "./pipeline/outputs/exports/"
-    DATASET_PATH =  "/DYNI/tabmon/tabmon_data"
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     os.makedirs(EXPORT_DIR, exist_ok=True)
@@ -152,7 +154,7 @@ def export(
     prefix = "audio"
     
     PADDING = 4 # seconds (before and after samples)
-    zip_path = select_samples_from_recordings(filters, annotator, PADDING, EXPORT_DIR, DATASET_PATH)
+    zip_path = select_samples_from_recordings(filters, annotator, PADDING, EXPORT_DIR, AUDIO_DIR)
     
     if zip_path:
         return FileResponse(zip_path, filename=f"{prefix}_{timestamp}.zip", media_type="application/zip")

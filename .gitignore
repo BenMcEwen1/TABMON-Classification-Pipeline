@@ -1,14 +1,6 @@
 __pycache__
-testing/
-wandb/
-audio/
-delete/
-outputs_old/
-app/*.csv
-app/templates/
-app/*.md
-pipeline/outputs/
-pipeline/outputs*/
+.venv/
+
 *.pt
 *.log
 *.wav
@@ -28,7 +20,23 @@ pipeline/outputs*/
 *.sql
 *.parquet
 *.tar
-outputs/
+
+testing/
+wandb/
+audio/*
+# !audio/demo/
+# !audio/demo/**
+
+delete/
+outputs_old/
+app/*.csv
+app/templates/
+app/*.md
+pipeline/outputs/*
+!pipeline/outputs/demo
+!pipeline/outputs/demo/**
+
+
 chunk_files*/
 chunk_files.zip
 slurm_output*/

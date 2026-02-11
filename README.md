@@ -19,6 +19,8 @@ python -m pipeline.analyze --i audio/<data> --model_name birdnet --device_id <id
 ```
 Both 'birdnet', 'fc' and 'passt' models are setup.
 
+#### Demo Data
+A small demo dataset is provided. The pipeline can be run using `python -m pipeline.analyze --i audio/demo`.
 
 ### Database Setup
 The pipeline can also be run using a FastAPI server which stores predictions in an SQL database.
@@ -28,5 +30,12 @@ To *start the server* run:
 fastapi dev app/main.py
 ```
 The database can be queried using the FastAPI /docs at http://localhost:8000/docs.
+
+![TABMON API](docs/tabmon_api.JPG)
+
+Demo data is available by default to test the API functionality. Model predictions can be queried using the export endpoint (shown below).
+
+![TABMON screenshot](docs/export_api.JPG)
+
 
 ---
