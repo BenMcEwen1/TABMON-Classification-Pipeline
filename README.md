@@ -26,7 +26,10 @@ python -m pipeline.analyze --i audio/<data> --model_name birdnet --device_id <id
 Both 'birdnet', 'fc' and 'passt' models are setup.
 
 #### Demo Data
-A small demo dataset is provided. The pipeline can be run using `python -m pipeline.analyze --i audio/demo`.
+A demo dataset is provided. The pipeline can be run using: 
+```
+python -m pipeline.analyze --i audio/demo
+```
 
 ### Database Setup
 The pipeline can also be run using a FastAPI server which stores predictions in an SQL database.
