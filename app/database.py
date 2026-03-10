@@ -5,7 +5,7 @@ from datetime import datetime
 
 class ParquetDatabase:
     
-    def __init__(self, parquet_dir="./pipeline/outputs/merged_predictions_light"):
+    def __init__(self, parquet_dir="./pipeline/outputs/demo"):
         self.parquet_dir = parquet_dir
         self.con = duckdb.connect(database=":memory:")
         os.makedirs(parquet_dir, exist_ok=True)
