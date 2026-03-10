@@ -190,7 +190,7 @@ class ParquetDatabase:
         if getattr(filters, 'query_limit', None):
             order_clause = "ORDER BY RANDOM()"
             if filters.stratified:
-                limit_clause = f"LIMIT {5*filters.query_limit}"
+                limit_clause = f"LIMIT {100*filters.query_limit}"
             else:
                 limit_clause = f"LIMIT {filters.query_limit}"
 

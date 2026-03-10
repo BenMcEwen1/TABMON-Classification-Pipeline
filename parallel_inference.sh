@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=tabmon_pipeline
 #SBATCH --partition=besteffort         
-#SBATCH --output=slurm_output_files_2025-12/slurm_output_%A_%a.out
-#SBATCH --array=0,1,2,3,4,5,6,7,9,17,18
+#SBATCH --output=slurm_output_files_2026-01/slurm_output_%A_%a.out
+#SBATCH --array=13-41
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
 #SBATCH --cpus-per-task=2  
 #SBATCH --nodes=1                
 #SBATCH --mem-per-cpu=4G        
 #SBATCH --time=7-00:00:00    
-  
+#SBATCH --exclude=ia4du1   
 
 echo "Executing on the machine:" $(hostname)
 echo "Number of nodes allocated: $SLURM_JOB_NUM_NODES"
@@ -16,5 +16,5 @@ echo "Number of tasks: $SLURM_NTASKS"
 echo "Number of CPUs per task: $SLURM_CPUS_PER_TASK"
 echo "Processing chunk $SLURM_ARRAY_TASK_ID"
 
-# Pass additional parameters
-python inference_parallel.py chunk_files_2025-12/file_chunks_$SLURM_ARRAY_TASK_ID.txt 
+# Pass additional parameters -array=0-41
+python inference_parallel.py chunk_files_2026-01/file_chunks_$SLURM_ARRAY_TASK_ID.txt 

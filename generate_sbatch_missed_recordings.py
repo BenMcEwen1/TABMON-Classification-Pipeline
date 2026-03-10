@@ -76,6 +76,22 @@ def get_stored_files(index_path, month_selection):
     return all_stored_files
 
 
+
+def get_stored_files_bugg(index_path, month_selection, bugg_id):
+    index_df = pd.read_parquet(index_path, engine='pyarrow')
+    index_df = index_df[index_df["MimeType"]=='audio/mpeg']
+    index_df = index_df[list(map(lambda x: x.startswith('bugg_RPiID'), index_df['device']))]
+
+    index_df["month"] = index_df.apply(lambda row: get_file_year_month(row['Name']), axis=1)
+    index_df = index_df[index_df["month"].isin(month_selection)]
+    index_df = index_df[list(map(lambda x: x.endswith(bugg_id), index_df['device']))]
+    
+    bugg_stored_file = list(map(lambda x: os.path.join(DATASET_PATH,x), index_df['Path']))
+
+    #all_stored_files = index_df["Path"].tolist()
+    return bugg_stored_files
+
+
 def get_analyzed_files(chunk_path):
 
     chunk_folder_list = [f for f in os.listdir(chunk_path) if f.startswith("chunk_files") and os.path.isdir(f)]
@@ -163,7 +179,6 @@ if __name__ == "__main__":
         else :
             deployment_end = datetime.strptime(f"{end_date} {end_time}", "%d/%m/%Y %H:%M:%S")
 
-        
 
         filtered_missed_files = [f for f in missed_files if deployment_filter(f, bugg_ID, deployment_start, deployment_end)]
 
@@ -173,6 +188,12 @@ if __name__ == "__main__":
 
         print(deploymentID, cluster_name, site_name, len(data), "missing files")
         files_data.extend(data)
+
+        if country=="France":
+            bugg_stored_files = get_stored_files_bugg(INDEX_PATH, MONTH_SELECTION, bugg_ID)
+            print(len(bugg_stored_files), "files in total for", bugg_ID)
+
+
 
 
     # === SPLIT FILES INTO CHUNKS ===
@@ -211,7 +232,7 @@ SBATCH_TEMPLATE = f"""#!/bin/bash
 #SBATCH --nodes=1                
 #SBATCH --mem-per-cpu=4G        
 #SBATCH --time=7-00:00:00    
-
+#SBATCH --exclude=ia4du1
 
 echo "Executing on the machine:" $(hostname)
 echo "Number of nodes allocated: $SLURM_JOB_NUM_NODES"

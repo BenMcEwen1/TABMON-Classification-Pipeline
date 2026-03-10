@@ -220,7 +220,7 @@ def select_samples_from_recordings(filters, export_df, padding, export_path, dat
     if filters.stratified:
         print(f"[Step {step}] Stratifying results...", end="")
         start = time.time()
-        export_df = stratify_balanced_with_min(export_df, min_samples=2, max_samples=filters.query_limit)
+        export_df = stratify_balanced_with_min(export_df, min_samples=4, max_samples=filters.query_limit)
         print(f" Complete [{(time.time() - start):.2f} s]")
         step += 1
 

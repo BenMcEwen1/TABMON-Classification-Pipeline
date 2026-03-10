@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=tabmon_pipeline_missed
 #SBATCH --partition=besteffort         
-#SBATCH --output=slurm_output_files_missed_at_2025-11-19_resume/slurm_output_%A_%a.out
-#SBATCH --array=2,5,8,9,10,11
+#SBATCH --output=slurm_output_files_missed_at_2026-01-15/slurm_output_%A_%a.out
+#SBATCH --array=0-2
 #SBATCH --gres=gpu:1  # Request 1 GPU per job
 #SBATCH --cpus-per-task=2  
 #SBATCH --nodes=1                
@@ -17,4 +17,4 @@ echo "Number of CPUs per task: $SLURM_CPUS_PER_TASK"
 echo "Processing chunk $SLURM_ARRAY_TASK_ID"
 
 # Pass additional parameters
-python inference_parallel.py chunk_files_missed_at_2025-11-19_resume/file_chunks_$SLURM_ARRAY_TASK_ID.txt 
+python inference_parallel.py chunk_files_missed_at_2026-01-15/file_chunks_$SLURM_ARRAY_TASK_ID.txt 

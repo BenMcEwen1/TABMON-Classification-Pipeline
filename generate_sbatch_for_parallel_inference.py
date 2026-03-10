@@ -13,8 +13,8 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 #N_JOBS = Number of parallel jobs, now number of deployements
 
 
-#Already processed : "2025-01 to 11"
-MONTH_SELECTION = ["2025-12"]
+#Already processed : "2025-01 to 13"
+MONTH_SELECTION = ["2026-01"]
 
 # useless [bugg ID - conf_name]  deployed in 2024 with the mic problem
 #USELESS_BUGGS = [["49662376", "conf_20240314_TABMON"], ["23646e76", "conf_20240314_TABMON"], ["ed9fc668", "conf_20240314_TABMON"], ["add20a52", "conf_20240314_TABMON"], ["3a6c5dee", "conf_20240314_TABMON"]] 
@@ -163,7 +163,7 @@ SBATCH_TEMPLATE = f"""#!/bin/bash
 #SBATCH --nodes=1                
 #SBATCH --mem-per-cpu=4G        
 #SBATCH --time=7-00:00:00    
-  
+#SBATCH --exclude=ia4du1  
 
 echo "Executing on the machine:" $(hostname)
 echo "Number of nodes allocated: $SLURM_JOB_NUM_NODES"
